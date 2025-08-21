@@ -36,7 +36,7 @@ h1{font-size:28px;margin:0 0 12px}
     <div class="grid">
       <input id="qName"  class="input"  placeholder="ค้นหาชื่อ เช่น สมชาย ใจดี"/>
       <input id="qTable" class="input"  placeholder="เลขโต๊ะ เช่น 12" inputmode="numeric"/>
-      <input id="qOrg"   class="input"  placeholder="หน่วยงาน เช่น กองวิชาการ"/>
+      <select id="qOrg"><option value="">— เลือกหน่วยงาน —</option></select>
       <select id="qType"><option value=''>— เลือกประเภท —</option></select>
     </div>
     <div class="row">
@@ -53,11 +53,19 @@ const DATA = [{"name": "นายยงยศ ธรรมวุฒิ", "org": 
 function norm(s){ return (s||'').toLowerCase().normalize('NFC').replace(/\([^)]*\)/g,'').replace(/\s+/g,'').replace(/[​-‍﻿]/g,''); }
 const items = DATA.map(x=>({name:x.name, org:x.org||'', type:x.type||'', table:String(x.table).replace(/\D+/g,''), k:norm(x.name)})).filter(x=>x.name&&x.table);
 
-// Build type options
-const types=[...new Set(items.map(x=>x.type).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'th'));
-const $type=document.getElementById('qType'); for(const t of types){const o=document.createElement('option');o.value=t;o.textContent=t;$type.appendChild(o);}
+// Build dropdowns (org + type)
+const orgs=[...new Set(items.map(x=>x.org).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'th'));
+const $org=document.getElementById('qOrg');
+for(const o of orgs){ const opt=document.createElement('option'); opt.value=o; opt.textContent=o; $org.appendChild(opt); }
 
-const $name=document.getElementById('qName'); const $table=document.getElementById('qTable'); const $org=document.getElementById('qOrg'); const $result=document.getElementById('result'); const $stats=document.getElementById('stats');
+const types=[...new Set(items.map(x=>x.type).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'th'));
+const $type=document.getElementById('qType');
+for(const t of types){ const opt=document.createElement('option'); opt.value=t; opt.textContent=t; $type.appendChild(opt); }
+
+const $name=document.getElementById('qName'); 
+const $table=document.getElementById('qTable'); 
+const $result=document.getElementById('result'); 
+const $stats=document.getElementById('stats');
 
 function render(list){
   $result.innerHTML=list.map(r=>{
@@ -76,15 +84,26 @@ function render(list){
 }
 
 function search(){
-  const k=norm($name.value); const t=($table.value||'').replace(/\D+/g,''); const o=($org.value||'').toLowerCase(); const ty=$type.value||'';
-  let out=items; if(k) out=out.filter(x=>x.k.includes(k)); if(t) out=out.filter(x=>x.table===t); if(o) out=out.filter(x=>(x.org||'').toLowerCase().includes(o)); if(ty) out=out.filter(x=>x.type===ty);
+  const k=norm($name.value); 
+  const t=($table.value||'').replace(/\D+/g,''); 
+  const o=$org.value||''; 
+  const ty=$type.value||'';
+  let out=items; 
+  if(k)  out=out.filter(x=>x.k.includes(k));
+  if(t)  out=out.filter(x=>x.table===t);
+  if(o)  out=out.filter(x=>x.org===o);
+  if(ty) out=out.filter(x=>x.type===ty);
   render(out.slice(0,800));
 }
 
 document.getElementById('clear').onclick = ()=>{$name.value='';$table.value='';$org.value='';$type.value='';search();};
 document.getElementById('download').onclick = ()=>{ const header=['ชื่อ','หน่วยงาน','ประเภท','เลขโต๊ะ']; const rows=items.map(r=>[r.name,r.org,r.type,r.table]); const csv=[header.join(',')].concat(rows.map(r=>r.map(x=>'"'+String(x).replace(/"/g,'""')+'"').join(','))).join('\n'); const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'}); const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download='seating_export.csv'; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url); };
 
-$name.addEventListener('input', search); $table.addEventListener('input', search); $org.addEventListener('input', search); $type.addEventListener('change', search);
+document.getElementById('qName').addEventListener('input', search);
+document.getElementById('qTable').addEventListener('input', search);
+document.getElementById('qOrg').addEventListener('change', search);
+document.getElementById('qType').addEventListener('change', search);
+
 render(items.slice(0,50));
 </script>
 </body>
