@@ -24,6 +24,7 @@ h1{font-size:22px;margin:0;color:var(--text2);letter-spacing:.2px}
 .reset{background:var(--card2);color:var(--muted);border:1px solid var(--line);padding:9px 14px;border-radius:10px;
   font-size:13px;cursor:pointer;font-weight:600}
 .reset:hover{color:var(--text2);border-color:var(--accent)}
+.topbtns{display:flex;gap:8px;flex-wrap:wrap}
 
 .cards{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-bottom:18px}
 @media(min-width:760px){.cards{grid-template-columns:repeat(4,1fr)}}
@@ -132,7 +133,12 @@ tfoot td{border-top:2px solid var(--line);background:var(--card2);font-weight:80
         <div class="sub">ตารางผ่อนชำระ 8 เดือน • ติ๊กเดือนที่จ่ายแล้วเพื่อบันทึกความคืบหน้า</div>
       </div>
     </div>
-    <button class="reset" id="resetBtn">↺ ล้างการติ๊ก</button>
+    <div class="topbtns">
+      <button class="reset" id="exportBtn" title="ดาวน์โหลดไฟล์สำรองข้อมูล">⬇️ สำรองข้อมูล</button>
+      <button class="reset" id="importBtn" title="โหลดไฟล์สำรองเพื่อย้ายมาเครื่องนี้">⬆️ กู้คืน</button>
+      <button class="reset" id="resetBtn">↺ ล้างการติ๊ก</button>
+      <input type="file" id="importFile" accept="application/json,.json" style="display:none">
+    </div>
   </header>
 
   <section class="cards">
@@ -593,10 +599,58 @@ function renderGoldSystem_v3() {
   document.getElementById('goldOverallBar').style.width = gPct + '%';
   document.getElementById('goldOverallPct').textContent = gPct + '% แผนสำเร็จ';
   document.getElementById('goldOverallAmt').textContent = 'เหลือตามแผนอีก ' + fmtGold(gLeftAmt, 2) + ' บาท';
+
+  // สรุปท้ายตารางคิดจากตัวเลขในตารางจริง (กันเลขไม่ตรง)
+  const g1 = goldMonths_v3.reduce((s,m)=>s+goldData_v3[m].G1,0);
+  const g2 = goldMonths_v3.reduce((s,m)=>s+goldData_v3[m].G2,0);
+  document.getElementById('gFoot1').textContent = fmtGold(g1,2)+' บาท';
+  document.getElementById('gFoot2').textContent = fmtGold(g2,2)+' บาท';
+  document.getElementById('gFootTotal').textContent = fmtGold(g1+g2,2)+' บาท';
 }
 
 buildGoldTable_v3();
 renderGoldSystem_v3();
+
+/* ================= สำรอง / กู้คืนข้อมูล (ย้ายข้ามเครื่อง) ================= */
+// รวมทุก localStorage key ที่แอปใช้ ไว้ในไฟล์เดียว
+const BACKUP_KEYS = ['debtCellsPaid_v1','loanInstall_v1','goldCellsPaid_isolated_v3'];
+
+document.getElementById('exportBtn').addEventListener('click',()=>{
+  const dump = { app:'debt-plan', version:1, exportedAt:new Date().toISOString(), data:{} };
+  BACKUP_KEYS.forEach(k=>{ const v=localStorage.getItem(k); if(v!==null) dump.data[k]=v; });
+  const blob = new Blob([JSON.stringify(dump,null,2)],{type:'application/json'});
+  const a = document.createElement('a');
+  const d = new Date();
+  a.href = URL.createObjectURL(blob);
+  a.download = 'debt-plan-backup-'+d.toISOString().slice(0,10)+'.json';
+  a.click();
+  URL.revokeObjectURL(a.href);
+});
+
+document.getElementById('importBtn').addEventListener('click',()=>document.getElementById('importFile').click());
+document.getElementById('importFile').addEventListener('change',e=>{
+  const file = e.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = ev=>{
+    try{
+      const dump = JSON.parse(ev.target.result);
+      const d = dump && dump.data;
+      if(!d || typeof d!=='object') throw new Error('รูปแบบไฟล์ไม่ถูกต้อง');
+      if(!confirm('นำเข้าข้อมูลสำรองนี้? ข้อมูลการติ๊กในเครื่องนี้จะถูกแทนที่ทั้งหมด')) return;
+      BACKUP_KEYS.forEach(k=>{
+        if(d[k]!==undefined) localStorage.setItem(k, d[k]);
+        else localStorage.removeItem(k);
+      });
+      alert('กู้คืนข้อมูลสำเร็จ ✅ กำลังโหลดหน้าใหม่...');
+      location.reload();
+    }catch(err){
+      alert('นำเข้าไม่สำเร็จ: '+err.message);
+    }
+  };
+  reader.readAsText(file);
+  e.target.value = '';
+});
 </script>
 </body>
 </html>
