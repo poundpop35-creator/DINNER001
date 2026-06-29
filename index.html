@@ -6,14 +6,14 @@
 <title>แผนจัดการหนี้ – Debt Plan</title>
 <style>
 :root{
-  --bg:#0f172a;--card:#1e293b;--card2:#273449;
-  --muted:#94a3b8;--line:#334155;--text:#e2e8f0;--text2:#f8fafc;
-  --accent:#22d3ee;--accent2:#0ea5e9;--green:#34d399;--amber:#fbbf24;--red:#f87171;
-  --c-S:#f472b6;--c-G:#a78bfa;--c-Y:#22d3ee;--c-L:#34d399;--c-A:#fbbf24;
+  --bg:#f1f5f9;--card:#ffffff;--card2:#f8fafc;
+  --muted:#64748b;--line:#e2e8f0;--text:#334155;--text2:#0f172a;
+  --accent:#0891b2;--accent2:#0284c7;--green:#10b981;--amber:#f59e0b;--red:#ef4444;
+  --c-S:#ec4899;--c-G:#8b5cf6;--c-Y:#06b6d4;--c-L:#10b981;--c-A:#f59e0b;
 }
 *{box-sizing:border-box}
 body{margin:0;font-family:ui-sans-serif,-apple-system,Segoe UI,Roboto,Helvetica,Arial,'Noto Sans Thai',sans-serif;
-  background:radial-gradient(1200px 600px at 20% -10%,#1e293b 0%,var(--bg) 55%);color:var(--text);min-height:100vh}
+  background:radial-gradient(1200px 600px at 20% -10%,#e0f2fe 0%,var(--bg) 55%);color:var(--text);min-height:100vh}
 .wrap{max-width:1040px;margin:0 auto;padding:20px 16px 60px}
 header.top{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:18px}
 .brand{display:flex;align-items:center;gap:12px}
@@ -27,7 +27,7 @@ h1{font-size:22px;margin:0;color:var(--text2);letter-spacing:.2px}
 
 .cards{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-bottom:18px}
 @media(min-width:760px){.cards{grid-template-columns:repeat(4,1fr)}}
-.kpi{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px 16px 14px;position:relative;overflow:hidden}
+.kpi{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px 16px 14px;position:relative;overflow:hidden;box-shadow:0 4px 14px rgba(15,23,42,.05)}
 .kpi .lab{font-size:12px;color:var(--muted);font-weight:600;letter-spacing:.3px}
 .kpi .val{font-size:24px;font-weight:800;color:var(--text2);margin-top:6px;line-height:1.1}
 .kpi .val small{font-size:13px;color:var(--muted);font-weight:600}
@@ -36,7 +36,7 @@ h1{font-size:22px;margin:0;color:var(--text2);letter-spacing:.2px}
 .kpi.glow-amber::after{background:var(--amber)}
 .kpi.glow-cyan::after{background:var(--accent)}
 
-.panel{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:18px;margin-bottom:18px}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:18px;margin-bottom:18px;box-shadow:0 4px 14px rgba(15,23,42,.05)}
 .panel h2{font-size:15px;margin:0 0 14px;color:var(--text2);display:flex;align-items:center;gap:8px}
 .bar{height:14px;border-radius:999px;background:var(--card2);overflow:hidden;border:1px solid var(--line)}
 .bar > i{display:block;height:100%;border-radius:999px;background:linear-gradient(90deg,var(--green),var(--accent));transition:width .5s ease}
@@ -64,7 +64,7 @@ tbody tr.paid{background:rgba(52,211,153,.07)}
 .mcell .mchk:checked{background:var(--green);border-color:var(--green)}
 .mcell .mchk:checked::after{content:"✓";position:absolute;inset:0;display:grid;place-items:center;color:#06281c;font-weight:900;font-size:13px}
 td.val{font-variant-numeric:tabular-nums}
-td.zero{color:#475569}
+td.zero{color:#cbd5e1}
 .closebadge{display:inline-block;margin-left:4px;font-size:10px;background:rgba(52,211,153,.18);color:var(--green);border:1px solid rgba(52,211,153,.4);padding:1px 6px;border-radius:999px;font-weight:700}
 .total{font-weight:800;color:var(--text2);font-variant-numeric:tabular-nums}
 tfoot td{border-top:2px solid var(--line);background:var(--card2);font-weight:800;color:var(--text2)}
