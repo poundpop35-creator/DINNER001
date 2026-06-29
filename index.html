@@ -65,6 +65,12 @@ tbody tr.paid{background:rgba(52,211,153,.07)}
 .mcell .mchk:checked::after{content:"✓";position:absolute;inset:0;display:grid;place-items:center;color:#06281c;font-weight:900;font-size:13px}
 td.val{font-variant-numeric:tabular-nums}
 td.zero{color:#cbd5e1}
+td.cell{cursor:pointer;transition:background .12s}
+td.cell:hover{background:rgba(8,145,178,.08)}
+td.cell.on{background:rgba(16,185,129,.13)}
+td.cell .ck{display:none;color:var(--green);font-weight:900;margin-right:3px}
+td.cell.on .ck{display:inline}
+td.cell.on .num{color:#047857;font-weight:700}
 .closebadge{display:inline-block;margin-left:4px;font-size:10px;background:rgba(52,211,153,.18);color:var(--green);border:1px solid rgba(52,211,153,.4);padding:1px 6px;border-radius:999px;font-weight:700}
 .total{font-weight:800;color:var(--text2);font-variant-numeric:tabular-nums}
 tfoot td{border-top:2px solid var(--line);background:var(--card2);font-weight:800;color:var(--text2)}
@@ -72,6 +78,40 @@ tfoot td{border-top:2px solid var(--line);background:var(--card2);font-weight:80
 .legend{display:flex;gap:14px;flex-wrap:wrap;margin-top:10px}
 .legend span{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--muted)}
 .legend i{width:10px;height:10px;border-radius:50%}
+
+/* ---- ตัวคั่นชุด ---- */
+.divider{display:flex;align-items:center;gap:14px;color:var(--muted);font-size:13px;font-weight:700;margin:30px 0 18px}
+.divider::before,.divider::after{content:"";flex:1;height:1px;background:var(--line)}
+
+/* ---- สัญญาผ่อนแยก ---- */
+:root{--loan:#3b82f6;--loan2:#2563eb}
+.panel.loan{border-top:4px solid var(--loan)}
+.loan .lhead{display:flex;align-items:center;gap:12px;margin-bottom:16px}
+.loan .licon{width:42px;height:42px;border-radius:12px;background:linear-gradient(135deg,var(--loan),var(--loan2));display:grid;place-items:center;font-size:22px;flex:none;box-shadow:0 8px 20px rgba(59,130,246,.3)}
+.loan .ltitle{font-size:16px;font-weight:800;color:var(--text2);line-height:1.2}
+.loan .lsub{font-size:12px;color:var(--muted);margin-top:2px}
+.loan .lstats{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:16px}
+@media(min-width:620px){.loan .lstats{grid-template-columns:repeat(4,1fr)}}
+.loan .lstat{background:var(--card2);border:1px solid var(--line);border-radius:14px;padding:12px 14px}
+.loan .lstat .l{font-size:11px;color:var(--muted);font-weight:600}
+.loan .lstat .v{font-size:19px;font-weight:800;color:var(--text2);margin-top:4px}
+.loan .lstat .v small{font-size:12px;color:var(--muted);font-weight:600}
+.loan .lstat.accent .v{color:var(--loan2)}
+.loan .lstat.green .v{color:var(--green)}
+.loan .lbar{height:14px;border-radius:999px;background:var(--card2);overflow:hidden;border:1px solid var(--line)}
+.loan .lbar > i{display:block;height:100%;border-radius:999px;background:linear-gradient(90deg,var(--loan),var(--loan2));transition:width .5s ease}
+.loan .lbar-meta{display:flex;justify-content:space-between;margin:8px 0 16px;font-size:13px;color:var(--muted)}
+.loan .lbar-meta b{color:var(--text2)}
+.loan .ctrl{display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap}
+.loan .ctrl button{width:38px;height:38px;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--loan2);font-size:20px;font-weight:800;cursor:pointer;line-height:1}
+.loan .ctrl button:hover{border-color:var(--loan)}
+.loan .ctrl .cv{font-size:14px;color:var(--muted)}
+.loan .ctrl .cv b{font-size:18px;color:var(--text2)}
+.loan .chips{display:grid;grid-template-columns:repeat(10,1fr);gap:6px}
+@media(max-width:480px){.loan .chips{grid-template-columns:repeat(8,1fr)}}
+.loan .chip{aspect-ratio:1;border-radius:9px;border:1px solid var(--line);background:var(--card2);color:var(--muted);font-size:11px;font-weight:700;display:grid;place-items:center;cursor:pointer;transition:.12s;user-select:none}
+.loan .chip:hover{transform:translateY(-1px);border-color:var(--loan)}
+.loan .chip.paid{background:linear-gradient(135deg,var(--loan),var(--loan2));color:#fff;border-color:transparent}
 </style>
 </head>
 <body>
@@ -118,9 +158,39 @@ tfoot td{border-top:2px solid var(--line);background:var(--card2);font-weight:80
   </section>
 
   <div class="foot-note">
-    ✅ = เดือนที่ <b>ปิดยอด</b> ของเจ้าหนี้รายนั้น &nbsp;•&nbsp; ตัวเลขคือจำนวนเงินที่ต้องจ่ายในแต่ละเดือน (บาท)<br>
-    ข้อมูลการติ๊กถูกบันทึกไว้ในเครื่องนี้โดยอัตโนมัติ (localStorage)
+    👉 <b>แตะที่ตัวเลขแต่ละช่อง</b> เพื่อติ๊กว่าจ่ายเจ้าหนี้รายนั้นแล้ว (จ่ายคนละวันก็ติ๊กแยกได้) &nbsp;•&nbsp; ติ๊กช่องหน้าเดือน = ติ๊กทั้งแถวรวดเดียว<br>
+    ✅ = เดือนที่ <b>ปิดยอด</b> ของเจ้าหนี้รายนั้น &nbsp;•&nbsp; ข้อมูลถูกบันทึกในเครื่องนี้อัตโนมัติ (localStorage)
   </div>
+
+  <div class="divider">สัญญาผ่อนแยกต่างหาก</div>
+
+  <section class="panel loan">
+    <div class="lhead">
+      <div class="licon">🚗</div>
+      <div>
+        <div class="ltitle">สัญญาผ่อน 40 งวด</div>
+        <div class="lsub">งวดละ 4,875 บาท • แยกจากชุดหนี้ด้านบน</div>
+      </div>
+    </div>
+
+    <div class="lstats">
+      <div class="lstat"><div class="l">ยอดต่องวด</div><div class="v">4,875 <small>บาท</small></div></div>
+      <div class="lstat green"><div class="l">จ่ายไปแล้ว</div><div class="v" id="loanPaidAmt">–</div></div>
+      <div class="lstat accent"><div class="l">ยอดคงเหลือ</div><div class="v" id="loanLeftAmt">–</div></div>
+      <div class="lstat"><div class="l">งวดที่จ่ายแล้ว</div><div class="v" id="loanPaidCnt">–</div></div>
+    </div>
+
+    <div class="lbar"><i id="loanBar" style="width:0%"></i></div>
+    <div class="lbar-meta"><span id="loanPct">0%</span><span id="loanRemainCnt"></span></div>
+
+    <div class="ctrl">
+      <button id="loanMinus" title="ลดงวด">−</button>
+      <button id="loanPlus" title="เพิ่มงวด">+</button>
+      <span class="cv">จ่ายแล้ว <b id="loanCntTxt">0</b> / 40 งวด &nbsp;•&nbsp; แตะช่องด้านล่างเพื่อปรับได้</span>
+    </div>
+
+    <div class="chips" id="loanChips"></div>
+  </section>
 
 </div>
 
@@ -154,14 +224,28 @@ creditors.forEach(c=>{
 });
 
 const fmt = n => n.toLocaleString('en-US');
-const STORE = 'debtPlanPaid_v1';
-let paid = JSON.parse(localStorage.getItem(STORE) || '{}');
+const STORE = 'debtCellsPaid_v1';   // ติ๊กรายช่อง: { "เดือน__key": true }
+const cellId = (m,k)=> m+'__'+k;
+let cells = JSON.parse(localStorage.getItem(STORE) || 'null');
+
+// ย้ายข้อมูลเก่า (ติ๊กทั้งเดือน) มาเป็นรายช่อง ครั้งแรกที่เปิด
+if(cells===null){
+  cells = {};
+  const old = JSON.parse(localStorage.getItem('debtPlanPaid_v1') || '{}');
+  Object.keys(old).forEach(m=>{
+    if(old[m]) creditors.forEach(c=>{ if(data[m][c.key]>0) cells[cellId(m,c.key)]=true; });
+  });
+}
 
 function monthTotal(m){ return creditors.reduce((s,c)=>s+data[m][c.key],0); }
 function creditorTotal(k){ return months.reduce((s,m)=>s+data[m][k],0); }
 const grandTotal = months.reduce((s,m)=>s+monthTotal(m),0);
 
-function save(){ localStorage.setItem(STORE, JSON.stringify(paid)); }
+function isCellPaid(m,k){ return !!cells[cellId(m,k)]; }
+// เดือนนี้จ่ายครบทุกช่องที่มียอดหรือยัง
+function monthFullyPaid(m){ return creditors.every(c=> data[m][c.key]===0 || isCellPaid(m,c.key)); }
+
+function save(){ localStorage.setItem(STORE, JSON.stringify(cells)); }
 
 function buildTable(){
   document.getElementById('head').innerHTML =
@@ -170,15 +254,18 @@ function buildTable(){
     '<th>ยอดรวม</th>';
 
   document.getElementById('body').innerHTML = months.map(m=>{
-    const cells = creditors.map(c=>{
+    const row = creditors.map(c=>{
       const v = data[m][c.key];
       if(v===0) return '<td class="val zero">–</td>';
       const closing = payoffMonth[c.key]===m;
-      return `<td class="val">${fmt(v)}${closing?'<span class="closebadge">✅ ปิด</span>':''}</td>`;
+      const on = isCellPaid(m,c.key);
+      return `<td class="val cell${on?' on':''}" data-m="${m}" data-k="${c.key}">`+
+             `<span class="ck">✓</span><span class="num">${fmt(v)}</span>`+
+             `${closing?'<span class="closebadge">✅ ปิด</span>':''}</td>`;
     }).join('');
-    return `<tr data-m="${m}" class="${paid[m]?'paid':''}">
-      <td class="mcell"><input type="checkbox" class="mchk" data-m="${m}" ${paid[m]?'checked':''}><span>${m}</span></td>
-      ${cells}
+    return `<tr data-m="${m}" class="${monthFullyPaid(m)?'paid':''}">
+      <td class="mcell"><input type="checkbox" class="mchk" data-m="${m}" title="ติ๊กทั้งเดือน"><span>${m}</span></td>
+      ${row}
       <td class="total">${fmt(monthTotal(m))}</td>
     </tr>`;
   }).join('');
@@ -188,15 +275,39 @@ function buildTable(){
     creditors.map(c=>`<td>${fmt(creditorTotal(c.key))}</td>`).join('') +
     `<td>${fmt(grandTotal)}</td>`;
 
-  document.querySelectorAll('.mchk').forEach(cb=>{
-    cb.addEventListener('change',e=>{
-      const m=e.target.dataset.m;
-      if(e.target.checked) paid[m]=true; else delete paid[m];
+  // แตะรายช่อง
+  document.querySelectorAll('td.cell').forEach(td=>{
+    td.addEventListener('click',()=>{
+      const id = cellId(td.dataset.m, td.dataset.k);
+      if(cells[id]) delete cells[id]; else cells[id]=true;
       save();
-      e.target.closest('tr').classList.toggle('paid', e.target.checked);
+      td.classList.toggle('on', !!cells[id]);
+      td.closest('tr').classList.toggle('paid', monthFullyPaid(td.dataset.m));
+      syncRowCheckbox(td.dataset.m);
       render();
     });
   });
+  // ติ๊กทั้งเดือน
+  document.querySelectorAll('.mchk').forEach(cb=>{
+    cb.addEventListener('change',e=>{
+      const m=e.target.dataset.m, want=e.target.checked;
+      creditors.forEach(c=>{
+        if(data[m][c.key]===0) return;
+        const id=cellId(m,c.key);
+        if(want) cells[id]=true; else delete cells[id];
+      });
+      save();
+      buildTable(); // วาดใหม่ให้ทุกช่องในแถวอัปเดต
+      render();
+    });
+  });
+  // ตั้งสถานะ checkbox ตามช่อง
+  months.forEach(syncRowCheckbox);
+}
+
+function syncRowCheckbox(m){
+  const cb = document.querySelector('.mchk[data-m="'+m+'"]');
+  if(cb) cb.checked = monthFullyPaid(m);
 }
 
 function buildCreditors(){
@@ -212,9 +323,10 @@ function buildCreditors(){
 }
 
 function render(){
-  const paidAmt = months.reduce((s,m)=> s + (paid[m]?monthTotal(m):0), 0);
+  let paidAmt = 0;
+  months.forEach(m=> creditors.forEach(c=>{ if(isCellPaid(m,c.key)) paidAmt += data[m][c.key]; }));
   const leftAmt = grandTotal - paidAmt;
-  const paidMonths = months.filter(m=>paid[m]).length;
+  const paidMonths = months.filter(monthFullyPaid).length;
   const pct = grandTotal? Math.round(paidAmt/grandTotal*100):0;
 
   document.getElementById('kTotal').innerHTML = fmt(grandTotal)+' <small>บาท</small>';
@@ -228,7 +340,7 @@ function render(){
 
   creditors.forEach(c=>{
     const tot = creditorTotal(c.key);
-    const cpaid = months.reduce((s,m)=> s + (paid[m]?data[m][c.key]:0), 0);
+    const cpaid = months.reduce((s,m)=> s + (isCellPaid(m,c.key)?data[m][c.key]:0), 0);
     const cpct = tot? Math.round(cpaid/tot*100):0;
     document.getElementById('pb-'+c.key).style.width = cpct+'%';
     const done = cpct>=100 && tot>0;
@@ -239,9 +351,8 @@ function render(){
 
 document.getElementById('resetBtn').addEventListener('click',()=>{
   if(confirm('ล้างการติ๊กทั้งหมด?')){
-    paid={}; save();
-    document.querySelectorAll('.mchk').forEach(cb=>cb.checked=false);
-    document.querySelectorAll('tbody tr').forEach(tr=>tr.classList.remove('paid'));
+    cells={}; save();
+    buildTable();
     render();
   }
 });
@@ -249,6 +360,58 @@ document.getElementById('resetBtn').addEventListener('click',()=>{
 buildTable();
 buildCreditors();
 render();
+
+/* ================= สัญญาผ่อนแยกต่างหาก (40 งวด) ================= */
+const LOAN = { per:4875, total:40, store:'loanInstall_v1', def:12 };
+let loanPaid = parseInt(localStorage.getItem(LOAN.store) ?? LOAN.def, 10);
+if(isNaN(loanPaid)) loanPaid = LOAN.def;
+
+function buildChips(){
+  document.getElementById('loanChips').innerHTML =
+    Array.from({length:LOAN.total},(_,i)=>{
+      const n=i+1;
+      return `<div class="chip" data-n="${n}">${n}</div>`;
+    }).join('');
+  document.querySelectorAll('#loanChips .chip').forEach(ch=>{
+    ch.addEventListener('click',()=>{
+      const n=+ch.dataset.n;
+      // แตะงวดสุดท้ายที่จ่ายแล้วซ้ำ = ลดลง 1, ไม่งั้น = จ่ายถึงงวดนั้น
+      loanPaid = (n===loanPaid) ? n-1 : n;
+      saveLoan();
+    });
+  });
+}
+
+function saveLoan(){
+  loanPaid = Math.max(0, Math.min(LOAN.total, loanPaid));
+  localStorage.setItem(LOAN.store, loanPaid);
+  renderLoan();
+}
+
+function renderLoan(){
+  const totalAmt = LOAN.per*LOAN.total;
+  const paidAmt  = LOAN.per*loanPaid;
+  const leftAmt  = totalAmt - paidAmt;
+  const pct = Math.round(loanPaid/LOAN.total*100);
+
+  document.getElementById('loanPaidAmt').innerHTML = fmt(paidAmt)+' <small>บาท</small>';
+  document.getElementById('loanLeftAmt').innerHTML = fmt(leftAmt)+' <small>บาท</small>';
+  document.getElementById('loanPaidCnt').innerHTML = loanPaid+' <small>/ '+LOAN.total+' งวด</small>';
+  document.getElementById('loanBar').style.width = pct+'%';
+  document.getElementById('loanPct').textContent = pct+'% สำเร็จ';
+  document.getElementById('loanRemainCnt').innerHTML = 'เหลืออีก <b>'+(LOAN.total-loanPaid)+'</b> งวด ('+fmt(leftAmt)+' บาท)';
+  document.getElementById('loanCntTxt').textContent = loanPaid;
+
+  document.querySelectorAll('#loanChips .chip').forEach(ch=>{
+    ch.classList.toggle('paid', +ch.dataset.n <= loanPaid);
+  });
+}
+
+document.getElementById('loanPlus').addEventListener('click',()=>{ loanPaid++; saveLoan(); });
+document.getElementById('loanMinus').addEventListener('click',()=>{ loanPaid--; saveLoan(); });
+
+buildChips();
+renderLoan();
 </script>
 </body>
 </html>
