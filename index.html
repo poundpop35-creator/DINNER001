@@ -32,10 +32,11 @@ h1{font-size:22px;margin:0;color:var(--text2);letter-spacing:.2px}
 .kpi .lab{font-size:12px;color:var(--muted);font-weight:600;letter-spacing:.3px}
 .kpi .val{font-size:24px;font-weight:800;color:var(--text2);margin-top:6px;line-height:1.1}
 .kpi .val small{font-size:13px;color:var(--muted);font-weight:600}
-.kpi.glow-green::after,.kpi.glow-amber::after,.kpi.glow-cyan::after{content:"";position:absolute;right:-30px;top:-30px;width:90px;height:90px;border-radius:50%;filter:blur(8px);opacity:.25}
+.kpi.glow-green::after,.kpi.glow-amber::after,.kpi.glow-cyan::after,.kpi.glow-gold::after{content:"";position:absolute;right:-30px;top:-30px;width:90px;height:90px;border-radius:50%;filter:blur(8px);opacity:.25}
 .kpi.glow-green::after{background:var(--green)}
 .kpi.glow-amber::after{background:var(--amber)}
 .kpi.glow-cyan::after{background:var(--accent)}
+.kpi.glow-gold::after{background:var(--gold)}
 
 .panel{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:18px;margin-bottom:18px;box-shadow:0 4px 14px rgba(15,23,42,.05)}
 .panel h2{font-size:15px;margin:0 0 14px;color:var(--text2);display:flex;align-items:center;gap:8px}
@@ -46,7 +47,7 @@ h1{font-size:22px;margin:0;color:var(--text2);letter-spacing:.2px}
 .cred{display:flex;align-items:center;gap:12px;padding:11px 0;border-top:1px solid var(--line)}
 .cred:first-of-type{border-top:none}
 .dot{width:12px;height:12px;border-radius:50%;flex:none}
-.cred .nm{width:96px;font-weight:700;color:var(--text2);font-size:14px;flex:none}
+.cred .nm{width:120px;font-weight:700;color:var(--text2);font-size:14px;flex:none}
 .cred .pbar{flex:1;height:10px;border-radius:999px;background:var(--card2);overflow:hidden;border:1px solid var(--line)}
 .cred .pbar > i{display:block;height:100%;border-radius:999px;transition:width .5s ease}
 .cred .amt{width:150px;text-align:right;font-size:13px;color:var(--muted);flex:none}
@@ -72,7 +73,8 @@ td.cell.on{background:rgba(16,185,129,.13)}
 td.cell .ck{display:none;color:var(--green);font-weight:900;margin-right:3px}
 td.cell.on .ck{display:inline}
 td.cell.on .num{color:#047857;font-weight:700}
-.closebadge{display:inline-block;margin-left:4px;font-size:10px;background:rgba(52,211,153,.18);color:var(--green);border:1px solid rgba(52,211,153,.4);padding:1px 6px;border-radius:999px;font-weight:700}
+.closebadge{display:inline-block;margin-left:4px;font-size:10px;background:rgba(217,119,6,.15);color:var(--gold);border:1px solid rgba(217,119,6,.3);padding:1px 6px;border-radius:999px;font-weight:700}
+.renewbadge{display:inline-block;margin-left:4px;font-size:10px;background:rgba(59,130,246,.12);color:#2563eb;border:1px solid rgba(59,130,246,.3);padding:1px 6px;border-radius:999px;font-weight:700}
 .total{font-weight:800;color:var(--text2);font-variant-numeric:tabular-nums}
 tfoot td{border-top:2px solid var(--line);background:var(--card2);font-weight:800;color:var(--text2)}
 .foot-note{color:var(--muted);font-size:12px;margin-top:14px;line-height:1.6}
@@ -116,20 +118,7 @@ tfoot td{border-top:2px solid var(--line);background:var(--card2);font-weight:80
 
 /* ---- สัญญาทองคำเพิ่มเติม ---- */
 .panel.gold{border-top:4px solid var(--gold)}
-.gold-grid {display:grid;grid-template-columns:1fr;gap:16px}
-@media(min-width:768px){.gold-grid{grid-template-columns:1fr 1fr}}
-.gold-card {background:var(--card2);border:1px solid var(--line);border-radius:14px;padding:16px}
-.gold-card h3 {margin:0 0 8px;font-size:15px;color:var(--gold2);display:flex;justify-content:space-between}
-.gold-meta {font-size:12px;color:var(--muted);margin-bottom:10px;display:grid;grid-template-columns:1fr 1fr;gap:4px}
-.gold-money {font-size:22px;font-weight:800;color:var(--text2);margin:10px 0}
-.gold-money small {font-size:12px;color:var(--muted)}
-.gold-actions {display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px}
-.gold-btn {border:none;padding:8px 4px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;text-align:center;color:#fff}
-.gold-btn.minus {background:var(--red)}
-.gold-btn.renew {background:var(--amber)}
-.gold-btn.plus {background:var(--green)}
-.gold-input-group {margin-top:10px;display:flex;gap:6px}
-.gold-input {flex:1;padding:6px;border:1px solid var(--line);border-radius:6px;font-size:12px}
+.gold-bar i {background:linear-gradient(90deg, var(--gold), #f59e0b) !important;}
 </style>
 </head>
 <body>
@@ -140,10 +129,10 @@ tfoot td{border-top:2px solid var(--line);background:var(--card2);font-weight:80
       <div class="logo">💸</div>
       <div>
         <h1>แผนจัดการหนี้</h1>
-        <div class="sub">ตารางผ่อนชำระ 8 เดือน • ติ๊กเดือนที่จ่ายแล้วเพื่อบันทึกความคืบหน้า</div>
+        <div class="sub">ตารางผ่อนชำระหนี้สินและตารางจำลองจ่ายสัญญาทองคำ</div>
       </div>
     </div>
-    <button class="reset" id="resetBtn">↺ ล้างการติ๊ก</button>
+    <button class="reset" id="resetBtn">↺ ล้างการติ๊กหนี้หลัก</button>
   </header>
 
   <section class="cards">
@@ -154,7 +143,7 @@ tfoot td{border-top:2px solid var(--line);background:var(--card2);font-weight:80
   </section>
 
   <section class="panel">
-    <h2>📊 ความคืบหน้าโดยรวม</h2>
+    <h2>📊 ความคืบหน้าหนี้รวม (5 เจ้าหนี้)</h2>
     <div class="bar"><i id="overallBar" style="width:0%"></i></div>
     <div class="bar-meta"><span id="overallPct">0%</span><span id="overallAmt"></span></div>
   </section>
@@ -176,8 +165,7 @@ tfoot td{border-top:2px solid var(--line);background:var(--card2);font-weight:80
   </section>
 
   <div class="foot-note">
-    👉 <b>แตะที่ตัวเลขแต่ละช่อง</b> เพื่อติ๊กว่าจ่ายเจ้าหนี้รายนั้นแล้ว (จ่ายคนละวันก็ติ๊กแยกได้) &nbsp;•&nbsp; ติ๊กช่องหน้าเดือน = ติ๊กทั้งแถวรวดเดียว<br>
-    ✅ = เดือนที่ <b>ปิดยอด</b> ของเจ้าหนี้รายนั้น &nbsp;•&nbsp; ข้อมูลถูกบันทึกในเครื่องนี้อัตโนมัติ (localStorage)
+    👉 <b>แตะที่ตัวเลขแต่ละช่อง</b> เพื่อติ๊กว่าจ่ายเจ้าหนี้รายนั้นแล้ว &nbsp;•&nbsp; ติ๊กช่องหน้าเดือน = ติ๊กทั้งแถวรวดเดียว
   </div>
 
   <div class="divider">สัญญาผ่อนแยกต่างหาก</div>
@@ -186,8 +174,8 @@ tfoot td{border-top:2px solid var(--line);background:var(--card2);font-weight:80
     <div class="lhead">
       <div class="licon">🚗</div>
       <div>
-        <div class="ltitle">สัญญาผ่อน 40 งวด</div>
-        <div class="lsub">งวดละ 4,875 บาท • แยกจากชุดหนี้ด้านบน</div>
+        <div class="ltitle">Ad-hoc: สัญญาผ่อนรถ 40 งวด</div>
+        <div class="lsub">งวดละ 4,875 บาท • แยกอิสระจากชุดอื่นๆ</div>
       </div>
     </div>
 
@@ -204,74 +192,63 @@ tfoot td{border-top:2px solid var(--line);background:var(--card2);font-weight:80
     <div class="ctrl">
       <button id="loanMinus" title="ลดงวด">−</button>
       <button id="loanPlus" title="เพิ่มงวด">+</button>
-      <span class="cv">จ่ายแล้ว <b id="loanCntTxt">0</b> / 40 งวด &nbsp;•&nbsp; แตะช่องด้านล่างเพื่อปรับได้</span>
+      <span class="cv">จ่ายแล้ว <b id="loanCntTxt">0</b> / 40 งวด</span>
     </div>
 
     <div class="chips" id="loanChips"></div>
   </section>
 
-  <div class="divider">สัญญาทองคำแอปพลิเคชัน (ดอกเบี้ย 1.25%/ด.)</div>
-  
+  <div class="divider">🏆 แผนผ่อนสัญญาทองคำ (งบ 5,000 บ./เดือน)</div>
+
+  <section class="cards">
+    <div class="kpi glow-gold"><div class="lab">ต้นทองคำรวม</div><div class="val" id="gKTotal">60,049 <small>บ.</small></div></div>
+    <div class="kpi glow-green"><div class="lab">จำลองจ่ายแล้ว</div><div class="val" id="gKPaid">–</div></div>
+    <div class="kpi glow-amber"><div class="lab">ยอดคงเหลือแผน</div><div class="val" id="gKLeft">–</div></div>
+    <div class="kpi"><div class="lab">สถานะแผน</div><div class="val" id="gKMonths">–</div></div>
+  </section>
+
   <section class="panel gold">
-    <div class="gold-grid">
-      
-      <div class="gold-card">
-        <h3><span>📜 สัญญาเลขที่: 4959</span> <span style="color:var(--muted); font-size:12px;">ต่อจาก: 4794</span></h3>
-        <div class="gold-meta">
-          <div><b>วันครบกำหนด:</b> 23-ส.ค.-2026</div>
-          <div><b>น้ำหนักทอง:</b> 15.2300 กรัม</div>
-          <div><b>ประเภทสินค้า:</b> สร้อยคอ (ต่างร้าน)</div>
-          <div><b>สาขา:</b> งามวงศ์วาน XL</div>
-        </div>
-        <div class="gold-money">
-          <span id="g1_principal">45,000</span> <small>บาท (เงินต้น)</small>
-        </div>
-        <div style="font-size:12px; color:var(--red); font-weight:700; margin-bottom:8px;">
-          💸 ดอกเบี้ยสะสมเดือนนี้: <span id="g1_interest">562.5</span> บาท
-        </div>
-        <div class="gold-input-group">
-          <input type="number" id="g1_amt" class="gold-input" placeholder="ระบุจำนวนเงิน (บาท)">
-        </div>
-        <div class="gold-actions">
-          <button class="gold-btn minus" onclick="actionGold(1, 'ลดต้น')">📉 ลดต้น</button>
-          <button class="gold-btn renew" onclick="actionGold(1, 'ต่อดอก')">🔄 ต่อดอก</button>
-          <button class="gold-btn plus" onclick="actionGold(1, 'เพิ่มต้น')">📈 เพิ่มต้น</button>
-        </div>
-      </div>
+    <h2>📈 ความคืบหน้าแผนปิดสัญญาทองคำ (เป้าหมาย 14 เดือน)</h2>
+    <div class="bar gold-bar"><i id="goldOverallBar" style="width:0%"></i></div>
+    <div class="bar-meta"><span id="goldOverallPct">0%</span><span id="goldOverallAmt"></span></div>
+  </section>
 
-      <div class="gold-card">
-        <h3><span>📜 สัญญาเลขที่: 4341</span> <span style="color:var(--muted); font-size:12px;">ต่อจาก: 3891</span></h3>
-        <div class="gold-meta">
-          <div><b>วันครบกำหนด:</b> 06-ก.ค.-2026</div>
-          <div><b>น้ำหนักทอง:</b> 7.5300 กรัม</div>
-          <div><b>ประเภทสินค้า:</b> สร้อยคอ (ต่างร้าน)</div>
-          <div><b>สาขา:</b> งามวงศ์วาน XL</div>
-        </div>
-        <div class="gold-money">
-          <span id="g2_principal">15,049</span> <small>บาท (เงินต้น)</small>
-        </div>
-        <div style="font-size:12px; color:var(--red); font-weight:700; margin-bottom:8px;">
-          💸 ดอกเบี้ยสะสมเดือนนี้: <span id="g2_interest">188.11</span> บาท
-        </div>
-        <div class="gold-input-group">
-          <input type="number" id="g2_amt" class="gold-input" placeholder="ระบุจำนวนเงิน (บาท)">
-        </div>
-        <div class="gold-actions">
-          <button class="gold-btn minus" onclick="actionGold(2, 'ลดต้น')">📉 ลดต้น</button>
-          <button class="gold-btn renew" onclick="actionGold(2, 'ต่อดอก')">🔄 ต่อดอก</button>
-          <button class="gold-btn plus" onclick="actionGold(2, 'เพิ่มต้น')">📈 เพิ่มต้น</button>
-        </div>
-      </div>
-
-    </div>
-    <div class="foot-note" style="margin-top:15px;">
-      ℹ️ <b>หมายเหตุระบบทอง:</b> ดอกเบี้ยถูกจำลองคิดเรทคงที่ 1.25% ต่อเดือนจากเงินต้นปัจจุบัน | ปุ่ม <b>ลดต้น</b> จะเอาเงินไปหักเงินต้น, ปุ่ม <b>ต่อดอก</b> จะเป็นการเคลียร์ยอดดอกเบี้ยประจำเดือน, และปุ่ม <b>เพิ่มต้น</b> จะบวกวงเงินเข้าไปในระบบ
+  <section class="panel gold" style="padding:0;overflow:hidden">
+    <div class="tablewrap">
+      <table>
+        <thead>
+          <tr>
+            <th style="text-align:left">รอบจ่าย</th>
+            <th>สัญญา 4959 (ต้น 45,000 บ.)</th>
+            <th>สัญญา 4341 (ต้น 15,049 บ.)</th>
+            <th>ยอดรวมจ่าย</th>
+          </tr>
+        </thead>
+        <tbody id="goldTableBody">
+          </tbody>
+        <tfoot>
+          <tr>
+            <td style="text-align:left">รวมตามแผน</td>
+            <td id="gFoot1">47,631 บาท</td>
+            <td id="gFoot2">15,480 บาท</td>
+            <td id="gFootTotal">63,111 บาท</td>
+          </tr>
+        </tfoot>
+      </table>
     </div>
   </section>
+  
+  <div class="foot-note" style="margin-bottom:40px;">
+    💡 <b>คำแนะนำการอ่านตารางทองคำ:</b> <br>
+    • <span class="renewbadge">🔄 ต่อดอก</span> = เดือนนั้นให้กดปุ่ม "ต่อดอก" ในแอปตามตัวเลขเพื่อรักษาสัญญาไว้<br>
+    • ยอดอื่นๆ ที่ไม่มีป้ายสีน้ำเงินกำกับ = เป็นยอดที่คุณต้องกรอกเงินเพื่อกดปุ่ม <b>"ลดต้น"</b> <br>
+    • <span class="closebadge">✅ ปิดยอด</span> = ยอดโชว์ประจำเดือนสุดท้ายที่สัญญานั้นจะหมดลงและได้ทองคืน (สัญญา 15,049 บ. จะปิดจบได้ในเดือนที่ 4!)
+  </div>
 
 </div>
 
 <script>
+/* ================= ชุดที่ 1: ตารางหนี้หลัก 5 ราย ================= */
 const months = ['ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.','ม.ค.','ก.พ.','มี.ค.'];
 const creditors = [
   {key:'S',        name:'S',        cvar:'--c-S'},
@@ -298,18 +275,10 @@ creditors.forEach(c=>{
   payoffMonth[c.key]=last;
 });
 
-const fmt = n => n.toLocaleString('en-US', {minimumFractionDigits: 0, maximumFractionDigits: 2});
+const fmt = n => n.toLocaleString('en-US');
 const STORE = 'debtCellsPaid_v1';
 const cellId = (m,k)=> m+'__'+k;
-let cells = JSON.parse(localStorage.getItem(STORE) || 'null');
-
-if(cells===null){
-  cells = {};
-  const old = JSON.parse(localStorage.getItem('debtPlanPaid_v1') || '{}');
-  Object.keys(old).forEach(m=>{
-    if(old[m]) creditors.forEach(c=>{ if(data[m][c.key]>0) cells[cellId(m,c.key)]=true; });
-  });
-}
+let cells = JSON.parse(localStorage.getItem(STORE) || '{}');
 
 function monthTotal(m){ return creditors.reduce((s,c)=>s+data[m][c.key],0); }
 function creditorTotal(k){ return months.reduce((s,m)=>s+data[m][k],0); }
@@ -321,11 +290,7 @@ function monthFullyPaid(m){ return creditors.every(c=> data[m][c.key]===0 || isC
 function save(){ localStorage.setItem(STORE, JSON.stringify(cells)); }
 
 function buildTable(){
-  document.getElementById('head').innerHTML =
-    '<th style="text-align:left">เดือน</th>' +
-    creditors.map(c=>`<th>${c.name}</th>`).join('') +
-    '<th>ยอดรวม</th>';
-
+  document.getElementById('head').innerHTML = '<th style="text-align:left">เดือน</th>' + creditors.map(c=>`<th>${c.name}</th>`).join('') + '<th>ยอดรวม</th>';
   document.getElementById('body').innerHTML = months.map(m=>{
     const row = creditors.map(c=>{
       const v = data[m][c.key];
@@ -343,12 +308,9 @@ function buildTable(){
     </tr>`;
   }).join('');
 
-  document.getElementById('foot').innerHTML =
-    '<td style="text-align:left">รวมทั้งหมด</td>' +
-    creditors.map(c=>`<td>${fmt(creditorTotal(c.key))}</td>`).join('') +
-    `<td>${fmt(grandTotal)}</td>`;
+  document.getElementById('foot').innerHTML = '<td style="text-align:left">รวมทั้งหมด</td>' + creditors.map(c=>`<td>${fmt(creditorTotal(c.key))}</td>`).join('') + `<td>${fmt(grandTotal)}</td>`;
 
-  document.querySelectorAll('td.cell').forEach(td=>{
+  document.querySelectorAll('#tbl td.cell').forEach(td=>{
     td.addEventListener('click',()=>{
       const id = cellId(td.dataset.m, td.dataset.k);
       if(cells[id]) delete cells[id]; else cells[id]=true;
@@ -360,7 +322,7 @@ function buildTable(){
     });
   });
   
-  document.querySelectorAll('.mchk').forEach(cb=>{
+  document.querySelectorAll('#tbl .mchk').forEach(cb=>{
     cb.addEventListener('change',e=>{
       const m=e.target.dataset.m, want=e.target.checked;
       creditors.forEach(c=>{
@@ -377,7 +339,7 @@ function buildTable(){
 }
 
 function syncRowCheckbox(m){
-  const cb = document.querySelector('.mchk[data-m="'+m+'"]');
+  const cb = document.querySelector('#tbl .mchk[data-m="'+m+'"]');
   if(cb) cb.checked = monthFullyPaid(m);
 }
 
@@ -389,8 +351,7 @@ function buildCreditors(){
       <span class="pbar"><i id="pb-${c.key}" style="width:0%;background:var(${c.cvar})"></i></span>
       <span class="amt" id="amt-${c.key}"></span>
     </div>`).join('');
-  document.getElementById('legend').innerHTML = creditors.map(c=>
-    `<span><i style="background:var(${c.cvar})"></i>${c.name}</span>`).join('');
+  document.getElementById('legend').innerHTML = creditors.map(c=>`<span><i style="background:var(${c.cvar})"></i>${c.name}</span>`).join('');
 }
 
 function render(){
@@ -415,34 +376,26 @@ function render(){
     const cpct = tot? Math.round(cpaid/tot*100):0;
     document.getElementById('pb-'+c.key).style.width = cpct+'%';
     const done = cpct>=100 && tot>0;
-    document.getElementById('amt-'+c.key).innerHTML =
-      `<b>${fmt(cpaid)}</b> / ${fmt(tot)}${done?'<span class="done-tag">เคลียร์แล้ว ✓</span>':''}`;
+    document.getElementById('amt-'+c.key).innerHTML = `<b>${fmt(cpaid)}</b> / ${fmt(tot)}${done?'<span class="done-tag">เคลียร์แล้ว ✓</span>':''}`;
   });
 }
 
 document.getElementById('resetBtn').addEventListener('click',()=>{
-  if(confirm('ล้างการติ๊กทั้งหมด?')){
-    cells={}; save();
-    buildTable();
-    render();
+  if(confirm('ล้างการติ๊กตารางหนี้หลักทั้งหมด?')){
+    cells={}; save(); buildTable(); render();
   }
 });
 
-buildTable();
-buildCreditors();
-render();
+buildTable(); buildCreditors(); render();
 
-/* ================= สัญญาผ่อนแยกต่างหาก (40 งวด) ================= */
+
+/* ================= ชุดที่ 2: สัญญาผ่อนรถ 40 งวด ================= */
 const LOAN = { per:4875, total:40, store:'loanInstall_v1', def:12 };
 let loanPaid = parseInt(localStorage.getItem(LOAN.store) ?? LOAN.def, 10);
 if(isNaN(loanPaid)) loanPaid = LOAN.def;
 
 function buildChips(){
-  document.getElementById('loanChips').innerHTML =
-    Array.from({length:LOAN.total},(_,i)=>{
-      const n=i+1;
-      return `<div class="chip" data-n="${n}">${n}</div>`;
-    }).join('');
+  document.getElementById('loanChips').innerHTML = Array.from({length:LOAN.total},(_,i)=><div class="chip" data-n="${i+1}">${i+1}</div>).join('');
   document.querySelectorAll('#loanChips .chip').forEach(ch=>{
     ch.addEventListener('click',()=>{
       const n=+ch.dataset.n;
@@ -451,19 +404,13 @@ function buildChips(){
     });
   });
 }
-
 function saveLoan(){
   loanPaid = Math.max(0, Math.min(LOAN.total, loanPaid));
   localStorage.setItem(LOAN.store, loanPaid);
   renderLoan();
 }
-
 function renderLoan(){
-  const totalAmt = LOAN.per*LOAN.total;
-  const paidAmt  = LOAN.per*loanPaid;
-  const leftAmt  = totalAmt - paidAmt;
-  const pct = Math.round(loanPaid/LOAN.total*100);
-
+  const totalAmt = LOAN.per*LOAN.total; const paidAmt = LOAN.per*loanPaid; const leftAmt = totalAmt - paidAmt; const pct = Math.round(loanPaid/LOAN.total*100);
   document.getElementById('loanPaidAmt').innerHTML = fmt(paidAmt)+' <small>บาท</small>';
   document.getElementById('loanLeftAmt').innerHTML = fmt(leftAmt)+' <small>บาท</small>';
   document.getElementById('loanPaidCnt').innerHTML = loanPaid+' <small>/ '+LOAN.total+' งวด</small>';
@@ -471,64 +418,144 @@ function renderLoan(){
   document.getElementById('loanPct').textContent = pct+'% สำเร็จ';
   document.getElementById('loanRemainCnt').innerHTML = 'เหลืออีก <b>'+(LOAN.total-loanPaid)+'</b> งวด ('+fmt(leftAmt)+' บาท)';
   document.getElementById('loanCntTxt').textContent = loanPaid;
-
-  document.querySelectorAll('#loanChips .chip').forEach(ch=>{
-    ch.classList.toggle('paid', +ch.dataset.n <= loanPaid);
-  });
+  document.querySelectorAll('#loanChips .chip').forEach(ch=> ch.classList.toggle('paid', +ch.dataset.n <= loanPaid));
 }
-
 document.getElementById('loanPlus').addEventListener('click',()=>{ loanPaid++; saveLoan(); });
 document.getElementById('loanMinus').addEventListener('click',()=>{ loanPaid--; saveLoan(); });
+buildChips(); renderLoan();
 
-buildChips();
-renderLoan();
 
-/* ================= โค้ดส่วนการทำงานสัญญาทองคำเพิ่มเติม ================= */
-const GOLD_STORE = 'goldContracts_v1';
-let goldData = JSON.parse(localStorage.getItem(GOLD_STORE)) || {
-  g1: { principal: 45000, interestRate: 0.0125 },
-  g2: { principal: 15049, interestRate: 0.0125 }
+/* ================= ชุดที่ 3: แผนสัญญาทองคำแบบตารางผ่อนชำระ 14 เดือน ================= */
+const goldMonths = ['เดือนที่ 1','เดือนที่ 2','เดือนที่ 3','เดือนที่ 4','เดือนที่ 5','เดือนที่ 6','เดือนที่ 7','เดือนที่ 8','เดือนที่ 9','เดือนที่ 10','เดือนที่ 11','เดือนที่ 12','เดือนที่ 13','เดือนที่ 14'];
+const goldKeys = ['G1', 'G2'];
+
+// ตัวเลขข้อมูลตามแผนจำลองคำนวณแบ่งจ่าย (ยอดรวมแต่ละเดือนใกล้เคียง 5,000 บาท)
+const goldData = {
+  'เดือนที่ 1': { G1: 563,  G2: 4437 }, // G1 ต่อดอก, G2 ลดต้น
+  'เดือนที่ 2': { G1: 563,  G2: 4437 },
+  'เดือนที่ 3': { G1: 563,  G2: 4437 },
+  'เดือนที่ 4': { G1: 2831, G2: 2169 }, // G2 ปิดยอด! ส่วนที่เหลือเทลดต้น G1
+  'เดือนที่ 5': { G1: 5000, G2: 0 },    // หลังเดือน 5 ลดต้น G1 ยาวๆ
+  'เดือนที่ 6': { G1: 5000, G2: 0 },
+  'เดือนที่ 7': { G1: 5000, G2: 0 },
+  'เดือนที่ 8': { G1: 5000, G2: 0 },
+  'เดือนที่ 9': { G1: 5000, G2: 0 },
+  'เดือนที่ 10':{ G1: 5000, G2: 0 },
+  'เดือนที่ 11':{ G1: 5000, G2: 0 },
+  'เดือนที่ 12':{ G1: 5000, G2: 0 },
+  'เดือนที่ 13':{ G1: 5000, G2: 0 },
+  'เดือนที่ 14':{ G1: 477,  G2: 0 }     // G1 เดือนสุดท้ายปิดยอด!
 };
 
-function renderGold() {
-  document.getElementById('g1_principal').textContent = fmt(goldData.g1.principal);
-  document.getElementById('g1_interest').textContent = fmt(goldData.g1.principal * goldData.g1.interestRate);
-  
-  document.getElementById('g2_principal').textContent = fmt(goldData.g2.principal);
-  document.getElementById('g2_interest').textContent = fmt(goldData.g2.principal * goldData.g2.interestRate);
+// เครื่องหมายประเภทธุรกรรม (เพื่อแสดงป้ายกำกับบอกในตาราง)
+const goldType = {
+  'เดือนที่ 1': { G1: 'renew', G2: 'minus' },
+  'เดือนที่ 2': { G1: 'renew', G2: 'minus' },
+  'เดือนที่ 3': { G1: 'renew', G2: 'minus' },
+  'เดือนที่ 4': { G1: 'minus', G2: 'close' },
+  'เดือนที่ 14':{ G1: 'close', G2: 'none' }
+};
+
+const GOLD_CELL_STORE = 'goldCellsPaid_v2';
+let goldCells = JSON.parse(localStorage.getItem(GOLD_CELL_STORE) || '{}');
+
+function getGoldRowTotal(m) { return goldData[m].G1 + goldData[m].G2; }
+function getGoldTotal() { return goldMonths.reduce((s, m) => s + getGoldRowTotal(m), 0); }
+function isGoldCellPaid(m, k) { return !!goldCells[m + '__' + k]; }
+function goldRowFullyPaid(m) { return goldKeys.every(k => goldData[m][k] === 0 || isGoldCellPaid(m, k)); }
+
+function saveGoldState() { localStorage.setItem(GOLD_CELL_STORE, JSON.stringify(goldCells)); }
+
+function buildGoldTable() {
+  const tbody = document.getElementById('goldTableBody');
+  tbody.innerHTML = goldMonths.map(m => {
+    const rowCells = goldKeys.map(k => {
+      const val = goldData[m][k];
+      if (val === 0) return '<td class="val zero">–</td>';
+      
+      const isPaid = isGoldCellPaid(m, k);
+      let badge = '';
+      const type = (goldType[m] && goldType[m][k]) ? goldType[m][k] : 'minus';
+      
+      if (type === 'renew') badge = '<span class="renewbadge">🔄 ต่อดอก</span>';
+      if (type === 'close') badge = '<span class="closebadge">✅ ปิดยอด</span>';
+      
+      return `<td class="val cell${isPaid ? ' on' : ''}" data-m="${m}" data-k="${k}">` +
+             `<span class="ck">✓</span><span class="num">${fmt(val)}</span> ${badge}</td>`;
+    }).join('');
+
+    return `<tr data-gm="${m}" class="${goldRowFullyPaid(m) ? 'paid' : ''}">
+      <td class="mcell"><input type="checkbox" class="g-mchk" data-m="${m}"><span>${m}</span></td>
+      ${rowCells}
+      <td class="total">${fmt(getGoldRowTotal(m))}</td>
+    </tr>`;
+  }).join('');
+
+  // ผูก Event ตอนคลิกช่องตารางทองคำ
+  tbody.querySelectorAll('td.cell').forEach(td => {
+    td.addEventListener('click', () => {
+      const m = td.dataset.m; const k = td.dataset.k;
+      const id = m + '__' + k;
+      if (goldCells[id]) delete goldCells[id]; else goldCells[id] = true;
+      
+      saveGoldState();
+      td.classList.toggle('on', !!goldCells[id]);
+      td.closest('tr').classList.toggle('paid', goldRowFullyPaid(m));
+      syncGoldCheckbox(m);
+      renderGoldSystem();
+    });
+  });
+
+  // ผูก Event ตัวติ๊กหน้าแถวทองคำ
+  tbody.querySelectorAll('.g-mchk').forEach(cb => {
+    cb.addEventListener('change', e => {
+      const m = e.target.dataset.m; const want = e.target.checked;
+      goldKeys.forEach(k => {
+        if (goldData[m][k] === 0) return;
+        if (want) goldCells[m + '__' + k] = true; else delete goldCells[m + '__' + k];
+      });
+      saveGoldState();
+      buildGoldTable();
+      renderGoldSystem();
+    });
+  });
+
+  goldMonths.forEach(syncGoldCheckbox);
 }
 
-function actionGold(id, type) {
-  const inputEl = document.getElementById(`g${id}_amt`);
-  const val = parseFloat(inputEl.value);
-  
-  if (isNaN(val) || val <= 0) {
-    alert('กรุณากรอกจำนวนเงินที่ถูกต้อง');
-    return;
-  }
-  
-  const targetKey = `g${id}`;
-  if (type === 'ลดต้น') {
-    if(val > goldData[targetKey].principal) {
-      alert('ไม่สามารถลดต้นเกินยอดคงเหลือปัจจุบันได้');
-      return;
-    }
-    goldData[targetKey].principal -= val;
-    alert(`บันทึกรายการ "ลดต้น" สัญญาที่ ${id} สำเร็จ ยอดคงเหลือลดลงแล้ว`);
-  } else if (type === 'เพิ่มต้น') {
-    goldData[targetKey].principal += val;
-    alert(`บันทึกรายการ "เพิ่มต้น" สัญญาที่ ${id} สำเร็จ เพิ่มวงเงินเรียบร้อย`);
-  } else if (type === 'ต่อดอก') {
-    alert(`บันทึกรายการ "ต่อดอก" สัญญาที่ ${id} จำนวน ${fmt(val)} บาท เรียบร้อยแล้ว (ยอดเงินต้นคงเดิม)`);
-  }
-  
-  localStorage.setItem(GOLD_STORE, JSON.stringify(goldData));
-  inputEl.value = '';
-  renderGold();
+function syncGoldCheckbox(m) {
+  const cb = document.querySelector(`.g-mchk[data-m="${m}"]`);
+  if (cb) cb.checked = goldRowFullyPaid(m);
 }
 
-// เรียกรันระบบทองคำตอนโหลดเว็บครั้งแรก
-renderGold();
+function renderGoldSystem() {
+  const gGrandTotal = getGoldTotal();
+  let gPaidAmt = 0;
+  
+  goldMonths.forEach(m => {
+    goldKeys.forEach(k => {
+      if (isGoldCellPaid(m, k)) gPaidAmt += goldData[m][k];
+    });
+  });
+
+  const gLeftAmt = gGrandTotal - gPaidAmt;
+  const gPaidMonthsCount = goldMonths.filter(goldRowFullyPaid).length;
+  const gPct = gGrandTotal ? Math.round((gPaidAmt / gGrandTotal) * 100) : 0;
+
+  // อัปเดต KPI ทองคำ
+  document.getElementById('gKPaid').innerHTML = fmt(gPaidAmt) + ' <small>บาท</small>';
+  document.getElementById('gKLeft').innerHTML = fmt(gLeftAmt) + ' <small>บาท</small>';
+  document.getElementById('gKMonths').innerHTML = gPaidMonthsCount + ' <small>/ 14 เดือน</small>';
+
+  // อัปเดตแถบ Progress Bar ทองคำ
+  document.getElementById('goldOverallBar').style.width = gPct + '%';
+  document.getElementById('goldOverallPct').textContent = gPct + '% แผนสำเร็จ';
+  document.getElementById('goldOverallAmt').textContent = 'เหลือตามแผนอีก ' + fmt(gLeftAmt) + ' บาท';
+}
+
+// เรียกเปิดใช้งานตารางทองคำครั้งแรก
+buildGoldTable();
+renderGoldSystem();
 </script>
 </body>
 </html>
