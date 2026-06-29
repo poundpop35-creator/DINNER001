@@ -10,6 +10,7 @@
   --muted:#64748b;--line:#e2e8f0;--text:#334155;--text2:#0f172a;
   --accent:#0891b2;--accent2:#0284c7;--green:#10b981;--amber:#f59e0b;--red:#ef4444;
   --c-S:#ec4899;--c-G:#8b5cf6;--c-Y:#06b6d4;--c-L:#10b981;--c-A:#f59e0b;
+  --gold:#d97706;--gold2:#b45309;
 }
 *{box-sizing:border-box}
 body{margin:0;font-family:ui-sans-serif,-apple-system,Segoe UI,Roboto,Helvetica,Arial,'Noto Sans Thai',sans-serif;
@@ -109,9 +110,26 @@ tfoot td{border-top:2px solid var(--line);background:var(--card2);font-weight:80
 .loan .ctrl .cv b{font-size:18px;color:var(--text2)}
 .loan .chips{display:grid;grid-template-columns:repeat(10,1fr);gap:6px}
 @media(max-width:480px){.loan .chips{grid-template-columns:repeat(8,1fr)}}
-.loan .chip{aspect-ratio:1;border-radius:9px;border:1px solid var(--line);background:var(--card2);color:var(--muted);font-size:11px;font-weight:700;display:grid;place-items:center;cursor:pointer;transition:.12s;user-select:none}
+.loan .chip{aspect-ratio:1;border-radius:999px;border:1px solid var(--line);background:var(--card2);color:var(--muted);font-size:11px;font-weight:700;display:grid;place-items:center;cursor:pointer;transition:.12s;user-select:none}
 .loan .chip:hover{transform:translateY(-1px);border-color:var(--loan)}
 .loan .chip.paid{background:linear-gradient(135deg,var(--loan),var(--loan2));color:#fff;border-color:transparent}
+
+/* ---- สัญญาทองคำเพิ่มเติม ---- */
+.panel.gold{border-top:4px solid var(--gold)}
+.gold-grid {display:grid;grid-template-columns:1fr;gap:16px}
+@media(min-width:768px){.gold-grid{grid-template-columns:1fr 1fr}}
+.gold-card {background:var(--card2);border:1px solid var(--line);border-radius:14px;padding:16px}
+.gold-card h3 {margin:0 0 8px;font-size:15px;color:var(--gold2);display:flex;justify-content:space-between}
+.gold-meta {font-size:12px;color:var(--muted);margin-bottom:10px;display:grid;grid-template-columns:1fr 1fr;gap:4px}
+.gold-money {font-size:22px;font-weight:800;color:var(--text2);margin:10px 0}
+.gold-money small {font-size:12px;color:var(--muted)}
+.gold-actions {display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px}
+.gold-btn {border:none;padding:8px 4px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;text-align:center;color:#fff}
+.gold-btn.minus {background:var(--red)}
+.gold-btn.renew {background:var(--amber)}
+.gold-btn.plus {background:var(--green)}
+.gold-input-group {margin-top:10px;display:flex;gap:6px}
+.gold-input {flex:1;padding:6px;border:1px solid var(--line);border-radius:6px;font-size:12px}
 </style>
 </head>
 <body>
@@ -192,6 +210,65 @@ tfoot td{border-top:2px solid var(--line);background:var(--card2);font-weight:80
     <div class="chips" id="loanChips"></div>
   </section>
 
+  <div class="divider">สัญญาทองคำแอปพลิเคชัน (ดอกเบี้ย 1.25%/ด.)</div>
+  
+  <section class="panel gold">
+    <div class="gold-grid">
+      
+      <div class="gold-card">
+        <h3><span>📜 สัญญาเลขที่: 4959</span> <span style="color:var(--muted); font-size:12px;">ต่อจาก: 4794</span></h3>
+        <div class="gold-meta">
+          <div><b>วันครบกำหนด:</b> 23-ส.ค.-2026</div>
+          <div><b>น้ำหนักทอง:</b> 15.2300 กรัม</div>
+          <div><b>ประเภทสินค้า:</b> สร้อยคอ (ต่างร้าน)</div>
+          <div><b>สาขา:</b> งามวงศ์วาน XL</div>
+        </div>
+        <div class="gold-money">
+          <span id="g1_principal">45,000</span> <small>บาท (เงินต้น)</small>
+        </div>
+        <div style="font-size:12px; color:var(--red); font-weight:700; margin-bottom:8px;">
+          💸 ดอกเบี้ยสะสมเดือนนี้: <span id="g1_interest">562.5</span> บาท
+        </div>
+        <div class="gold-input-group">
+          <input type="number" id="g1_amt" class="gold-input" placeholder="ระบุจำนวนเงิน (บาท)">
+        </div>
+        <div class="gold-actions">
+          <button class="gold-btn minus" onclick="actionGold(1, 'ลดต้น')">📉 ลดต้น</button>
+          <button class="gold-btn renew" onclick="actionGold(1, 'ต่อดอก')">🔄 ต่อดอก</button>
+          <button class="gold-btn plus" onclick="actionGold(1, 'เพิ่มต้น')">📈 เพิ่มต้น</button>
+        </div>
+      </div>
+
+      <div class="gold-card">
+        <h3><span>📜 สัญญาเลขที่: 4341</span> <span style="color:var(--muted); font-size:12px;">ต่อจาก: 3891</span></h3>
+        <div class="gold-meta">
+          <div><b>วันครบกำหนด:</b> 06-ก.ค.-2026</div>
+          <div><b>น้ำหนักทอง:</b> 7.5300 กรัม</div>
+          <div><b>ประเภทสินค้า:</b> สร้อยคอ (ต่างร้าน)</div>
+          <div><b>สาขา:</b> งามวงศ์วาน XL</div>
+        </div>
+        <div class="gold-money">
+          <span id="g2_principal">15,049</span> <small>บาท (เงินต้น)</small>
+        </div>
+        <div style="font-size:12px; color:var(--red); font-weight:700; margin-bottom:8px;">
+          💸 ดอกเบี้ยสะสมเดือนนี้: <span id="g2_interest">188.11</span> บาท
+        </div>
+        <div class="gold-input-group">
+          <input type="number" id="g2_amt" class="gold-input" placeholder="ระบุจำนวนเงิน (บาท)">
+        </div>
+        <div class="gold-actions">
+          <button class="gold-btn minus" onclick="actionGold(2, 'ลดต้น')">📉 ลดต้น</button>
+          <button class="gold-btn renew" onclick="actionGold(2, 'ต่อดอก')">🔄 ต่อดอก</button>
+          <button class="gold-btn plus" onclick="actionGold(2, 'เพิ่มต้น')">📈 เพิ่มต้น</button>
+        </div>
+      </div>
+
+    </div>
+    <div class="foot-note" style="margin-top:15px;">
+      ℹ️ <b>หมายเหตุระบบทอง:</b> ดอกเบี้ยถูกจำลองคิดเรทคงที่ 1.25% ต่อเดือนจากเงินต้นปัจจุบัน | ปุ่ม <b>ลดต้น</b> จะเอาเงินไปหักเงินต้น, ปุ่ม <b>ต่อดอก</b> จะเป็นการเคลียร์ยอดดอกเบี้ยประจำเดือน, และปุ่ม <b>เพิ่มต้น</b> จะบวกวงเงินเข้าไปในระบบ
+    </div>
+  </section>
+
 </div>
 
 <script>
@@ -203,7 +280,6 @@ const creditors = [
   {key:'LINE BK',  name:'LINE BK',  cvar:'--c-L'},
   {key:'AEON',     name:'AEON',     cvar:'--c-A'},
 ];
-// จำนวนเงินที่ต้องจ่ายต่อเดือน (0 = ไม่ต้องจ่าย)
 const data = {
   'ส.ค.':{S:4231,G:4046,YourCash:400, 'LINE BK':1000,AEON:700},
   'ก.ย.':{S:4084,G:4046,YourCash:400, 'LINE BK':1000,AEON:700},
@@ -215,7 +291,6 @@ const data = {
   'มี.ค.':{S:0,  G:0,   YourCash:0,   'LINE BK':1368,AEON:2875},
 };
 
-// เดือนที่ปิดยอดของแต่ละเจ้าหนี้ = เดือนสุดท้ายที่ยอด > 0
 const payoffMonth = {};
 creditors.forEach(c=>{
   let last=null;
@@ -223,12 +298,11 @@ creditors.forEach(c=>{
   payoffMonth[c.key]=last;
 });
 
-const fmt = n => n.toLocaleString('en-US');
-const STORE = 'debtCellsPaid_v1';   // ติ๊กรายช่อง: { "เดือน__key": true }
+const fmt = n => n.toLocaleString('en-US', {minimumFractionDigits: 0, maximumFractionDigits: 2});
+const STORE = 'debtCellsPaid_v1';
 const cellId = (m,k)=> m+'__'+k;
 let cells = JSON.parse(localStorage.getItem(STORE) || 'null');
 
-// ย้ายข้อมูลเก่า (ติ๊กทั้งเดือน) มาเป็นรายช่อง ครั้งแรกที่เปิด
 if(cells===null){
   cells = {};
   const old = JSON.parse(localStorage.getItem('debtPlanPaid_v1') || '{}');
@@ -242,7 +316,6 @@ function creditorTotal(k){ return months.reduce((s,m)=>s+data[m][k],0); }
 const grandTotal = months.reduce((s,m)=>s+monthTotal(m),0);
 
 function isCellPaid(m,k){ return !!cells[cellId(m,k)]; }
-// เดือนนี้จ่ายครบทุกช่องที่มียอดหรือยัง
 function monthFullyPaid(m){ return creditors.every(c=> data[m][c.key]===0 || isCellPaid(m,c.key)); }
 
 function save(){ localStorage.setItem(STORE, JSON.stringify(cells)); }
@@ -275,7 +348,6 @@ function buildTable(){
     creditors.map(c=>`<td>${fmt(creditorTotal(c.key))}</td>`).join('') +
     `<td>${fmt(grandTotal)}</td>`;
 
-  // แตะรายช่อง
   document.querySelectorAll('td.cell').forEach(td=>{
     td.addEventListener('click',()=>{
       const id = cellId(td.dataset.m, td.dataset.k);
@@ -287,7 +359,7 @@ function buildTable(){
       render();
     });
   });
-  // ติ๊กทั้งเดือน
+  
   document.querySelectorAll('.mchk').forEach(cb=>{
     cb.addEventListener('change',e=>{
       const m=e.target.dataset.m, want=e.target.checked;
@@ -297,11 +369,10 @@ function buildTable(){
         if(want) cells[id]=true; else delete cells[id];
       });
       save();
-      buildTable(); // วาดใหม่ให้ทุกช่องในแถวอัปเดต
+      buildTable();
       render();
     });
   });
-  // ตั้งสถานะ checkbox ตามช่อง
   months.forEach(syncRowCheckbox);
 }
 
@@ -375,7 +446,6 @@ function buildChips(){
   document.querySelectorAll('#loanChips .chip').forEach(ch=>{
     ch.addEventListener('click',()=>{
       const n=+ch.dataset.n;
-      // แตะงวดสุดท้ายที่จ่ายแล้วซ้ำ = ลดลง 1, ไม่งั้น = จ่ายถึงงวดนั้น
       loanPaid = (n===loanPaid) ? n-1 : n;
       saveLoan();
     });
@@ -412,6 +482,53 @@ document.getElementById('loanMinus').addEventListener('click',()=>{ loanPaid--; 
 
 buildChips();
 renderLoan();
+
+/* ================= โค้ดส่วนการทำงานสัญญาทองคำเพิ่มเติม ================= */
+const GOLD_STORE = 'goldContracts_v1';
+let goldData = JSON.parse(localStorage.getItem(GOLD_STORE)) || {
+  g1: { principal: 45000, interestRate: 0.0125 },
+  g2: { principal: 15049, interestRate: 0.0125 }
+};
+
+function renderGold() {
+  document.getElementById('g1_principal').textContent = fmt(goldData.g1.principal);
+  document.getElementById('g1_interest').textContent = fmt(goldData.g1.principal * goldData.g1.interestRate);
+  
+  document.getElementById('g2_principal').textContent = fmt(goldData.g2.principal);
+  document.getElementById('g2_interest').textContent = fmt(goldData.g2.principal * goldData.g2.interestRate);
+}
+
+function actionGold(id, type) {
+  const inputEl = document.getElementById(`g${id}_amt`);
+  const val = parseFloat(inputEl.value);
+  
+  if (isNaN(val) || val <= 0) {
+    alert('กรุณากรอกจำนวนเงินที่ถูกต้อง');
+    return;
+  }
+  
+  const targetKey = `g${id}`;
+  if (type === 'ลดต้น') {
+    if(val > goldData[targetKey].principal) {
+      alert('ไม่สามารถลดต้นเกินยอดคงเหลือปัจจุบันได้');
+      return;
+    }
+    goldData[targetKey].principal -= val;
+    alert(`บันทึกรายการ "ลดต้น" สัญญาที่ ${id} สำเร็จ ยอดคงเหลือลดลงแล้ว`);
+  } else if (type === 'เพิ่มต้น') {
+    goldData[targetKey].principal += val;
+    alert(`บันทึกรายการ "เพิ่มต้น" สัญญาที่ ${id} สำเร็จ เพิ่มวงเงินเรียบร้อย`);
+  } else if (type === 'ต่อดอก') {
+    alert(`บันทึกรายการ "ต่อดอก" สัญญาที่ ${id} จำนวน ${fmt(val)} บาท เรียบร้อยแล้ว (ยอดเงินต้นคงเดิม)`);
+  }
+  
+  localStorage.setItem(GOLD_STORE, JSON.stringify(goldData));
+  inputEl.value = '';
+  renderGold();
+}
+
+// เรียกรันระบบทองคำตอนโหลดเว็บครั้งแรก
+renderGold();
 </script>
 </body>
 </html>
