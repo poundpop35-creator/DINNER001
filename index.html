@@ -84,7 +84,7 @@ tfoot td{border-top:2px solid var(--line);background:var(--card2);font-weight:80
 .divider::before,.divider::after{content:"";flex:1;height:1px;background:var(--line)}
 
 /* ---- สัญญาผ่อนแยก ---- */
-:root{--loan:#3b82f6;--loan2:#2563eb}
+:root{--loan:#3b82f6;--loan2:#2563eb;--gold:#d97706;}
 .panel.loan{border-top:4px solid var(--loan)}
 .loan .lhead{display:flex;align-items:center;gap:12px;margin-bottom:16px}
 .loan .licon{width:42px;height:42px;border-radius:12px;background:linear-gradient(135deg,var(--loan),var(--loan2));display:grid;place-items:center;font-size:22px;flex:none;box-shadow:0 8px 20px rgba(59,130,246,.3)}
@@ -112,6 +112,13 @@ tfoot td{border-top:2px solid var(--line);background:var(--card2);font-weight:80
 .loan .chip{aspect-ratio:1;border-radius:9px;border:1px solid var(--line);background:var(--card2);color:var(--muted);font-size:11px;font-weight:700;display:grid;place-items:center;cursor:pointer;transition:.12s;user-select:none}
 .loan .chip:hover{transform:translateY(-1px);border-color:var(--loan)}
 .loan .chip.paid{background:linear-gradient(135deg,var(--loan),var(--loan2));color:#fff;border-color:transparent}
+
+/* ---- สัญญาทองคำเพิ่มเติม ---- */
+.panel.gold{border-top:4px solid var(--gold)}
+.kpi.glow-gold::after{content:"";position:absolute;right:-30px;top:-30px;width:90px;height:90px;border-radius:50%;filter:blur(8px);opacity:.25;background:var(--gold)}
+.gold-bar i {background:linear-gradient(90deg, var(--gold), #f59e0b) !important;}
+.renewbadge{display:inline-block;margin-left:4px;font-size:10px;background:rgba(59,130,246,.12);color:#2563eb;border:1px solid rgba(59,130,246,.3);padding:1px 6px;border-radius:999px;font-weight:700}
+.closebadge-gold{display:inline-block;margin-left:4px;font-size:10px;background:rgba(217,119,6,.15);color:var(--gold);border:1px solid rgba(217,119,6,.3);padding:1px 6px;border-radius:999px;font-weight:700}
 </style>
 </head>
 <body>
@@ -191,6 +198,53 @@ tfoot td{border-top:2px solid var(--line);background:var(--card2);font-weight:80
 
     <div class="chips" id="loanChips"></div>
   </section>
+
+  <div class="divider">🏆 แผนผ่อนสัญญาทองคำ (งบ 5,000 บ./เดือน)</div>
+
+  <section class="cards">
+    <div class="kpi glow-gold"><div class="lab">ต้นทองคำรวม</div><div class="val" id="gKTotal">60,049 <small>บ.</small></div></div>
+    <div class="kpi glow-green"><div class="lab">ตามแผนจ่ายแล้ว</div><div class="val" id="gKPaid">–</div></div>
+    <div class="kpi glow-amber"><div class="lab">ยอดคงเหลือแผน</div><div class="val" id="gKLeft">–</div></div>
+    <div class="kpi"><div class="lab">สถานะแผน</div><div class="val" id="gKMonths">–</div></div>
+  </section>
+
+  <section class="panel gold">
+    <h2>📈 ความคืบหน้าแผนปิดสัญญาทองคำ 14 เดือน</h2>
+    <div class="bar gold-bar"><i id="goldOverallBar" style="width:0%"></i></div>
+    <div class="bar-meta"><span id="goldOverallPct">0%</span><span id="goldOverallAmt"></span></div>
+  </section>
+
+  <section class="panel gold" style="padding:0;overflow:hidden">
+    <div class="tablewrap">
+      <table>
+        <thead>
+          <tr>
+            <th style="text-align:left">รอบจ่าย (ระบุเดือน)</th>
+            <th>สัญญา 4959 (ยอด 45,000)</th>
+            <th>สัญญา 4341 (ยอด 15,049)</th>
+            <th>ยอดรวมจ่าย</th>
+          </tr>
+        </thead>
+        <tbody id="goldTableBody">
+        </tbody>
+        <tfoot>
+          <tr>
+            <td style="text-align:left">รวมตามแผน</td>
+            <td id="gFoot1">50,050.60 บาท</td>
+            <td id="gFoot2">15,480.08 บาท</td>
+            <td id="gFootTotal">65,530.68 บาท</td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+  </section>
+  
+  <div class="foot-note" style="margin-bottom:40px;">
+    💡 <b>คำแนะนำการอ่านตารางทองคำ:</b> <br>
+    • <span class="renewbadge">🔄 ต่อดอก</span> = เดือนนั้นให้จ่ายเฉพาะดอกเบี้ยเพื่อรักษาสัญญาไว้<br>
+    • ยอดอื่นๆ ที่ไม่มีป้าย = ยอดที่คุณต้องกดจ่ายเพื่อ <b>"ลดต้น"</b> <br>
+    • <span class="closebadge-gold">✅ ปิดยอด</span> = เดือนสุดท้ายที่สัญญานั้นจะหมดลงและได้ทองคืน
+  </div>
 
 </div>
 
@@ -412,6 +466,137 @@ document.getElementById('loanMinus').addEventListener('click',()=>{ loanPaid--; 
 
 buildChips();
 renderLoan();
+
+
+/* ================= ชุดที่ 3: แผนสัญญาทองคำ (แยกตัวแปรและฟังก์ชันใหม่ทั้งหมด) ================= */
+const fmtGold = (n, dec=0) => n.toLocaleString('en-US', {minimumFractionDigits: dec, maximumFractionDigits: dec});
+
+const goldMonths_v3 = [
+  'ก.ค. 69', 'ส.ค. 69', 'ก.ย. 69', 'ต.ค. 69', 'พ.ย. 69', 'ธ.ค. 69',
+  'ม.ค. 70', 'ก.พ. 70', 'มี.ค. 70', 'เม.ย. 70', 'พ.ค. 70', 'มิ.ย. 70',
+  'ก.ค. 70', 'ส.ค. 70'
+];
+const goldKeys_v3 = ['G1', 'G2'];
+
+const goldData_v3 = {
+  'ก.ค. 69': { G1: 562.50, G2: 4437.50 },
+  'ส.ค. 69': { G1: 562.50, G2: 4437.50 },
+  'ก.ย. 69': { G1: 562.50, G2: 4437.50 },
+  'ต.ค. 69': { G1: 2832.42, G2: 2167.58 }, 
+  'พ.ย. 69': { G1: 5000.00, G2: 0 },       
+  'ธ.ค. 69': { G1: 5000.00, G2: 0 },
+  'ม.ค. 70': { G1: 5000.00, G2: 0 },
+  'ก.พ. 70': { G1: 5000.00, G2: 0 },
+  'มี.ค. 70': { G1: 5000.00, G2: 0 },
+  'เม.ย. 70': { G1: 5000.00, G2: 0 },
+  'พ.ค. 70': { G1: 5000.00, G2: 0 },
+  'มิ.ย. 70': { G1: 5000.00, G2: 0 },
+  'ก.ค. 70': { G1: 5000.00, G2: 0 },
+  'ส.ค. 70': { G1: 473.68, G2: 0 }         
+};
+
+const goldType_v3 = {
+  'ก.ค. 69': { G1: 'renew', G2: 'minus' },
+  'ส.ค. 69': { G1: 'renew', G2: 'minus' },
+  'ก.ย. 69': { G1: 'renew', G2: 'minus' },
+  'ต.ค. 69': { G1: 'minus', G2: 'close' },
+  'ส.ค. 70': { G1: 'close', G2: 'none' }
+};
+
+const GOLD_CELL_STORE_v3 = 'goldCellsPaid_isolated_v3';
+let goldCells_v3 = JSON.parse(localStorage.getItem(GOLD_CELL_STORE_v3) || '{}');
+
+function getGoldRowTotal_v3(m) { return goldData_v3[m].G1 + goldData_v3[m].G2; }
+function getGoldTotal_v3() { return goldMonths_v3.reduce((s, m) => s + getGoldRowTotal_v3(m), 0); }
+function isGoldCellPaid_v3(m, k) { return !!goldCells_v3[m + '__' + k]; }
+function goldRowFullyPaid_v3(m) { return goldKeys_v3.every(k => goldData_v3[m][k] === 0 || isGoldCellPaid_v3(m, k)); }
+
+function saveGoldState_v3() { localStorage.setItem(GOLD_CELL_STORE_v3, JSON.stringify(goldCells_v3)); }
+
+function buildGoldTable_v3() {
+  const tbody = document.getElementById('goldTableBody');
+  tbody.innerHTML = goldMonths_v3.map(m => {
+    const rowCells = goldKeys_v3.map(k => {
+      const val = goldData_v3[m][k];
+      if (val === 0) return '<td class="val zero">–</td>';
+      
+      const isPaid = isGoldCellPaid_v3(m, k);
+      let badge = '';
+      const type = (goldType_v3[m] && goldType_v3[m][k]) ? goldType_v3[m][k] : 'minus';
+      
+      if (type === 'renew') badge = '<span class="renewbadge">🔄 ต่อดอก</span>';
+      if (type === 'close') badge = '<span class="closebadge-gold">✅ ปิดยอด</span>';
+      
+      return `<td class="val cell${isPaid ? ' on' : ''}" data-m="${m}" data-k="${k}">` +
+             `<span class="ck">✓</span><span class="num">${fmtGold(val, 2)}</span> ${badge}</td>`;
+    }).join('');
+
+    return `<tr data-gm="${m}" class="${goldRowFullyPaid_v3(m) ? 'paid' : ''}">
+      <td class="mcell"><input type="checkbox" class="g-mchk" data-m="${m}"><span>${m}</span></td>
+      ${rowCells}
+      <td class="total">${fmtGold(getGoldRowTotal_v3(m), 2)}</td>
+    </tr>`;
+  }).join('');
+
+  tbody.querySelectorAll('td.cell').forEach(td => {
+    td.addEventListener('click', () => {
+      const m = td.dataset.m; const k = td.dataset.k;
+      const id = m + '__' + k;
+      if (goldCells_v3[id]) delete goldCells_v3[id]; else goldCells_v3[id] = true;
+      
+      saveGoldState_v3();
+      td.classList.toggle('on', !!goldCells_v3[id]);
+      td.closest('tr').classList.toggle('paid', goldRowFullyPaid_v3(m));
+      syncGoldCheckbox_v3(m);
+      renderGoldSystem_v3();
+    });
+  });
+
+  tbody.querySelectorAll('.g-mchk').forEach(cb => {
+    cb.addEventListener('change', e => {
+      const m = e.target.dataset.m; const want = e.target.checked;
+      goldKeys_v3.forEach(k => {
+        if (goldData_v3[m][k] === 0) return;
+        if (want) goldCells_v3[m + '__' + k] = true; else delete goldCells_v3[m + '__' + k];
+      });
+      saveGoldState_v3();
+      buildGoldTable_v3();
+      renderGoldSystem_v3();
+    });
+  });
+
+  goldMonths_v3.forEach(syncGoldCheckbox_v3);
+}
+
+function syncGoldCheckbox_v3(m) {
+  const cb = document.querySelector(`.g-mchk[data-m="${m}"]`);
+  if (cb) cb.checked = goldRowFullyPaid_v3(m);
+}
+
+function renderGoldSystem_v3() {
+  const gGrandTotal = getGoldTotal_v3();
+  let gPaidAmt = 0;
+  
+  goldMonths_v3.forEach(m => {
+    goldKeys_v3.forEach(k => {
+      if (isGoldCellPaid_v3(m, k)) gPaidAmt += goldData_v3[m][k];
+    });
+  });
+
+  const gLeftAmt = gGrandTotal - gPaidAmt;
+  const gPaidMonthsCount = goldMonths_v3.filter(goldRowFullyPaid_v3).length;
+  const gPct = gGrandTotal ? Math.round((gPaidAmt / gGrandTotal) * 100) : 0;
+
+  document.getElementById('gKPaid').innerHTML = fmtGold(gPaidAmt, 2) + ' <small>บาท</small>';
+  document.getElementById('gKLeft').innerHTML = fmtGold(gLeftAmt, 2) + ' <small>บาท</small>';
+  document.getElementById('gKMonths').innerHTML = gPaidMonthsCount + ' <small>/ 14 เดือน</small>';
+  document.getElementById('goldOverallBar').style.width = gPct + '%';
+  document.getElementById('goldOverallPct').textContent = gPct + '% แผนสำเร็จ';
+  document.getElementById('goldOverallAmt').textContent = 'เหลือตามแผนอีก ' + fmtGold(gLeftAmt, 2) + ' บาท';
+}
+
+buildGoldTable_v3();
+renderGoldSystem_v3();
 </script>
 </body>
 </html>
