@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
 <title>แผนจัดการหนี้ – Debt Plan</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <style>
 :root{
   --bg:#f1f5f9;--card:#ffffff;--card2:#f8fafc;
@@ -125,6 +126,45 @@ tfoot td{border-top:2px solid var(--line);background:var(--card2);font-weight:80
 .gold-bar i {background:linear-gradient(90deg, var(--gold), #f59e0b) !important;}
 .renewbadge{display:inline-block;margin-left:4px;font-size:10px;background:rgba(59,130,246,.12);color:#2563eb;border:1px solid rgba(59,130,246,.3);padding:1px 6px;border-radius:999px;font-weight:700}
 .closebadge-gold{display:inline-block;margin-left:4px;font-size:10px;background:rgba(217,119,6,.15);color:var(--gold);border:1px solid rgba(217,119,6,.3);padding:1px 6px;border-radius:999px;font-weight:700}
+
+/* ============ จัดหน้าสำหรับพิมพ์ / PDF ขนาด A4 ============ */
+@media print{
+  @page{ size:A4 portrait; margin:8mm; }
+  html,body{ background:#fff !important; }
+  body{ color:#000; }
+  .wrap{ max-width:none; margin:0; padding:0; }
+  /* ซ่อนทุกอย่างที่ไม่ต้องพิมพ์ */
+  .topbtns,.plan-tools,.noprint,
+  .loan .lbar,.loan .lbar-meta,.loan .ctrl{ display:none !important; }
+  .sub{ display:none; }
+  /* หัวข้อแผน */
+  .divider{ margin:6px 0 4px; font-size:12px; font-weight:800; color:#000; justify-content:flex-start; page-break-after:avoid; }
+  .divider::before,.divider::after{ display:none; }
+  /* การ์ดสรุปแบบกระชับ */
+  section.cards{ gap:5px; margin-bottom:6px; grid-template-columns:repeat(4,1fr) !important; }
+  .kpi{ box-shadow:none !important; border:1px solid #ccc; border-radius:6px; padding:5px 7px; }
+  .kpi::after{ display:none !important; }
+  .kpi .lab{ font-size:9px; }
+  .kpi .val{ font-size:12px; }
+  .kpi .val small{ font-size:9px; }
+  /* พาเนล/ตาราง */
+  .panel{ box-shadow:none !important; border:1px solid #ccc; border-radius:6px; padding:6px; margin:0 0 6px; }
+  .panel.loan,.panel.gold{ border-top:2px solid #999; }
+  .loan .lhead{ margin-bottom:6px; }
+  .loan .lstats{ margin-bottom:6px; }
+  .loan .lstat{ padding:5px 7px; }
+  .tablewrap{ overflow:visible !important; border:none; border-radius:0; }
+  table{ min-width:0 !important; width:100%; }
+  th,td{ padding:3px 4px; font-size:9px; }
+  thead th{ background:#eee !important; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+  tbody tr.paid{ background:#eafaf2 !important; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+  td.cell.on{ background:#d7f5e6 !important; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+  /* ชิป 40 งวด ให้เป็นแถบเตี้ยๆ พอดีหน้า */
+  .loan .chips{ grid-template-columns:repeat(20,1fr) !important; gap:3px; }
+  .loan .chip{ aspect-ratio:auto !important; height:15px; font-size:7px; border-radius:4px; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+  /* อย่าตัดกลางตาราง/แผน */
+  .capbox,.panel,table,section.cards{ break-inside:avoid; page-break-inside:avoid; }
+}
 </style>
 </head>
 <body>
@@ -141,6 +181,8 @@ tfoot td{border-top:2px solid var(--line);background:var(--card2);font-weight:80
     <div class="topbtns">
       <button class="reset" id="exportBtn" title="ดาวน์โหลดไฟล์สำรองข้อมูล">⬇️ สำรองข้อมูล</button>
       <button class="reset" id="importBtn" title="โหลดไฟล์สำรองเพื่อย้ายมาเครื่องนี้">⬆️ กู้คืน</button>
+      <button class="reset" id="printBtn" title="พิมพ์หรือบันทึกเป็น PDF ขนาด A4">🖨️ พิมพ์ / PDF (A4)</button>
+      <button class="reset" id="sharePdfBtn" title="สร้างไฟล์ PDF แล้วแชร์">📤 แชร์ PDF</button>
       <button class="reset" id="resetBtn">↺ ล้างการติ๊ก</button>
       <input type="file" id="importFile" accept="application/json,.json" style="display:none">
     </div>
@@ -161,13 +203,13 @@ tfoot td{border-top:2px solid var(--line);background:var(--card2);font-weight:80
     <div class="kpi"><div class="lab">เดือนที่จ่ายแล้ว</div><div class="val" id="kMonths">–</div></div>
   </section>
 
-  <section class="panel">
+  <section class="panel noprint">
     <h2>📊 ความคืบหน้าโดยรวม</h2>
     <div class="bar"><i id="overallBar" style="width:0%"></i></div>
     <div class="bar-meta"><span id="overallPct">0%</span><span id="overallAmt"></span></div>
   </section>
 
-  <section class="panel">
+  <section class="panel noprint">
     <h2>🏦 ความคืบหน้าแยกตามเจ้าหนี้</h2>
     <div id="credList"></div>
     <div class="legend" id="legend"></div>
@@ -183,7 +225,7 @@ tfoot td{border-top:2px solid var(--line);background:var(--card2);font-weight:80
     </div>
   </section>
 
-  <div class="foot-note">
+  <div class="foot-note noprint">
     👉 <b>แตะที่ตัวเลขแต่ละช่อง</b> เพื่อติ๊กว่าจ่ายเจ้าหนี้รายนั้นแล้ว (จ่ายคนละวันก็ติ๊กแยกได้) &nbsp;•&nbsp; ติ๊กช่องหน้าเดือน = ติ๊กทั้งแถวรวดเดียว<br>
     ✅ = เดือนที่ <b>ปิดยอด</b> ของเจ้าหนี้รายนั้น &nbsp;•&nbsp; ข้อมูลถูกบันทึกในเครื่องนี้อัตโนมัติ (localStorage)
   </div>
@@ -244,7 +286,7 @@ tfoot td{border-top:2px solid var(--line);background:var(--card2);font-weight:80
     <div class="kpi"><div class="lab">สถานะแผน</div><div class="val" id="gKMonths">–</div></div>
   </section>
 
-  <section class="panel gold">
+  <section class="panel gold noprint">
     <h2>📈 ความคืบหน้าแผนปิดสัญญาทองคำ 14 เดือน</h2>
     <div class="bar gold-bar"><i id="goldOverallBar" style="width:0%"></i></div>
     <div class="bar-meta"><span id="goldOverallPct">0%</span><span id="goldOverallAmt"></span></div>
@@ -275,7 +317,7 @@ tfoot td{border-top:2px solid var(--line);background:var(--card2);font-weight:80
     </div>
   </section>
   
-  <div class="foot-note" style="margin-bottom:40px;">
+  <div class="foot-note noprint" style="margin-bottom:40px;">
     💡 <b>คำแนะนำการอ่านตารางทองคำ:</b> <br>
     • <span class="renewbadge">🔄 ต่อดอก</span> = เดือนนั้นให้จ่ายเฉพาะดอกเบี้ยเพื่อรักษาสัญญาไว้<br>
     • ยอดอื่นๆ ที่ไม่มีป้าย = ยอดที่คุณต้องกดจ่ายเพื่อ <b>"ลดต้น"</b> <br>
@@ -753,6 +795,63 @@ document.addEventListener('click', e=>{
   else if(b.dataset.xls==='main') xlsMain();
   else if(b.dataset.xls==='loan') xlsLoan();
   else if(b.dataset.xls==='gold') xlsGold();
+});
+
+/* ================= พิมพ์ A4 / แชร์ PDF ================= */
+document.getElementById('printBtn').addEventListener('click', ()=> window.print());
+
+// สร้างเอกสาร PDF ขนาด A4 จากเนื้อหาทั้งหมด (แบ่งหน้าอัตโนมัติ)
+async function buildPdf(){
+  if(typeof html2canvas==='undefined' || !window.jspdf){
+    alert('โหลดเครื่องมือสร้าง PDF ไม่สำเร็จ — ต้องต่ออินเทอร์เน็ตสักครู่แล้วลองใหม่');
+    return null;
+  }
+  const { jsPDF } = window.jspdf;
+  const canvas = await html2canvas(document.querySelector('.wrap'), {
+    backgroundColor:'#ffffff', scale:2,
+    ignoreElements: el => el.classList && (el.classList.contains('topbtns') || el.classList.contains('plan-tools'))
+  });
+  const pdf = new jsPDF('p','mm','a4');
+  const M=8, pw=210, ph=297, imgW=pw-M*2;
+  const imgH = canvas.height * imgW / canvas.width;
+  const usable = ph - M*2;
+  const img = canvas.toDataURL('image/png');
+  let hLeft = imgH, pos = M;
+  pdf.addImage(img,'PNG',M,pos,imgW,imgH);
+  hLeft -= usable;
+  while(hLeft > 0){
+    pos = M - (imgH - hLeft);
+    pdf.addPage();
+    pdf.addImage(img,'PNG',M,pos,imgW,imgH);
+    hLeft -= usable;
+  }
+  return pdf;
+}
+
+document.getElementById('sharePdfBtn').addEventListener('click', async ()=>{
+  const btn = document.getElementById('sharePdfBtn');
+  const old = btn.textContent;
+  btn.textContent = '⏳ กำลังสร้าง...'; btn.disabled = true;
+  try{
+    const pdf = await buildPdf();
+    if(!pdf) return;
+    const blob = pdf.output('blob');
+    const fname = 'แผนจัดการหนี้-'+new Date().toISOString().slice(0,10)+'.pdf';
+    const file = new File([blob], fname, {type:'application/pdf'});
+    if(navigator.canShare && navigator.canShare({files:[file]})){
+      try{ await navigator.share({files:[file], title:'แผนจัดการหนี้'}); }
+      catch(err){ if(err.name!=='AbortError') throw err; }
+    }else{
+      const a=document.createElement('a');
+      a.href=URL.createObjectURL(blob); a.download=fname; a.click();
+      URL.revokeObjectURL(a.href);
+      alert('อุปกรณ์นี้แชร์ไฟล์โดยตรงไม่ได้ — ดาวน์โหลด PDF ให้แทนแล้ว ✅');
+    }
+  }catch(err){
+    alert('สร้าง PDF ไม่สำเร็จ: '+err.message);
+  }finally{
+    btn.textContent = old; btn.disabled = false;
+  }
 });
 </script>
 </body>
