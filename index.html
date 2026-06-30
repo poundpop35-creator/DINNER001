@@ -16,7 +16,7 @@
 *{box-sizing:border-box}
 body{margin:0;font-family:ui-sans-serif,-apple-system,Segoe UI,Roboto,Helvetica,Arial,'Noto Sans Thai',sans-serif;
   background:radial-gradient(1200px 600px at 20% -10%,#e0f2fe 0%,var(--bg) 55%);color:var(--text);min-height:100vh}
-.wrap{max-width:1040px;margin:0 auto;padding:20px 16px 60px}
+.wrap{max-width:1040px;margin:0 auto;padding:20px 16px 60px;overflow-x:hidden}
 header.top{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:18px}
 .brand{display:flex;align-items:center;gap:12px}
 .logo{width:46px;height:46px;border-radius:14px;background:linear-gradient(135deg,var(--accent),var(--accent2));
@@ -34,7 +34,7 @@ h1{font-size:22px;margin:0;color:var(--text2);letter-spacing:.2px}
 
 .cards{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-bottom:18px}
 @media(min-width:760px){.cards{grid-template-columns:repeat(4,1fr)}}
-.kpi{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px 16px 14px;position:relative;overflow:hidden;box-shadow:0 4px 14px rgba(15,23,42,.05)}
+.kpi{min-width:0;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px 16px 14px;position:relative;overflow:hidden;box-shadow:0 4px 14px rgba(15,23,42,.05)}
 .kpi .lab{font-size:12px;color:var(--muted);font-weight:600;letter-spacing:.3px}
 .kpi .val{font-size:24px;font-weight:800;color:var(--text2);margin-top:6px;line-height:1.1}
 .kpi .val small{font-size:13px;color:var(--muted);font-weight:600}
@@ -99,7 +99,7 @@ tfoot td{border-top:2px solid var(--line);background:var(--card2);font-weight:80
 .loan .lsub{font-size:12px;color:var(--muted);margin-top:2px}
 .loan .lstats{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:16px}
 @media(min-width:620px){.loan .lstats{grid-template-columns:repeat(4,1fr)}}
-.loan .lstat{background:var(--card2);border:1px solid var(--line);border-radius:14px;padding:12px 14px}
+.loan .lstat{min-width:0;background:var(--card2);border:1px solid var(--line);border-radius:14px;padding:12px 14px}
 .loan .lstat .l{font-size:11px;color:var(--muted);font-weight:600}
 .loan .lstat .v{font-size:19px;font-weight:800;color:var(--text2);margin-top:4px}
 .loan .lstat .v small{font-size:12px;color:var(--muted);font-weight:600}
@@ -114,9 +114,8 @@ tfoot td{border-top:2px solid var(--line);background:var(--card2);font-weight:80
 .loan .ctrl button:hover{border-color:var(--loan)}
 .loan .ctrl .cv{font-size:14px;color:var(--muted)}
 .loan .ctrl .cv b{font-size:18px;color:var(--text2)}
-.loan .chips{display:grid;grid-template-columns:repeat(10,1fr);gap:6px}
-@media(max-width:480px){.loan .chips{grid-template-columns:repeat(8,1fr)}}
-.loan .chip{aspect-ratio:1;border-radius:9px;border:1px solid var(--line);background:var(--card2);color:var(--muted);font-size:11px;font-weight:700;display:grid;place-items:center;cursor:pointer;transition:.12s;user-select:none}
+.loan .chips{display:grid;grid-template-columns:repeat(auto-fill,minmax(34px,1fr));gap:6px}
+.loan .chip{min-width:0;aspect-ratio:1;border-radius:9px;border:1px solid var(--line);background:var(--card2);color:var(--muted);font-size:11px;font-weight:700;display:grid;place-items:center;cursor:pointer;transition:.12s;user-select:none}
 .loan .chip:hover{transform:translateY(-1px);border-color:var(--loan)}
 .loan .chip.paid{background:linear-gradient(135deg,var(--loan),var(--loan2));color:#fff;border-color:transparent}
 
@@ -749,10 +748,13 @@ async function renderCanvas(el){
   document.body.classList.add('capturing');
   await new Promise(r=> requestAnimationFrame(()=> requestAnimationFrame(r)));
   try{
-    return await html2canvas(el, {
-      backgroundColor:'#ffffff', scale:2, windowWidth:960,
-      ignoreElements: e => e.classList && (e.classList.contains('topbtns') || e.classList.contains('plan-tools'))
-    });
+    return await Promise.race([
+      html2canvas(el, {
+        backgroundColor:'#ffffff', scale:2, windowWidth:960,
+        ignoreElements: e => e.classList && (e.classList.contains('topbtns') || e.classList.contains('plan-tools'))
+      }),
+      new Promise((_,rej)=> setTimeout(()=> rej(new Error('หมดเวลาสร้างภาพ')), 20000))
+    ]);
   } finally {
     document.body.classList.remove('capturing');
   }
