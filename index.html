@@ -164,6 +164,11 @@ tfoot td{border-top:2px solid var(--line);background:var(--card2);font-weight:80
   .loan .chip{ aspect-ratio:auto !important; height:15px; font-size:7px; border-radius:4px; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
   /* อย่าตัดกลางตาราง/แผน */
   .capbox,.panel,table,section.cards{ break-inside:avoid; page-break-inside:avoid; }
+  /* โหมดพิมพ์แยกทีละสัญญา: แสดงเฉพาะแผนที่เลือก */
+  body.solo .divider{ display:none !important; }
+  body.solo .capbox{ display:none !important; }
+  body.solo .capbox.solo-target{ display:block !important; }
+  body.solo header.top{ display:none !important; }
 }
 </style>
 </head>
@@ -181,8 +186,8 @@ tfoot td{border-top:2px solid var(--line);background:var(--card2);font-weight:80
     <div class="topbtns">
       <button class="reset" id="exportBtn" title="ดาวน์โหลดไฟล์สำรองข้อมูล">⬇️ สำรองข้อมูล</button>
       <button class="reset" id="importBtn" title="โหลดไฟล์สำรองเพื่อย้ายมาเครื่องนี้">⬆️ กู้คืน</button>
-      <button class="reset" id="printBtn" title="พิมพ์หรือบันทึกเป็น PDF ขนาด A4">🖨️ พิมพ์ / PDF (A4)</button>
-      <button class="reset" id="sharePdfBtn" title="สร้างไฟล์ PDF แล้วแชร์">📤 แชร์ PDF</button>
+      <button class="reset" id="printBtn" title="พิมพ์ทุกแผนรวมกันเป็น A4">🖨️ พิมพ์ทั้งหมด</button>
+      <button class="reset" id="sharePdfBtn" title="สร้าง PDF รวมทุกแผนแล้วแชร์">📤 แชร์ PDF ทั้งหมด</button>
       <button class="reset" id="resetBtn">↺ ล้างการติ๊ก</button>
       <input type="file" id="importFile" accept="application/json,.json" style="display:none">
     </div>
@@ -192,6 +197,8 @@ tfoot td{border-top:2px solid var(--line);background:var(--card2);font-weight:80
     <span class="pt-label">แผนที่ 1 · หนี้หลัก</span>
     <button class="reset" data-img="cap-main" data-name="หนี้หลัก">📷 รูปภาพ</button>
     <button class="reset" data-xls="main">📊 Excel</button>
+    <button class="reset" data-print="cap-main">🖨️ พิมพ์</button>
+    <button class="reset" data-pdf="cap-main" data-name="หนี้หลัก">📄 PDF</button>
   </div>
 
   <div id="cap-main" class="capbox">
@@ -238,6 +245,8 @@ tfoot td{border-top:2px solid var(--line);background:var(--card2);font-weight:80
     <span class="pt-label">แผนที่ 2 · สัญญาผ่อน 40 งวด</span>
     <button class="reset" data-img="cap-loan" data-name="สัญญาผ่อน40งวด">📷 รูปภาพ</button>
     <button class="reset" data-xls="loan">📊 Excel</button>
+    <button class="reset" data-print="cap-loan">🖨️ พิมพ์</button>
+    <button class="reset" data-pdf="cap-loan" data-name="สัญญาผ่อน40งวด">📄 PDF</button>
   </div>
 
   <div id="cap-loan" class="capbox">
@@ -276,6 +285,8 @@ tfoot td{border-top:2px solid var(--line);background:var(--card2);font-weight:80
     <span class="pt-label">แผนที่ 3 · สัญญาทองคำ</span>
     <button class="reset" data-img="cap-gold" data-name="สัญญาทองคำ">📷 รูปภาพ</button>
     <button class="reset" data-xls="gold">📊 Excel</button>
+    <button class="reset" data-print="cap-gold">🖨️ พิมพ์</button>
+    <button class="reset" data-pdf="cap-gold" data-name="สัญญาทองคำ">📄 PDF</button>
   </div>
 
   <div id="cap-gold" class="capbox">
@@ -795,21 +806,38 @@ document.addEventListener('click', e=>{
   else if(b.dataset.xls==='main') xlsMain();
   else if(b.dataset.xls==='loan') xlsLoan();
   else if(b.dataset.xls==='gold') xlsGold();
+  else if(b.dataset.print){ printPlan(b.dataset.print); }
+  else if(b.dataset.pdf){ sharePdf(document.getElementById(b.dataset.pdf), b.dataset.name, b); }
 });
 
 /* ================= พิมพ์ A4 / แชร์ PDF ================= */
+// พิมพ์ทั้งหมด
 document.getElementById('printBtn').addEventListener('click', ()=> window.print());
+// พิมพ์เฉพาะแผนเดียว
+function printPlan(id){
+  const box=document.getElementById(id);
+  if(!box) return;
+  document.body.classList.add('solo');
+  box.classList.add('solo-target');
+  function cleanup(){
+    document.body.classList.remove('solo');
+    box.classList.remove('solo-target');
+    window.removeEventListener('afterprint',cleanup);
+  }
+  window.addEventListener('afterprint',cleanup);
+  window.print();
+}
 
-// สร้างเอกสาร PDF ขนาด A4 จากเนื้อหาทั้งหมด (แบ่งหน้าอัตโนมัติ)
-async function buildPdf(){
+// สร้างเอกสาร PDF ขนาด A4 จาก element ที่กำหนด (แบ่งหน้าอัตโนมัติ)
+async function buildPdf(el){
   if(typeof html2canvas==='undefined' || !window.jspdf){
     alert('โหลดเครื่องมือสร้าง PDF ไม่สำเร็จ — ต้องต่ออินเทอร์เน็ตสักครู่แล้วลองใหม่');
     return null;
   }
   const { jsPDF } = window.jspdf;
-  const canvas = await html2canvas(document.querySelector('.wrap'), {
+  const canvas = await html2canvas(el, {
     backgroundColor:'#ffffff', scale:2,
-    ignoreElements: el => el.classList && (el.classList.contains('topbtns') || el.classList.contains('plan-tools'))
+    ignoreElements: e => e.classList && (e.classList.contains('topbtns') || e.classList.contains('plan-tools'))
   });
   const pdf = new jsPDF('p','mm','a4');
   const M=8, pw=210, ph=297, imgW=pw-M*2;
@@ -828,18 +856,17 @@ async function buildPdf(){
   return pdf;
 }
 
-document.getElementById('sharePdfBtn').addEventListener('click', async ()=>{
-  const btn = document.getElementById('sharePdfBtn');
-  const old = btn.textContent;
-  btn.textContent = '⏳ กำลังสร้าง...'; btn.disabled = true;
+async function sharePdf(el, name, btn){
+  const old = btn ? btn.textContent : '';
+  if(btn){ btn.textContent='⏳ กำลังสร้าง...'; btn.disabled=true; }
   try{
-    const pdf = await buildPdf();
+    const pdf = await buildPdf(el);
     if(!pdf) return;
     const blob = pdf.output('blob');
-    const fname = 'แผนจัดการหนี้-'+new Date().toISOString().slice(0,10)+'.pdf';
+    const fname = name+'-'+new Date().toISOString().slice(0,10)+'.pdf';
     const file = new File([blob], fname, {type:'application/pdf'});
     if(navigator.canShare && navigator.canShare({files:[file]})){
-      try{ await navigator.share({files:[file], title:'แผนจัดการหนี้'}); }
+      try{ await navigator.share({files:[file], title:name}); }
       catch(err){ if(err.name!=='AbortError') throw err; }
     }else{
       const a=document.createElement('a');
@@ -850,9 +877,12 @@ document.getElementById('sharePdfBtn').addEventListener('click', async ()=>{
   }catch(err){
     alert('สร้าง PDF ไม่สำเร็จ: '+err.message);
   }finally{
-    btn.textContent = old; btn.disabled = false;
+    if(btn){ btn.textContent=old; btn.disabled=false; }
   }
-});
+}
+
+document.getElementById('sharePdfBtn').addEventListener('click', e=>
+  sharePdf(document.querySelector('.wrap'), 'แผนจัดการหนี้-ทั้งหมด', e.currentTarget));
 </script>
 </body>
 </html>
