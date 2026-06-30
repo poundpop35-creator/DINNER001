@@ -127,6 +127,13 @@ tfoot td{border-top:2px solid var(--line);background:var(--card2);font-weight:80
 .renewbadge{display:inline-block;margin-left:4px;font-size:10px;background:rgba(59,130,246,.12);color:#2563eb;border:1px solid rgba(59,130,246,.3);padding:1px 6px;border-radius:999px;font-weight:700}
 .closebadge-gold{display:inline-block;margin-left:4px;font-size:10px;background:rgba(217,119,6,.15);color:var(--gold);border:1px solid rgba(217,119,6,.3);padding:1px 6px;border-radius:999px;font-weight:700}
 
+/* ====== โหมดถ่ายภาพ (สร้างรูป/PDF) บังคับเรนเดอร์กว้างจอเดสก์ท็อป กันตารางโดนตัดบนมือถือ ====== */
+body.capturing .wrap{ width:880px !important; max-width:880px !important; padding:16px !important; margin:0 !important; }
+body.capturing .tablewrap{ overflow:visible !important; }
+body.capturing table{ min-width:0 !important; width:100% !important; }
+body.capturing .cards{ grid-template-columns:repeat(4,1fr) !important; }
+body.capturing .loan .lstats{ grid-template-columns:repeat(4,1fr) !important; }
+
 /* ============ จัดหน้าสำหรับพิมพ์ / PDF ขนาด A4 ============ */
 @media print{
   @page{ size:A4 portrait; margin:8mm; }
@@ -737,18 +744,32 @@ document.getElementById('importFile').addEventListener('change',e=>{
 });
 
 /* ================= ส่งออกแต่ละแผนเป็น รูปภาพ (PNG) + Excel ================= */
-function exportImage(elId, name){
-  const el = document.getElementById(elId);
+// เรนเดอร์ element เป็น canvas โดยบังคับ layout แบบจอกว้าง (กันตารางโดนตัดบนมือถือ)
+async function renderCanvas(el){
+  document.body.classList.add('capturing');
+  await new Promise(r=> requestAnimationFrame(()=> requestAnimationFrame(r)));
+  try{
+    return await html2canvas(el, {
+      backgroundColor:'#ffffff', scale:2, windowWidth:960,
+      ignoreElements: e => e.classList && (e.classList.contains('topbtns') || e.classList.contains('plan-tools'))
+    });
+  } finally {
+    document.body.classList.remove('capturing');
+  }
+}
+
+async function exportImage(elId, name){
   if(typeof html2canvas === 'undefined'){
     alert('โหลดเครื่องมือสร้างรูปไม่สำเร็จ — ต้องต่ออินเทอร์เน็ตสักครู่แล้วลองใหม่');
     return;
   }
-  html2canvas(el, {backgroundColor:'#f1f5f9', scale:2}).then(canvas=>{
+  try{
+    const canvas = await renderCanvas(document.getElementById(elId));
     const a=document.createElement('a');
     a.href=canvas.toDataURL('image/png');
     a.download = name+'-'+new Date().toISOString().slice(0,10)+'.png';
     a.click();
-  }).catch(err=> alert('สร้างรูปไม่สำเร็จ: '+err.message));
+  }catch(err){ alert('สร้างรูปไม่สำเร็จ: '+err.message); }
 }
 
 function downloadXls(filename, title, headers, rows){
@@ -835,10 +856,7 @@ async function buildPdf(el){
     return null;
   }
   const { jsPDF } = window.jspdf;
-  const canvas = await html2canvas(el, {
-    backgroundColor:'#ffffff', scale:2,
-    ignoreElements: e => e.classList && (e.classList.contains('topbtns') || e.classList.contains('plan-tools'))
-  });
+  const canvas = await renderCanvas(el);
   const pdf = new jsPDF('p','mm','a4');
   const M=8, pw=210, ph=297, imgW=pw-M*2;
   const imgH = canvas.height * imgW / canvas.width;
