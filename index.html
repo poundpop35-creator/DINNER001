@@ -4,6 +4,7 @@
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
 <title>แผนจัดการหนี้ – Debt Plan</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <style>
 :root{
   --bg:#f1f5f9;--card:#ffffff;--card2:#f8fafc;
@@ -25,6 +26,10 @@ h1{font-size:22px;margin:0;color:var(--text2);letter-spacing:.2px}
   font-size:13px;cursor:pointer;font-weight:600}
 .reset:hover{color:var(--text2);border-color:var(--accent)}
 .topbtns{display:flex;gap:8px;flex-wrap:wrap}
+.plan-tools{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:0 0 12px}
+.plan-tools .pt-label{font-size:13px;font-weight:700;color:var(--muted);margin-right:auto}
+.plan-tools .reset{font-size:12px;padding:7px 11px}
+.capbox{background:transparent}
 
 .cards{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-bottom:18px}
 @media(min-width:760px){.cards{grid-template-columns:repeat(4,1fr)}}
@@ -141,6 +146,14 @@ tfoot td{border-top:2px solid var(--line);background:var(--card2);font-weight:80
     </div>
   </header>
 
+  <div class="plan-tools">
+    <span class="pt-label">แผนที่ 1 · หนี้หลัก</span>
+    <button class="reset" data-img="cap-main" data-name="หนี้หลัก">📷 รูปภาพ</button>
+    <button class="reset" data-xls="main">📊 Excel</button>
+  </div>
+
+  <div id="cap-main" class="capbox">
+
   <section class="cards">
     <div class="kpi glow-cyan"><div class="lab">หนี้รวมทั้งหมด</div><div class="val" id="kTotal">–</div></div>
     <div class="kpi glow-green"><div class="lab">จ่ายไปแล้ว</div><div class="val" id="kPaid">–</div></div>
@@ -175,8 +188,17 @@ tfoot td{border-top:2px solid var(--line);background:var(--card2);font-weight:80
     ✅ = เดือนที่ <b>ปิดยอด</b> ของเจ้าหนี้รายนั้น &nbsp;•&nbsp; ข้อมูลถูกบันทึกในเครื่องนี้อัตโนมัติ (localStorage)
   </div>
 
+  </div><!-- /cap-main -->
+
   <div class="divider">สัญญาผ่อนแยกต่างหาก</div>
 
+  <div class="plan-tools">
+    <span class="pt-label">แผนที่ 2 · สัญญาผ่อน 40 งวด</span>
+    <button class="reset" data-img="cap-loan" data-name="สัญญาผ่อน40งวด">📷 รูปภาพ</button>
+    <button class="reset" data-xls="loan">📊 Excel</button>
+  </div>
+
+  <div id="cap-loan" class="capbox">
   <section class="panel loan">
     <div class="lhead">
       <div class="licon">🚗</div>
@@ -204,9 +226,17 @@ tfoot td{border-top:2px solid var(--line);background:var(--card2);font-weight:80
 
     <div class="chips" id="loanChips"></div>
   </section>
+  </div><!-- /cap-loan -->
 
   <div class="divider">🏆 แผนผ่อนสัญญาทองคำ (งบ 5,000 บ./เดือน)</div>
 
+  <div class="plan-tools">
+    <span class="pt-label">แผนที่ 3 · สัญญาทองคำ</span>
+    <button class="reset" data-img="cap-gold" data-name="สัญญาทองคำ">📷 รูปภาพ</button>
+    <button class="reset" data-xls="gold">📊 Excel</button>
+  </div>
+
+  <div id="cap-gold" class="capbox">
   <section class="cards">
     <div class="kpi glow-gold"><div class="lab">ต้นทองคำรวม</div><div class="val" id="gKTotal">60,049 <small>บ.</small></div></div>
     <div class="kpi glow-green"><div class="lab">ตามแผนจ่ายแล้ว</div><div class="val" id="gKPaid">–</div></div>
@@ -251,6 +281,7 @@ tfoot td{border-top:2px solid var(--line);background:var(--card2);font-weight:80
     • ยอดอื่นๆ ที่ไม่มีป้าย = ยอดที่คุณต้องกดจ่ายเพื่อ <b>"ลดต้น"</b> <br>
     • <span class="closebadge-gold">✅ ปิดยอด</span> = เดือนสุดท้ายที่สัญญานั้นจะหมดลงและได้ทองคืน
   </div>
+  </div><!-- /cap-gold -->
 
 </div>
 
@@ -650,6 +681,78 @@ document.getElementById('importFile').addEventListener('change',e=>{
   };
   reader.readAsText(file);
   e.target.value = '';
+});
+
+/* ================= ส่งออกแต่ละแผนเป็น รูปภาพ (PNG) + Excel ================= */
+function exportImage(elId, name){
+  const el = document.getElementById(elId);
+  if(typeof html2canvas === 'undefined'){
+    alert('โหลดเครื่องมือสร้างรูปไม่สำเร็จ — ต้องต่ออินเทอร์เน็ตสักครู่แล้วลองใหม่');
+    return;
+  }
+  html2canvas(el, {backgroundColor:'#f1f5f9', scale:2}).then(canvas=>{
+    const a=document.createElement('a');
+    a.href=canvas.toDataURL('image/png');
+    a.download = name+'-'+new Date().toISOString().slice(0,10)+'.png';
+    a.click();
+  }).catch(err=> alert('สร้างรูปไม่สำเร็จ: '+err.message));
+}
+
+function downloadXls(filename, title, headers, rows){
+  let h='<html xmlns:x="urn:schemas-microsoft-com:office:excel"><head><meta charset="utf-8"></head><body>';
+  h+='<table border="1"><tr><td colspan="'+headers.length+'"><b>'+title+'</b></td></tr>';
+  h+='<tr>'+headers.map(x=>'<th>'+x+'</th>').join('')+'</tr>';
+  rows.forEach(r=>{ h+='<tr>'+r.map(c=>'<td>'+(c===''||c==null?'':c)+'</td>').join('')+'</tr>'; });
+  h+='</table></body></html>';
+  const blob=new Blob(['﻿'+h],{type:'application/vnd.ms-excel'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download=filename+'-'+new Date().toISOString().slice(0,10)+'.xls';
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+function xlsMain(){
+  const headers=['เดือน',...creditors.map(c=>c.name),'ยอดรวม','สถานะ'];
+  const rows=months.map(m=>{
+    const cs=creditors.map(c=>{ const v=data[m][c.key]; return v===0?'':(isCellPaid(m,c.key)?'✓ ':'')+fmt(v); });
+    const st=monthFullyPaid(m)?'จ่ายครบ':(creditors.some(c=>data[m][c.key]>0&&isCellPaid(m,c.key))?'จ่ายบางส่วน':'ยังไม่จ่าย');
+    return [m,...cs,fmt(monthTotal(m)),st];
+  });
+  rows.push(['รวมทั้งหมด',...creditors.map(c=>fmt(creditorTotal(c.key))),fmt(grandTotal),'']);
+  downloadXls('หนี้หลัก','แผนหนี้หลัก (✓ = จ่ายแล้ว)',headers,rows);
+}
+
+function xlsLoan(){
+  const headers=['งวดที่','จำนวนเงิน (บาท)','สถานะ'];
+  const rows=[];
+  for(let n=1;n<=LOAN.total;n++) rows.push([n, fmt(LOAN.per), n<=loanPaid?'✓ จ่ายแล้ว':'ค้าง']);
+  rows.push(['รวม', fmt(LOAN.per*LOAN.total), 'จ่ายแล้ว '+loanPaid+'/'+LOAN.total+' งวด']);
+  downloadXls('สัญญาผ่อน40งวด','สัญญาผ่อน 40 งวด · งวดละ '+fmt(LOAN.per)+' บาท',headers,rows);
+}
+
+function xlsGold(){
+  const map={renew:'ต่อดอก',close:'ปิดยอด',minus:'ลดต้น'};
+  const note=m=>{ const t=goldType_v3[m]||{}; const p=[]; if(map[t.G1])p.push('4959:'+map[t.G1]); if(map[t.G2])p.push('4341:'+map[t.G2]); return p.join(', '); };
+  const headers=['รอบจ่าย','สัญญา 4959','สัญญา 4341','ยอดรวม','หมายเหตุ','สถานะ'];
+  const rows=goldMonths_v3.map(m=>{
+    const c1=goldData_v3[m].G1, c2=goldData_v3[m].G2;
+    const f1=c1===0?'':(isGoldCellPaid_v3(m,'G1')?'✓ ':'')+fmtGold(c1,2);
+    const f2=c2===0?'':(isGoldCellPaid_v3(m,'G2')?'✓ ':'')+fmtGold(c2,2);
+    return [m,f1,f2,fmtGold(getGoldRowTotal_v3(m),2),note(m),goldRowFullyPaid_v3(m)?'จ่ายครบ':''];
+  });
+  const g1=goldMonths_v3.reduce((s,m)=>s+goldData_v3[m].G1,0);
+  const g2=goldMonths_v3.reduce((s,m)=>s+goldData_v3[m].G2,0);
+  rows.push(['รวมตามแผน',fmtGold(g1,2),fmtGold(g2,2),fmtGold(g1+g2,2),'','']);
+  downloadXls('สัญญาทองคำ','แผนปิดสัญญาทองคำ · ดอก 1.25%/เดือน (✓ = จ่ายแล้ว)',headers,rows);
+}
+
+document.addEventListener('click', e=>{
+  const b=e.target.closest('button'); if(!b) return;
+  if(b.dataset.img){ exportImage(b.dataset.img, b.dataset.name); }
+  else if(b.dataset.xls==='main') xlsMain();
+  else if(b.dataset.xls==='loan') xlsLoan();
+  else if(b.dataset.xls==='gold') xlsGold();
 });
 </script>
 </body>
