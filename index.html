@@ -105,6 +105,9 @@ td.cell.part .num{color:#6d28d9;font-weight:700}
 .covbadge{display:inline-block;margin-left:4px;font-size:10px;background:#f3e8ff;color:#6d28d9;border:1px solid #e9d5ff;padding:1px 6px;border-radius:999px;font-weight:700}
 .total{font-weight:800;color:var(--text2);font-variant-numeric:tabular-nums}
 tfoot td{border-top:2px solid var(--line);background:var(--card2);font-weight:800;color:var(--text2)}
+tfoot #foot td{color:var(--muted);font-weight:700}
+tfoot #footRem td{border-top:1px solid var(--line);background:#ecfdf5;color:#047857}
+tfoot #footRem td:first-child{color:#047857}
 .foot-note{color:var(--muted);font-size:12px;margin-top:14px;line-height:1.6}
 .legend{display:flex;gap:14px;flex-wrap:wrap;margin-top:10px}
 .legend span{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--muted)}
@@ -273,7 +276,7 @@ body.capturing .loan .lstats{ grid-template-columns:repeat(4,1fr) !important; }
       <table id="tbl">
         <thead><tr id="head"></tr></thead>
         <tbody id="body"></tbody>
-        <tfoot><tr id="foot"></tr></tfoot>
+        <tfoot><tr id="foot"></tr><tr id="footRem"></tr></tfoot>
       </table>
     </div>
   </section>
@@ -505,7 +508,7 @@ function buildTable(){
   }).join('');
 
   document.getElementById('foot').innerHTML =
-    '<td style="text-align:left">รวมทั้งหมด</td>' +
+    '<td style="text-align:left">หนี้เต็ม</td>' +
     creditors.map(c=>`<td>${fmt(creditorTotal(c.key))}</td>`).join('') +
     `<td>${fmt(grandTotal)}</td>`;
 
@@ -579,14 +582,26 @@ function render(){
 
   creditors.forEach(c=>{
     const tot = creditorTotal(c.key);
-    const cpaid = months.reduce((s,m)=> s + (isCellPaid(m,c.key)?data[m][c.key]:0), 0) + getExtra(c.key);
+    const cpaid = Math.min(tot, months.reduce((s,m)=> s + (isCellPaid(m,c.key)?data[m][c.key]:0), 0) + getExtra(c.key));
+    const rem = Math.max(0, tot - cpaid);
     const cpct = tot? Math.min(100, Math.round(cpaid/tot*100)):0;
     document.getElementById('pb-'+c.key).style.width = cpct+'%';
     const done = cpct>=100 && tot>0;
     const ex = getExtra(c.key);
     document.getElementById('amt-'+c.key).innerHTML =
-      `<b>${fmt(cpaid)}</b> / ${fmt(tot)}${ex>0?` <span class="extra-tag">+โปะ ${fmt(ex)}</span>`:''}${done?'<span class="done-tag">เคลียร์แล้ว ✓</span>':''}`;
+      done ? `<span class="done-tag">เคลียร์แล้ว ✓</span>`
+           : `เหลือ <b>${fmt(rem)}</b> / ${fmt(tot)}${ex>0?` <span class="extra-tag">โปะ ${fmt(ex)}</span>`:''}`;
   });
+
+  // แถวคงเหลือใต้ตาราง (ลดลงเมื่อจ่าย/โปะ)
+  document.getElementById('footRem').innerHTML =
+    '<td style="text-align:left">คงเหลือ</td>' +
+    creditors.map(c=>{
+      const tot=creditorTotal(c.key);
+      const cp=Math.min(tot, months.reduce((s,m)=> s+(isCellPaid(m,c.key)?data[m][c.key]:0),0)+getExtra(c.key));
+      return `<td>${fmt(Math.max(0,tot-cp))}</td>`;
+    }).join('') +
+    `<td>${fmt(leftAmt)}</td>`;
 }
 
 document.getElementById('resetBtn').addEventListener('click',()=>{
