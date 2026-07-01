@@ -31,6 +31,18 @@ h1{font-size:22px;margin:0;color:var(--text2);letter-spacing:.2px}
 .plan-tools .pt-label{font-size:13px;font-weight:700;color:var(--muted);margin-right:auto}
 .plan-tools .reset{font-size:12px;padding:7px 11px}
 .capbox{background:transparent}
+/* ---- หน้าแรก เลือกเจ้าของหนี้ ---- */
+.pbar{display:flex;align-items:center;justify-content:space-between;gap:10px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 14px;margin-bottom:16px;box-shadow:0 4px 14px rgba(15,23,42,.05)}
+.pbar b{color:var(--text2)}
+.homewrap{padding:18px 0}
+.homeh{text-align:center;color:var(--text2);font-size:19px;margin:8px 0 22px}
+.homecards{display:grid;grid-template-columns:1fr;gap:14px;max-width:540px;margin:0 auto}
+@media(min-width:640px){.homecards{grid-template-columns:1fr 1fr}}
+.homecard{display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center;background:var(--card);border:1px solid var(--line);border-radius:20px;padding:28px 18px;cursor:pointer;box-shadow:0 6px 18px rgba(15,23,42,.06);transition:.15s;font-family:inherit}
+.homecard:hover{border-color:var(--accent);transform:translateY(-2px);box-shadow:0 12px 26px rgba(8,145,178,.16)}
+.homecard .hi{font-size:46px;line-height:1}
+.homecard .hn{font-size:21px;font-weight:800;color:var(--text2)}
+.homecard .hd{font-size:12px;color:var(--muted);line-height:1.5}
 
 .cards{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-bottom:18px}
 @media(min-width:760px){.cards{grid-template-columns:repeat(4,1fr)}}
@@ -216,7 +228,7 @@ body.capturing .loan .lstats{ grid-template-columns:repeat(4,1fr) !important; }
         <div class="sub">ตารางผ่อนชำระ 8 เดือน • ติ๊กเดือนที่จ่ายแล้วเพื่อบันทึกความคืบหน้า</div>
       </div>
     </div>
-    <div class="topbtns">
+    <div class="topbtns" id="globalTools">
       <button class="reset" id="exportBtn" title="ดาวน์โหลดไฟล์สำรองข้อมูล">⬇️ สำรองข้อมูล</button>
       <button class="reset" id="importBtn" title="โหลดไฟล์สำรองเพื่อย้ายมาเครื่องนี้">⬆️ กู้คืน</button>
       <button class="reset" id="printBtn" title="พิมพ์ทุกแผนรวมกันเป็น A4">🖨️ พิมพ์ทั้งหมด</button>
@@ -225,6 +237,27 @@ body.capturing .loan .lstats{ grid-template-columns:repeat(4,1fr) !important; }
       <input type="file" id="importFile" accept="application/json,.json" style="display:none">
     </div>
   </header>
+
+  <div id="profileBar" class="pbar noprint" style="display:none">
+    <span>👤 หนี้ของ <b id="profileName"></b></span>
+    <button class="reset" id="backHome">↩ เปลี่ยนคน</button>
+  </div>
+
+  <section id="home" class="homewrap">
+    <h2 class="homeh">เลือกเจ้าของสัญญาหนี้</h2>
+    <div class="homecards">
+      <button class="homecard" data-profile="pond">
+        <span class="hi">🧑</span><span class="hn">ปอนด์</span>
+        <span class="hd">หนี้หลัก • สัญญาผ่อน 40 งวด • ทองคำ • รถคันสีเทา • กสิกร</span>
+      </button>
+      <button class="homecard" data-profile="pat">
+        <span class="hi">👩</span><span class="hn">ปัท</span>
+        <span class="hd">ทอง • โทรศัพท์มือถือ</span>
+      </button>
+    </div>
+  </section>
+
+  <div id="app-pond" style="display:none">
 
   <section class="panel paypanel noprint">
     <h2>💰 บันทึกจ่ายเพิ่ม / โปะหนี้ (ระหว่างเดือน)</h2>
@@ -387,6 +420,12 @@ body.capturing .loan .lstats{ grid-template-columns:repeat(4,1fr) !important; }
 
   <div id="moreLoans"></div>
 
+  </div><!-- /app-pond -->
+
+  <div id="app-pat" style="display:none">
+    <div id="patLoans"></div>
+  </div>
+
 </div>
 
 <script>
@@ -419,6 +458,15 @@ creditors.forEach(c=>{
 });
 
 const fmt = n => n.toLocaleString('en-US');
+
+/* ===== รหัสกันลบพลาด (311242) — ใช้ก่อนลบ/ถอย/ล้างข้อมูล ===== */
+const PIN_CODE = '311242';
+function requirePin(msg){
+  const code = prompt((msg||'ยืนยันการลบ/ล้างข้อมูล')+'\nใส่รหัส:');
+  if(code===null) return false;
+  if(code.trim()!==PIN_CODE){ alert('รหัสไม่ถูกต้อง ❌'); return false; }
+  return true;
+}
 const STORE = 'debtCellsPaid_v1';   // ติ๊กรายช่อง: { "เดือน__key": true }
 const cellId = (m,k)=> m+'__'+k;
 let cells = JSON.parse(localStorage.getItem(STORE) || 'null');
@@ -517,7 +565,10 @@ function buildTable(){
     td.addEventListener('click',()=>{
       if(td.classList.contains('cov')) return; // ปิดด้วยเงินโปะแล้ว
       const id = cellId(td.dataset.m, td.dataset.k);
-      if(cells[id]) delete cells[id]; else cells[id]=true;
+      if(cells[id]){
+        if(!requirePin('ยกเลิกว่าจ่ายช่องนี้แล้ว?')) return; // ติ๊กออกต้องใส่รหัส
+        delete cells[id];
+      } else cells[id]=true;
       save();
       td.classList.toggle('on', !!cells[id]);
       td.closest('tr').classList.toggle('paid', monthFullyPaid(td.dataset.m));
@@ -529,6 +580,7 @@ function buildTable(){
   document.querySelectorAll('.mchk').forEach(cb=>{
     cb.addEventListener('change',e=>{
       const m=e.target.dataset.m, want=e.target.checked;
+      if(!want && !requirePin('ยกเลิกว่าจ่ายทั้งเดือนนี้?')){ e.target.checked=true; return; }
       creditors.forEach(c=>{
         if(data[m][c.key]===0 || isCovered(m,c.key)) return;
         const id=cellId(m,c.key);
@@ -605,7 +657,7 @@ function render(){
 }
 
 document.getElementById('resetBtn').addEventListener('click',()=>{
-  if(confirm('ล้างการติ๊กทั้งหมด?')){
+  if(requirePin('ล้างการติ๊กทั้งหมดของหนี้หลัก?')){
     cells={}; save();
     buildTable();
     render();
@@ -631,7 +683,9 @@ function buildChips(){
     ch.addEventListener('click',()=>{
       const n=+ch.dataset.n;
       // แตะงวดสุดท้ายที่จ่ายแล้วซ้ำ = ลดลง 1, ไม่งั้น = จ่ายถึงงวดนั้น
-      loanPaid = (n===loanPaid) ? n-1 : n;
+      const next = (n===loanPaid) ? n-1 : n;
+      if(next < loanPaid && !requirePin('ลดจำนวนงวดที่จ่ายแล้ว?')) return;
+      loanPaid = next;
       saveLoan();
     });
   });
@@ -664,7 +718,7 @@ function renderLoan(){
 }
 
 document.getElementById('loanPlus').addEventListener('click',()=>{ loanPaid++; saveLoan(); });
-document.getElementById('loanMinus').addEventListener('click',()=>{ loanPaid--; saveLoan(); });
+document.getElementById('loanMinus').addEventListener('click',()=>{ if(!requirePin('ลดจำนวนงวดที่จ่ายแล้ว?')) return; loanPaid--; saveLoan(); });
 
 buildChips();
 renderLoan();
@@ -811,7 +865,7 @@ renderGoldSystem_v3();
 
 /* ================= สำรอง / กู้คืนข้อมูล (ย้ายข้ามเครื่อง) ================= */
 // รวมทุก localStorage key ที่แอปใช้ ไว้ในไฟล์เดียว
-const BACKUP_KEYS = ['debtCellsPaid_v1','loanInstall_v1','goldCellsPaid_isolated_v3','loanCar2_v1','loanKsk_v1','extraPaid_v1','payLog_v1'];
+const BACKUP_KEYS = ['debtCellsPaid_v1','loanInstall_v1','goldCellsPaid_isolated_v3','loanCar2_v1','loanKsk_v1','loanKsk_v1_bal','extraPaid_v1','payLog_v1','patGold_v1','patGold_v1_bal','patPhone_v1','activeProfile'];
 
 document.getElementById('exportBtn').addEventListener('click',()=>{
   const dump = { app:'debt-plan', version:1, exportedAt:new Date().toISOString(), data:{} };
@@ -835,7 +889,7 @@ document.getElementById('importFile').addEventListener('change',e=>{
       const dump = JSON.parse(ev.target.result);
       const d = dump && dump.data;
       if(!d || typeof d!=='object') throw new Error('รูปแบบไฟล์ไม่ถูกต้อง');
-      if(!confirm('นำเข้าข้อมูลสำรองนี้? ข้อมูลการติ๊กในเครื่องนี้จะถูกแทนที่ทั้งหมด')) return;
+      if(!requirePin('นำเข้าข้อมูลสำรองนี้? ข้อมูลในเครื่องนี้จะถูกแทนที่ทั้งหมด')) return;
       BACKUP_KEYS.forEach(k=>{
         if(d[k]!==undefined) localStorage.setItem(k, d[k]);
         else localStorage.removeItem(k);
@@ -859,7 +913,7 @@ async function renderCanvas(el){
     return await Promise.race([
       html2canvas(el, {
         backgroundColor:'#ffffff', scale:2, windowWidth:960,
-        ignoreElements: e => e.classList && (e.classList.contains('topbtns') || e.classList.contains('plan-tools'))
+        ignoreElements: e => e.classList && (e.classList.contains('topbtns') || e.classList.contains('plan-tools') || e.classList.contains('pbar'))
       }),
       new Promise((_,rej)=> setTimeout(()=> rej(new Error('หมดเวลาสร้างภาพ')), 20000))
     ]);
@@ -1015,19 +1069,36 @@ document.getElementById('sharePdfBtn').addEventListener('click', e=>
 
 /* ================= สัญญาผ่อนเพิ่มเติม (สร้างแบบ generic) ================= */
 const moreLoanConfigs = [
-  { id:'car2', n:4, icon:'🚗', title:'รถคันสีเทา', per:7000, balance:511000, store:'loanCar2_v1', def:0 },
-  { id:'ksk',  n:5, icon:'🏦', title:'กสิกร',      per:4000, balance:null,   store:'loanKsk_v1',  def:0 },
+  { id:'car2', host:'moreLoans', n:4, icon:'🚗', title:'รถคันสีเทา', per:7000, balance:511000, store:'loanCar2_v1', def:0 },
+  { id:'ksk',  host:'moreLoans', n:5, icon:'🏦', title:'กสิกร', per:4000, balance:null, store:'loanKsk_v1', def:0, editBal:true },
+  { id:'patGold',  host:'patLoans', n:1, icon:'🏆', title:'ทอง', months:12, balance:29500, store:'patGold_v1', def:0, editBal:true, note:'ตั้งไว้ผ่อน 12 เดือน • ยังไม่รวมดอกเบี้ย (ได้เรตแล้วบอกได้ เดี๋ยวคำนวณให้)' },
+  { id:'patPhone', host:'patLoans', n:2, icon:'📱', title:'โทรศัพท์มือถือ', per:1500, balance:10400, store:'patPhone_v1', def:0 },
 ];
 const moreLoanState = {};
 const cfgById = id => moreLoanConfigs.find(c=>c.id===id);
-const totalInstallments = cfg => cfg.balance==null ? null : Math.ceil(cfg.balance/cfg.per);
+function totalInstallments(cfg){
+  if(cfg.months) return cfg.months;
+  return cfg.balance==null ? null : Math.ceil(cfg.balance/cfg.per);
+}
+const perOf = cfg => cfg.per!=null ? cfg.per : Math.round(cfg.balance/cfg.months);
+function totalAmtOf(cfg){
+  if(cfg.balance!=null) return cfg.balance;
+  const t=totalInstallments(cfg); return t==null?null:perOf(cfg)*t;
+}
+// โหลดยอดที่ผู้ใช้กรอกเองไว้ (override)
+moreLoanConfigs.forEach(cfg=>{
+  const b=localStorage.getItem(cfg.store+'_bal');
+  if(b!=null && b!=='') cfg.balance=+b;
+});
 
-function buildMoreLoans(){
-  const host = document.getElementById('moreLoans');
-  host.innerHTML = moreLoanConfigs.map(cfg=>{
+function buildMoreLoans(hostId){
+  const host = document.getElementById(hostId);
+  const list = moreLoanConfigs.filter(c=>c.host===hostId);
+  host.innerHTML = list.map(cfg=>{
     const total = totalInstallments(cfg);
     const totTxt = total==null ? '—' : total;
     const balTxt = cfg.balance==null ? 'รอยอด' : fmt(cfg.balance);
+    const per = perOf(cfg);
     return `
     <div class="divider">${cfg.icon} แผนที่ ${cfg.n} · ${cfg.title}</div>
     <div class="plan-tools">
@@ -1043,35 +1114,37 @@ function buildMoreLoans(){
         <div class="licon">${cfg.icon}</div>
         <div>
           <div class="ltitle">${cfg.title}</div>
-          <div class="lsub">ยอด ${balTxt} บาท • งวดละ ${fmt(cfg.per)} บาท${total!=null?' • '+total+' งวด':''}</div>
+          <div class="lsub">ยอด ${balTxt} บาท • งวดละ ${fmt(per)} บาท${total!=null?' • '+total+' งวด':''}</div>
         </div>
       </div>
       <div class="lstats">
-        <div class="lstat"><div class="l">ยอดต่องวด</div><div class="v">${fmt(cfg.per)} <small>บาท</small></div></div>
+        <div class="lstat"><div class="l">ยอดต่องวด</div><div class="v">${fmt(per)} <small>บาท</small></div></div>
         <div class="lstat green"><div class="l">จ่ายไปแล้ว</div><div class="v" id="${cfg.id}-paid">–</div></div>
         <div class="lstat accent"><div class="l">ยอดคงเหลือ</div><div class="v" id="${cfg.id}-left">–</div></div>
         <div class="lstat"><div class="l">งวดที่จ่ายแล้ว</div><div class="v" id="${cfg.id}-cnt">–</div></div>
       </div>
       <div class="lbar"><i id="${cfg.id}-bar" style="width:0%"></i></div>
       <div class="lbar-meta"><span id="${cfg.id}-pct">0%</span><span id="${cfg.id}-remain"></span></div>
+      ${cfg.editBal?`<div class="ctrl noprint"><input id="${cfg.id}-balinput" type="number" inputmode="numeric" placeholder="ใส่/แก้ยอดรวม (บาท)" style="max-width:210px;flex:1;border:1px solid var(--line);border-radius:10px;padding:9px 11px;font-size:15px"><button class="reset" data-setbal="${cfg.id}">💾 บันทึกยอด</button></div>`:''}
       <div class="ctrl">
         <button data-lminus="${cfg.id}" title="ลดงวด">−</button>
         <button data-lplus="${cfg.id}" title="เพิ่มงวด">+</button>
         <span class="cv">จ่ายแล้ว <b id="${cfg.id}-cnt2">0</b> / ${totTxt} งวด${total!=null?' • แตะช่องด้านล่างเพื่อปรับได้':''}</span>
       </div>
       <div class="chips" id="${cfg.id}-chips"></div>
-      ${total==null?`<div class="lsub" style="margin-top:8px">⏳ รอแจ้งยอดรวม แล้วระบบจะคำนวณจำนวนงวด/ยอดคงเหลือให้อัตโนมัติ</div>`:''}
+      ${cfg.note?`<div class="lsub" style="margin-top:8px">ℹ️ ${cfg.note}</div>`:''}
+      ${total==null?`<div class="lsub" style="margin-top:8px">⏳ ยังไม่มียอดรวม — กรอกยอดด้านบนแล้วระบบจะคำนวณจำนวนงวด/ยอดคงเหลือให้</div>`:''}
     </section>
     </div>`;
   }).join('');
 
-  moreLoanConfigs.forEach(cfg=>{
+  list.forEach(cfg=>{
     let v = parseInt(localStorage.getItem(cfg.store) ?? cfg.def, 10);
     if(isNaN(v)) v = cfg.def;
     moreLoanState[cfg.id] = v;
     buildLoanChips(cfg);
   });
-  moreLoanConfigs.forEach(renderMoreLoan);
+  list.forEach(renderMoreLoan);
 }
 
 function buildLoanChips(cfg){
@@ -1082,7 +1155,9 @@ function buildLoanChips(cfg){
   box.querySelectorAll('.chip').forEach(ch=>{
     ch.addEventListener('click',()=>{
       const n=+ch.dataset.n;
-      moreLoanState[cfg.id] = (n===moreLoanState[cfg.id]) ? n-1 : n;
+      const next = (n===moreLoanState[cfg.id]) ? n-1 : n;
+      if(next < moreLoanState[cfg.id] && !requirePin('ลดจำนวนงวดที่จ่ายแล้ว?')) return;
+      moreLoanState[cfg.id] = next;
       saveMoreLoan(cfg);
     });
   });
@@ -1099,9 +1174,13 @@ function saveMoreLoan(cfg){
 
 function renderMoreLoan(cfg){
   const total = totalInstallments(cfg);
+  const per = perOf(cfg);
+  const totalAmt = totalAmtOf(cfg);
   const paidCnt = moreLoanState[cfg.id];
   const extra = getExtra(cfg.id);
-  const paidAmt = cfg.per*paidCnt + extra;
+  const base = (total!=null && paidCnt>=total && totalAmt!=null) ? totalAmt
+             : Math.min(totalAmt!=null?totalAmt:Infinity, per*paidCnt);
+  const paidAmt = base + extra;
   document.getElementById(cfg.id+'-paid').innerHTML = fmt(paidAmt)+' <small>บาท</small>'+(extra>0?` <span class="extra-tag">โปะ ${fmt(extra)}</span>`:'');
   document.getElementById(cfg.id+'-cnt').innerHTML = paidCnt+' <small>/ '+(total==null?'—':total)+' งวด</small>';
   document.getElementById(cfg.id+'-cnt2').textContent = paidCnt;
@@ -1111,7 +1190,6 @@ function renderMoreLoan(cfg){
     document.getElementById(cfg.id+'-pct').textContent = 'รอยอดรวม';
     document.getElementById(cfg.id+'-remain').innerHTML = extra>0 ? ('โปะไปแล้ว <b>'+fmt(extra)+'</b> บาท') : '';
   } else {
-    const totalAmt = cfg.per*total;
     const leftAmt = Math.max(0, totalAmt - paidAmt);
     const pct = Math.min(100, Math.round(paidAmt/totalAmt*100));
     document.getElementById(cfg.id+'-left').innerHTML = fmt(leftAmt)+' <small>บาท</small>';
@@ -1126,26 +1204,40 @@ function renderMoreLoan(cfg){
 function xlsSimple(id){
   const cfg=cfgById(id); if(!cfg) return;
   const total=totalInstallments(cfg);
+  const per=perOf(cfg);
+  const totalAmt=totalAmtOf(cfg);
   const paidCnt=moreLoanState[cfg.id];
   const headers=['งวดที่','จำนวนเงิน (บาท)','สถานะ'];
   const rows=[];
   if(total==null){
-    rows.push(['—', fmt(cfg.per), 'รอแจ้งยอดรวม']);
+    rows.push(['—', fmt(per), 'รอแจ้งยอดรวม']);
   } else {
-    for(let n=1;n<=total;n++) rows.push([n, fmt(cfg.per), n<=paidCnt?'✓ จ่ายแล้ว':'ค้าง']);
-    rows.push(['รวม', fmt(cfg.per*total), 'จ่ายแล้ว '+paidCnt+'/'+total+' งวด']);
+    for(let n=1;n<=total;n++) rows.push([n, fmt(per), n<=paidCnt?'✓ จ่ายแล้ว':'ค้าง']);
+    rows.push(['รวม', fmt(totalAmt), 'จ่ายแล้ว '+paidCnt+'/'+total+' งวด']);
   }
-  downloadXls(cfg.title, cfg.title+' · งวดละ '+fmt(cfg.per)+' บาท', headers, rows);
+  downloadXls(cfg.title, cfg.title+' · งวดละ '+fmt(per)+' บาท', headers, rows);
 }
 
-// ปุ่ม +/- ของสัญญาเพิ่มเติม
+function setLoanBalance(id){
+  const cfg=cfgById(id); if(!cfg) return;
+  const inp=document.getElementById(cfg.id+'-balinput');
+  const val=Math.round(+inp.value);
+  if(!val || val<=0){ alert('กรอกยอดรวมให้ถูกต้อง'); return; }
+  cfg.balance=val;
+  localStorage.setItem(cfg.store+'_bal', val);
+  buildMoreLoans(cfg.host);
+}
+
+// ปุ่ม +/- และบันทึกยอดของสัญญาเพิ่มเติม
 document.addEventListener('click', e=>{
   const b=e.target.closest('button'); if(!b) return;
   if(b.dataset.lplus){ const c=cfgById(b.dataset.lplus); moreLoanState[c.id]++; saveMoreLoan(c); }
-  else if(b.dataset.lminus){ const c=cfgById(b.dataset.lminus); moreLoanState[c.id]--; saveMoreLoan(c); }
+  else if(b.dataset.lminus){ if(!requirePin('ลดจำนวนงวดที่จ่ายแล้ว?')) return; const c=cfgById(b.dataset.lminus); moreLoanState[c.id]--; saveMoreLoan(c); }
+  else if(b.dataset.setbal){ setLoanBalance(b.dataset.setbal); }
 });
 
-buildMoreLoans();
+buildMoreLoans('moreLoans');
+buildMoreLoans('patLoans');
 
 /* ================= สมุดบันทึกโปะหนี้ (จ่ายเพิ่มเอง) ================= */
 const payDebts = [
@@ -1194,6 +1286,7 @@ function addPayment(id, amt){
 }
 function undoPayment(i){
   const e=payLog[i]; if(!e) return;
+  if(!requirePin('ลบรายการโปะนี้?')) return;
   extraPaid[e.id] = Math.max(0, getExtra(e.id) - e.amt);
   payLog.splice(i,1);
   savePay();
@@ -1223,6 +1316,36 @@ document.getElementById('payLogList').addEventListener('click', e=>{
 });
 
 renderPayLog();
+
+/* ================= หน้าแรก: เลือกเจ้าของหนี้ (ปอนด์ / ปัท) ================= */
+function showProfile(pk){
+  const home=document.getElementById('home');
+  const pond=document.getElementById('app-pond');
+  const pat=document.getElementById('app-pat');
+  const tools=document.getElementById('globalTools');
+  const bar=document.getElementById('profileBar');
+  if(!pk){
+    home.style.display=''; pond.style.display='none'; pat.style.display='none';
+    tools.style.display='none'; bar.style.display='none';
+    localStorage.removeItem('activeProfile');
+    window.scrollTo(0,0);
+    return;
+  }
+  home.style.display='none';
+  pond.style.display = pk==='pond' ? '' : 'none';
+  pat.style.display  = pk==='pat'  ? '' : 'none';
+  tools.style.display=''; bar.style.display='';
+  document.getElementById('resetBtn').style.display = pk==='pond' ? '' : 'none';
+  document.getElementById('profileName').textContent = pk==='pond' ? 'ปอนด์' : 'ปัท';
+  localStorage.setItem('activeProfile', pk);
+  window.scrollTo(0,0);
+}
+document.querySelectorAll('.homecard').forEach(b=>
+  b.addEventListener('click', ()=> showProfile(b.dataset.profile)));
+document.getElementById('backHome').addEventListener('click', ()=> showProfile(null));
+
+// เปิดแอปมา = เจอหน้าเลือกคนก่อนเสมอ
+showProfile(null);
 </script>
 </body>
 </html>
