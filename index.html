@@ -155,6 +155,8 @@ tfoot #footRem td:first-child{color:#047857}
 .loan .ctrl button{width:38px;height:38px;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--loan2);font-size:20px;font-weight:800;cursor:pointer;line-height:1}
 .loan .ctrl button:hover{border-color:var(--loan)}
 .loan .ctrl .cv{font-size:14px;color:var(--muted)}
+.loan .ctrl .setcnt{width:88px;border:1px solid var(--line);border-radius:10px;padding:8px 10px;font-size:15px;outline:none}
+.loan .ctrl .setcnt:focus{border-color:var(--loan)}
 .loan .ctrl .cv b{font-size:18px;color:var(--text2)}
 .loan .chips{display:grid;grid-template-columns:repeat(auto-fill,minmax(34px,1fr));gap:6px}
 .loan .chip{min-width:0;aspect-ratio:1;border-radius:9px;border:1px solid var(--line);background:var(--card2);color:var(--muted);font-size:11px;font-weight:700;display:grid;place-items:center;cursor:pointer;transition:.12s;user-select:none}
@@ -372,7 +374,9 @@ body.capturing .loan .lstats{ grid-template-columns:repeat(4,1fr) !important; }
     <div class="ctrl">
       <button id="loanMinus" title="ลดงวด">−</button>
       <button id="loanPlus" title="เพิ่มงวด">+</button>
-      <span class="cv">จ่ายแล้ว <b id="loanCntTxt">0</b> / 40 งวด &nbsp;•&nbsp; แตะช่องด้านล่างเพื่อปรับได้</span>
+      <input id="loanSet" type="number" min="0" placeholder="ตั้งงวด" class="setcnt">
+      <button id="loanSetBtn" class="reset">ตั้งเป็น</button>
+      <span class="cv">จ่ายแล้ว <b id="loanCntTxt">0</b> / 40 งวด</span>
     </div>
 
     <div class="chips" id="loanChips"></div>
@@ -441,6 +445,19 @@ body.capturing .loan .lstats{ grid-template-columns:repeat(4,1fr) !important; }
   </div><!-- /app-pond -->
 
   <div id="app-pat" style="display:none">
+    <section class="panel tgtpanel">
+      <h2>🎯 งบจ่ายต่อเดือนของปัท</h2>
+      <div class="payrow">
+        <input id="patTargetInput" type="number" inputmode="numeric" min="1" placeholder="เช่น 10,000">
+        <button id="patTargetSave" class="btn-pay" style="background:#0891b2">💾 ตั้งงบ</button>
+      </div>
+      <div class="quickamts">
+        <button data-ptq="5000">5,000</button>
+        <button data-ptq="10000">10,000</button>
+        <button data-ptq="15000">15,000</button>
+      </div>
+      <div id="patProj" class="tgtproj"></div>
+    </section>
     <div id="patLoans"></div>
   </div>
 
@@ -513,6 +530,7 @@ let extraPaid = JSON.parse(localStorage.getItem('extraPaid_v1') || '{}');
 let payLog    = JSON.parse(localStorage.getItem('payLog_v1') || '[]');
 const getExtra = id => +extraPaid[id] || 0;
 const getTarget = () => { const v=+localStorage.getItem('monthlyTarget_v1'); return v>0?v:10000; };
+const getPatTarget = () => { const v=+localStorage.getItem('patTarget_v1'); return v>0?v:10000; };
 function savePay(){
   localStorage.setItem('extraPaid_v1', JSON.stringify(extraPaid));
   localStorage.setItem('payLog_v1', JSON.stringify(payLog));
@@ -747,6 +765,14 @@ function renderLoan(){
 
 document.getElementById('loanPlus').addEventListener('click',()=>{ loanPaid++; saveLoan(); });
 document.getElementById('loanMinus').addEventListener('click',()=>{ if(!requirePin('ลดจำนวนงวดที่จ่ายแล้ว?')) return; loanPaid--; saveLoan(); });
+document.getElementById('loanSetBtn').addEventListener('click',()=>{
+  const inp=document.getElementById('loanSet');
+  let v=Math.round(+inp.value);
+  if(isNaN(v)||v<0){ alert('ใส่จำนวนงวดให้ถูกต้อง'); return; }
+  v=Math.min(v,LOAN.total);
+  if(v<loanPaid && !requirePin('แก้จำนวนงวดให้น้อยลง?')) return;
+  loanPaid=v; saveLoan(); inp.value='';
+});
 
 buildChips();
 renderLoan();
@@ -893,7 +919,7 @@ renderGoldSystem_v3();
 
 /* ================= สำรอง / กู้คืนข้อมูล (ย้ายข้ามเครื่อง) ================= */
 // รวมทุก localStorage key ที่แอปใช้ ไว้ในไฟล์เดียว
-const BACKUP_KEYS = ['debtCellsPaid_v1','loanInstall_v1','goldCellsPaid_isolated_v3','loanCar2_v1','loanKsk_v1','loanKsk_v1_bal','extraPaid_v1','payLog_v1','patGold_v1','patGold_v1_bal','patPhone_v1','activeProfile','monthlyTarget_v1'];
+const BACKUP_KEYS = ['debtCellsPaid_v1','loanInstall_v1','goldCellsPaid_isolated_v3','loanCar2_v1','loanKsk_v1','loanKsk_v1_bal','extraPaid_v1','payLog_v1','patGold_v1','patGold_v1_bal','patPhone_v1','patShopee_v1','patShopee_v1_bal','patTarget_v1','activeProfile','monthlyTarget_v1'];
 
 document.getElementById('exportBtn').addEventListener('click',()=>{
   const dump = { app:'debt-plan', version:1, exportedAt:new Date().toISOString(), data:{} };
@@ -1101,6 +1127,7 @@ const moreLoanConfigs = [
   { id:'ksk',  host:'moreLoans', n:5, icon:'🏦', title:'กสิกร', per:4000, balance:null, store:'loanKsk_v1', def:0, editBal:true },
   { id:'patGold',  host:'patLoans', n:1, icon:'🏆', title:'ทอง', months:12, balance:29500, store:'patGold_v1', def:0, editBal:true, note:'ตั้งไว้ผ่อน 12 เดือน • ยังไม่รวมดอกเบี้ย (ได้เรตแล้วบอกได้ เดี๋ยวคำนวณให้)' },
   { id:'patPhone', host:'patLoans', n:2, icon:'📱', title:'โทรศัพท์มือถือ', per:1500, balance:10400, store:'patPhone_v1', def:0 },
+  { id:'patShopee', host:'patLoans', n:3, icon:'🛒', title:'Shopee (SPayLater)', months:4, balance:20982, store:'patShopee_v1', def:0, editBal:true, note:'ยอดบิลค้าง 4 รอบ (ก.ค.–ต.ค.) รวม ~20,982 บาท • แก้ยอดได้ตามบิลจริง' },
 ];
 const moreLoanState = {};
 const cfgById = id => moreLoanConfigs.find(c=>c.id===id);
@@ -1157,7 +1184,9 @@ function buildMoreLoans(hostId){
       <div class="ctrl">
         <button data-lminus="${cfg.id}" title="ลดงวด">−</button>
         <button data-lplus="${cfg.id}" title="เพิ่มงวด">+</button>
-        <span class="cv">จ่ายแล้ว <b id="${cfg.id}-cnt2">0</b> / ${totTxt} งวด${total!=null?' • แตะช่องด้านล่างเพื่อปรับได้':''}</span>
+        <input id="${cfg.id}-set" type="number" min="0" placeholder="ตั้งงวด" class="setcnt">
+        <button class="reset" data-setcnt="${cfg.id}">ตั้งเป็น</button>
+        <span class="cv">จ่ายแล้ว <b id="${cfg.id}-cnt2">0</b> / ${totTxt} งวด</span>
       </div>
       <div class="chips" id="${cfg.id}-chips"></div>
       ${cfg.note?`<div class="lsub" style="margin-top:8px">ℹ️ ${cfg.note}</div>`:''}
@@ -1227,6 +1256,26 @@ function renderMoreLoan(cfg){
   }
   const box=document.getElementById(cfg.id+'-chips');
   box.querySelectorAll('.chip').forEach(ch=> ch.classList.toggle('paid', +ch.dataset.n<=paidCnt));
+  if(cfg.host==='patLoans') renderPatSummary();
+}
+
+function loanRemaining(cfg){
+  const total=totalInstallments(cfg);
+  if(total==null) return null;
+  const per=perOf(cfg), totalAmt=totalAmtOf(cfg), cnt=moreLoanState[cfg.id]||0;
+  const base=(cnt>=total)?totalAmt:Math.min(totalAmt, per*cnt);
+  return Math.max(0, totalAmt-(base+getExtra(cfg.id)));
+}
+function renderPatSummary(){
+  const el=document.getElementById('patProj'); if(!el) return;
+  const pats=moreLoanConfigs.filter(c=>c.host==='patLoans');
+  let rem=0, unknown=false;
+  pats.forEach(c=>{ const r=loanRemaining(c); if(r==null) unknown=true; else rem+=r; });
+  const tgt=getPatTarget();
+  const mo = rem<=0 ? 0 : Math.ceil(rem/tgt);
+  el.innerHTML = (rem<=0 && !unknown)
+    ? '🎉 ปิดหนี้ปัทครบแล้ว!'
+    : `รวมหนี้ปัทคงเหลือ <b>${fmt(rem)}</b> บาท${unknown?' (+ บางรายการรอยอด)':''}<br>ด้วยงบ <b>${fmt(tgt)}</b> บาท/เดือน → ปิดครบในอีกประมาณ <b>${mo}</b> เดือน`;
 }
 
 function xlsSimple(id){
@@ -1262,6 +1311,16 @@ document.addEventListener('click', e=>{
   if(b.dataset.lplus){ const c=cfgById(b.dataset.lplus); moreLoanState[c.id]++; saveMoreLoan(c); }
   else if(b.dataset.lminus){ if(!requirePin('ลดจำนวนงวดที่จ่ายแล้ว?')) return; const c=cfgById(b.dataset.lminus); moreLoanState[c.id]--; saveMoreLoan(c); }
   else if(b.dataset.setbal){ setLoanBalance(b.dataset.setbal); }
+  else if(b.dataset.setcnt){
+    const c=cfgById(b.dataset.setcnt);
+    const inp=document.getElementById(c.id+'-set');
+    let v=Math.round(+inp.value);
+    const total=totalInstallments(c);
+    if(isNaN(v)||v<0){ alert('ใส่จำนวนงวดให้ถูกต้อง'); return; }
+    if(total!=null) v=Math.min(v,total);
+    if(v<moreLoanState[c.id] && !requirePin('แก้จำนวนงวดให้น้อยลง?')) return;
+    moreLoanState[c.id]=v; saveMoreLoan(c); inp.value='';
+  }
 });
 
 buildMoreLoans('moreLoans');
@@ -1357,6 +1416,20 @@ document.getElementById('targetSave').addEventListener('click', ()=> saveTarget(
 document.getElementById('targetInput').addEventListener('keydown', e=>{ if(e.key==='Enter') saveTarget(e.target.value); });
 document.querySelectorAll('[data-tq]').forEach(b=> b.addEventListener('click', ()=> saveTarget(b.dataset.tq)));
 document.getElementById('targetInput').value = getTarget();
+
+/* ================= งบต่อเดือนของปัท ================= */
+function savePatTarget(v){
+  v=Math.round(+v);
+  if(!v || v<=0){ alert('กรอกงบให้ถูกต้อง'); return; }
+  localStorage.setItem('patTarget_v1', v);
+  document.getElementById('patTargetInput').value = v;
+  renderPatSummary();
+}
+document.getElementById('patTargetSave').addEventListener('click', ()=> savePatTarget(document.getElementById('patTargetInput').value));
+document.getElementById('patTargetInput').addEventListener('keydown', e=>{ if(e.key==='Enter') savePatTarget(e.target.value); });
+document.querySelectorAll('[data-ptq]').forEach(b=> b.addEventListener('click', ()=> savePatTarget(b.dataset.ptq)));
+document.getElementById('patTargetInput').value = getPatTarget();
+renderPatSummary();
 
 /* ================= หน้าแรก: เลือกเจ้าของหนี้ (ปอนด์ / ปัท) ================= */
 function showProfile(pk){
