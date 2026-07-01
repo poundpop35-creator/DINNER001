@@ -90,6 +90,9 @@ h1{font-size:22px;margin:0;color:var(--text2);letter-spacing:.2px}
 .paylog .pl .px{border:none;background:transparent;color:var(--muted);font-size:16px;cursor:pointer;padding:0 2px;line-height:1}
 .paylog .pl .px:hover{color:var(--red)}
 .payempty{color:var(--muted);font-size:13px;margin-top:12px;text-align:center}
+.panel.tgtpanel{border-top:4px solid #0891b2}
+.tgtproj{margin-top:14px;padding:12px 14px;background:#ecfeff;border:1px solid #a5f3fc;border-radius:12px;font-size:14px;color:#155e75;line-height:1.6}
+.tgtproj b{color:#0e7490;font-size:16px}
 
 .tablewrap{overflow-x:auto;-webkit-overflow-scrolling:touch;border-radius:18px;border:1px solid var(--line)}
 table{border-collapse:collapse;width:100%;min-width:640px;background:var(--card)}
@@ -273,6 +276,21 @@ body.capturing .loan .lstats{ grid-template-columns:repeat(4,1fr) !important; }
       <button data-q="5000">+5,000</button>
     </div>
     <div id="payLogList" class="paylog"></div>
+  </section>
+
+  <section class="panel tgtpanel">
+    <h2>🎯 เป้าจ่ายต่อเดือน (หนี้หลัก)</h2>
+    <div class="payrow">
+      <input id="targetInput" type="number" inputmode="numeric" min="1" placeholder="เช่น 10,000">
+      <button id="targetSave" class="btn-pay" style="background:#0891b2">💾 ตั้งเป้า</button>
+    </div>
+    <div class="quickamts">
+      <button data-tq="5000">5,000</button>
+      <button data-tq="10000">10,000</button>
+      <button data-tq="15000">15,000</button>
+      <button data-tq="20000">20,000</button>
+    </div>
+    <div id="targetProj" class="tgtproj"></div>
   </section>
 
   <div class="plan-tools">
@@ -494,6 +512,7 @@ function save(){ localStorage.setItem(STORE, JSON.stringify(cells)); }
 let extraPaid = JSON.parse(localStorage.getItem('extraPaid_v1') || '{}');
 let payLog    = JSON.parse(localStorage.getItem('payLog_v1') || '[]');
 const getExtra = id => +extraPaid[id] || 0;
+const getTarget = () => { const v=+localStorage.getItem('monthlyTarget_v1'); return v>0?v:10000; };
 function savePay(){
   localStorage.setItem('extraPaid_v1', JSON.stringify(extraPaid));
   localStorage.setItem('payLog_v1', JSON.stringify(payLog));
@@ -654,6 +673,15 @@ function render(){
       return `<td>${fmt(Math.max(0,tot-cp))}</td>`;
     }).join('') +
     `<td>${fmt(leftAmt)}</td>`;
+
+  // เป้าจ่ายต่อเดือน → ประเมินจำนวนเดือนที่จะปิดหนี้หลัก
+  const projEl = document.getElementById('targetProj');
+  if(projEl){
+    const tgt = getTarget();
+    projEl.innerHTML = leftAmt<=0
+      ? '🎉 ปิดหนี้หลักครบแล้ว!'
+      : `ด้วยงบ <b>${fmt(tgt)}</b> บาท/เดือน • คงเหลือ <b>${fmt(leftAmt)}</b> บาท<br>→ จะปิดหนี้หลักครบในอีกประมาณ <b>${Math.ceil(leftAmt/tgt)}</b> เดือน`;
+  }
 }
 
 document.getElementById('resetBtn').addEventListener('click',()=>{
@@ -865,7 +893,7 @@ renderGoldSystem_v3();
 
 /* ================= สำรอง / กู้คืนข้อมูล (ย้ายข้ามเครื่อง) ================= */
 // รวมทุก localStorage key ที่แอปใช้ ไว้ในไฟล์เดียว
-const BACKUP_KEYS = ['debtCellsPaid_v1','loanInstall_v1','goldCellsPaid_isolated_v3','loanCar2_v1','loanKsk_v1','loanKsk_v1_bal','extraPaid_v1','payLog_v1','patGold_v1','patGold_v1_bal','patPhone_v1','activeProfile'];
+const BACKUP_KEYS = ['debtCellsPaid_v1','loanInstall_v1','goldCellsPaid_isolated_v3','loanCar2_v1','loanKsk_v1','loanKsk_v1_bal','extraPaid_v1','payLog_v1','patGold_v1','patGold_v1_bal','patPhone_v1','activeProfile','monthlyTarget_v1'];
 
 document.getElementById('exportBtn').addEventListener('click',()=>{
   const dump = { app:'debt-plan', version:1, exportedAt:new Date().toISOString(), data:{} };
@@ -1316,6 +1344,19 @@ document.getElementById('payLogList').addEventListener('click', e=>{
 });
 
 renderPayLog();
+
+/* ================= เป้าจ่ายต่อเดือน (หนี้หลัก) ================= */
+function saveTarget(v){
+  v=Math.round(+v);
+  if(!v || v<=0){ alert('กรอกเป้าให้ถูกต้อง'); return; }
+  localStorage.setItem('monthlyTarget_v1', v);
+  document.getElementById('targetInput').value = v;
+  render();
+}
+document.getElementById('targetSave').addEventListener('click', ()=> saveTarget(document.getElementById('targetInput').value));
+document.getElementById('targetInput').addEventListener('keydown', e=>{ if(e.key==='Enter') saveTarget(e.target.value); });
+document.querySelectorAll('[data-tq]').forEach(b=> b.addEventListener('click', ()=> saveTarget(b.dataset.tq)));
+document.getElementById('targetInput').value = getTarget();
 
 /* ================= หน้าแรก: เลือกเจ้าของหนี้ (ปอนด์ / ปัท) ================= */
 function showProfile(pk){
