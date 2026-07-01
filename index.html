@@ -99,6 +99,10 @@ td.cell .ck{display:none;color:var(--green);font-weight:900;margin-right:3px}
 td.cell.on .ck{display:inline}
 td.cell.on .num{color:#047857;font-weight:700}
 .closebadge{display:inline-block;margin-left:4px;font-size:10px;background:rgba(52,211,153,.18);color:var(--green);border:1px solid rgba(52,211,153,.4);padding:1px 6px;border-radius:999px;font-weight:700}
+td.cell.cov{background:rgba(124,58,237,.12);cursor:default}
+td.cell.cov .num{color:#6d28d9;text-decoration:line-through;text-decoration-color:rgba(109,40,217,.45)}
+td.cell.part .num{color:#6d28d9;font-weight:700}
+.covbadge{display:inline-block;margin-left:4px;font-size:10px;background:#f3e8ff;color:#6d28d9;border:1px solid #e9d5ff;padding:1px 6px;border-radius:999px;font-weight:700}
 .total{font-weight:800;color:var(--text2);font-variant-numeric:tabular-nums}
 tfoot td{border-top:2px solid var(--line);background:var(--card2);font-weight:800;color:var(--text2)}
 .foot-note{color:var(--muted);font-size:12px;margin-top:14px;line-height:1.6}
@@ -431,7 +435,7 @@ const grandTotal = months.reduce((s,m)=>s+monthTotal(m),0);
 
 function isCellPaid(m,k){ return !!cells[cellId(m,k)]; }
 // เดือนนี้จ่ายครบทุกช่องที่มียอดหรือยัง
-function monthFullyPaid(m){ return creditors.every(c=> data[m][c.key]===0 || isCellPaid(m,c.key)); }
+function monthFullyPaid(m){ return creditors.every(c=> data[m][c.key]===0 || isCellPaid(m,c.key) || isCovered(m,c.key)); }
 
 function save(){ localStorage.setItem(STORE, JSON.stringify(cells)); }
 
@@ -444,7 +448,32 @@ function savePay(){
   localStorage.setItem('payLog_v1', JSON.stringify(payLog));
 }
 
+/* ===== "ปิดยอดเร็วขึ้น": เงินโปะไปตัดงวดท้ายๆ ของเจ้าหนี้ในตารางหนี้หลัก ===== */
+let coverageMap = {};
+function creditorCoverage(key){
+  let E = getExtra(key);
+  const covered = new Set();
+  let partial = null;
+  const active = months.filter(m=> data[m][key]>0);         // เดือนที่มียอด (เรียงตามเวลา)
+  for(let i=active.length-1;i>=0;i--){                        // ไล่จากงวดท้ายสุด
+    const m=active[i];
+    if(isCellPaid(m,key)) continue;                          // ติ๊กจ่ายแล้ว ข้าม
+    const amt=data[m][key];
+    if(E>=amt){ covered.add(m); E-=amt; }
+    else { if(E>0) partial={month:m, amt:E}; break; }
+  }
+  let payoff=null;                                           // เดือนสุดท้ายที่ยัง "ต้องจ่ายเอง"
+  for(let i=active.length-1;i>=0;i--){ if(!covered.has(active[i])){ payoff=active[i]; break; } }
+  const cleared = active.length>0 && active.every(m=> covered.has(m) || isCellPaid(m,key));
+  return {covered, partial, payoff, cleared};
+}
+function isCovered(m,key){ return !!(coverageMap[key] && coverageMap[key].covered.has(m)); }
+
 function buildTable(){
+  // คำนวณว่าเงินโปะไปปิดงวดไหนบ้าง (ปิดจากงวดท้าย)
+  coverageMap = {};
+  creditors.forEach(c=> coverageMap[c.key]=creditorCoverage(c.key));
+
   document.getElementById('head').innerHTML =
     '<th style="text-align:left">เดือน</th>' +
     creditors.map(c=>`<th>${c.name}</th>`).join('') +
@@ -454,11 +483,19 @@ function buildTable(){
     const row = creditors.map(c=>{
       const v = data[m][c.key];
       if(v===0) return '<td class="val zero">–</td>';
-      const closing = payoffMonth[c.key]===m;
+      const cvr = coverageMap[c.key];
       const on = isCellPaid(m,c.key);
-      return `<td class="val cell${on?' on':''}" data-m="${m}" data-k="${c.key}">`+
-             `<span class="ck">✓</span><span class="num">${fmt(v)}</span>`+
-             `${closing?'<span class="closebadge">✅ ปิด</span>':''}</td>`;
+      const covered = cvr.covered.has(m);
+      const part = (cvr.partial && cvr.partial.month===m) ? cvr.partial.amt : 0;
+      const closing = cvr.payoff===m;
+      let cls='val cell';
+      if(on) cls+=' on'; else if(covered) cls+=' cov'; else if(part) cls+=' part';
+      let badge='';
+      if(closing) badge='<span class="closebadge">✅ ปิด</span>';
+      else if(covered) badge='<span class="covbadge">โปะปิด</span>';
+      else if(part) badge=`<span class="covbadge">โปะ ${fmt(part)}</span>`;
+      return `<td class="${cls}" data-m="${m}" data-k="${c.key}">`+
+             `<span class="ck">✓</span><span class="num">${fmt(v)}</span> ${badge}</td>`;
     }).join('');
     return `<tr data-m="${m}" class="${monthFullyPaid(m)?'paid':''}">
       <td class="mcell"><input type="checkbox" class="mchk" data-m="${m}" title="ติ๊กทั้งเดือน"><span>${m}</span></td>
@@ -475,6 +512,7 @@ function buildTable(){
   // แตะรายช่อง
   document.querySelectorAll('td.cell').forEach(td=>{
     td.addEventListener('click',()=>{
+      if(td.classList.contains('cov')) return; // ปิดด้วยเงินโปะแล้ว
       const id = cellId(td.dataset.m, td.dataset.k);
       if(cells[id]) delete cells[id]; else cells[id]=true;
       save();
@@ -484,12 +522,12 @@ function buildTable(){
       render();
     });
   });
-  // ติ๊กทั้งเดือน
+  // ติ๊กทั้งเดือน (ข้ามช่องที่ปิดด้วยเงินโปะแล้ว)
   document.querySelectorAll('.mchk').forEach(cb=>{
     cb.addEventListener('change',e=>{
       const m=e.target.dataset.m, want=e.target.checked;
       creditors.forEach(c=>{
-        if(data[m][c.key]===0) return;
+        if(data[m][c.key]===0 || isCovered(m,c.key)) return;
         const id=cellId(m,c.key);
         if(want) cells[id]=true; else delete cells[id];
       });
@@ -521,8 +559,11 @@ function buildCreditors(){
 
 function render(){
   let paidAmt = 0;
-  months.forEach(m=> creditors.forEach(c=>{ if(isCellPaid(m,c.key)) paidAmt += data[m][c.key]; }));
-  paidAmt += creditors.reduce((s,c)=> s + getExtra(c.key), 0); // รวมเงินโปะเพิ่ม
+  creditors.forEach(c=>{
+    const tot = creditorTotal(c.key);
+    const ticked = months.reduce((s,m)=> s + (isCellPaid(m,c.key)?data[m][c.key]:0), 0);
+    paidAmt += Math.min(tot, ticked + getExtra(c.key)); // โปะเกินยอดของหนี้ตัวนั้นไม่ไปลดตัวอื่น
+  });
   const leftAmt = Math.max(0, grandTotal - paidAmt);
   const paidMonths = months.filter(monthFullyPaid).length;
   const pct = grandTotal? Math.min(100, Math.round(paidAmt/grandTotal*100)):0;
@@ -1107,6 +1148,7 @@ const payDebts = [
 const payLabel = id => (payDebts.find(d=>d.id===id)||{label:id}).label;
 
 function renderAllExtra(){
+  buildTable();        // คำนวณ "ปิดยอดเร็วขึ้น" ในตารางหนี้หลักใหม่
   render(); renderLoan(); renderGoldSystem_v3();
   moreLoanConfigs.forEach(renderMoreLoan);
   renderPayLog();
