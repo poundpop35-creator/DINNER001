@@ -58,6 +58,26 @@ h1{font-size:22px;margin:0;color:var(--text2);letter-spacing:.2px}
 .cred .amt{width:150px;text-align:right;font-size:13px;color:var(--muted);flex:none}
 .cred .amt b{color:var(--text2)}
 .done-tag{font-size:11px;color:var(--green);font-weight:700;margin-left:6px}
+.extra-tag{display:inline-block;font-size:11px;color:#7c3aed;background:#f3e8ff;border:1px solid #e9d5ff;border-radius:999px;padding:0 7px;font-weight:700;margin-left:4px}
+
+/* ---- สมุดบันทึกโปะหนี้ ---- */
+.panel.paypanel{border-top:4px solid #7c3aed}
+.payrow{display:flex;gap:8px;flex-wrap:wrap;align-items:stretch}
+.payrow select,.payrow input{flex:1;min-width:120px;background:#fff;color:var(--text);border:1px solid var(--line);border-radius:10px;padding:11px 12px;font-size:15px;outline:none}
+.payrow select:focus,.payrow input:focus{border-color:#7c3aed;box-shadow:0 0 0 2px rgba(124,58,237,.15)}
+.btn-pay{background:#7c3aed;color:#fff;border:none;border-radius:10px;padding:11px 18px;font-size:15px;font-weight:800;cursor:pointer;white-space:nowrap}
+.btn-pay:hover{background:#6d28d9}
+.quickamts{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.quickamts button{background:#f3e8ff;color:#6d28d9;border:1px solid #e9d5ff;border-radius:999px;padding:7px 14px;font-size:13px;font-weight:700;cursor:pointer}
+.quickamts button:hover{background:#e9d5ff}
+.paylog{margin-top:14px;display:flex;flex-direction:column;gap:6px;max-height:230px;overflow-y:auto}
+.paylog .pl{display:flex;align-items:center;gap:10px;padding:8px 10px;background:var(--card2);border:1px solid var(--line);border-radius:10px;font-size:13px}
+.paylog .pl .pd{color:var(--muted);font-size:11px}
+.paylog .pl .pn{font-weight:700;color:var(--text2)}
+.paylog .pl .pa{margin-left:auto;font-weight:800;color:#7c3aed;white-space:nowrap}
+.paylog .pl .px{border:none;background:transparent;color:var(--muted);font-size:16px;cursor:pointer;padding:0 2px;line-height:1}
+.paylog .pl .px:hover{color:var(--red)}
+.payempty{color:var(--muted);font-size:13px;margin-top:12px;text-align:center}
 
 .tablewrap{overflow-x:auto;-webkit-overflow-scrolling:touch;border-radius:18px;border:1px solid var(--line)}
 table{border-collapse:collapse;width:100%;min-width:640px;background:var(--card)}
@@ -198,6 +218,22 @@ body.capturing .loan .lstats{ grid-template-columns:repeat(4,1fr) !important; }
       <input type="file" id="importFile" accept="application/json,.json" style="display:none">
     </div>
   </header>
+
+  <section class="panel paypanel noprint">
+    <h2>💰 บันทึกจ่ายเพิ่ม / โปะหนี้ (ระหว่างเดือน)</h2>
+    <div class="payrow">
+      <select id="payDebt"></select>
+      <input id="payAmt" type="number" inputmode="numeric" min="1" placeholder="จำนวนเงินที่จ่าย (บาท)">
+      <button id="payAdd" class="btn-pay">＋ บันทึก</button>
+    </div>
+    <div class="quickamts">
+      <button data-q="500">+500</button>
+      <button data-q="1000">+1,000</button>
+      <button data-q="2000">+2,000</button>
+      <button data-q="5000">+5,000</button>
+    </div>
+    <div id="payLogList" class="paylog"></div>
+  </section>
 
   <div class="plan-tools">
     <span class="pt-label">แผนที่ 1 · หนี้หลัก</span>
@@ -399,6 +435,15 @@ function monthFullyPaid(m){ return creditors.every(c=> data[m][c.key]===0 || isC
 
 function save(){ localStorage.setItem(STORE, JSON.stringify(cells)); }
 
+/* ===== เงินโปะเพิ่มเอง (จ่ายระหว่างเดือนทีละ 500-1000 ได้ทุกหนี้) ===== */
+let extraPaid = JSON.parse(localStorage.getItem('extraPaid_v1') || '{}');
+let payLog    = JSON.parse(localStorage.getItem('payLog_v1') || '[]');
+const getExtra = id => +extraPaid[id] || 0;
+function savePay(){
+  localStorage.setItem('extraPaid_v1', JSON.stringify(extraPaid));
+  localStorage.setItem('payLog_v1', JSON.stringify(payLog));
+}
+
 function buildTable(){
   document.getElementById('head').innerHTML =
     '<th style="text-align:left">เดือน</th>' +
@@ -477,9 +522,10 @@ function buildCreditors(){
 function render(){
   let paidAmt = 0;
   months.forEach(m=> creditors.forEach(c=>{ if(isCellPaid(m,c.key)) paidAmt += data[m][c.key]; }));
-  const leftAmt = grandTotal - paidAmt;
+  paidAmt += creditors.reduce((s,c)=> s + getExtra(c.key), 0); // รวมเงินโปะเพิ่ม
+  const leftAmt = Math.max(0, grandTotal - paidAmt);
   const paidMonths = months.filter(monthFullyPaid).length;
-  const pct = grandTotal? Math.round(paidAmt/grandTotal*100):0;
+  const pct = grandTotal? Math.min(100, Math.round(paidAmt/grandTotal*100)):0;
 
   document.getElementById('kTotal').innerHTML = fmt(grandTotal)+' <small>บาท</small>';
   document.getElementById('kPaid').innerHTML  = fmt(paidAmt)+' <small>บาท</small>';
@@ -492,12 +538,13 @@ function render(){
 
   creditors.forEach(c=>{
     const tot = creditorTotal(c.key);
-    const cpaid = months.reduce((s,m)=> s + (isCellPaid(m,c.key)?data[m][c.key]:0), 0);
-    const cpct = tot? Math.round(cpaid/tot*100):0;
+    const cpaid = months.reduce((s,m)=> s + (isCellPaid(m,c.key)?data[m][c.key]:0), 0) + getExtra(c.key);
+    const cpct = tot? Math.min(100, Math.round(cpaid/tot*100)):0;
     document.getElementById('pb-'+c.key).style.width = cpct+'%';
     const done = cpct>=100 && tot>0;
+    const ex = getExtra(c.key);
     document.getElementById('amt-'+c.key).innerHTML =
-      `<b>${fmt(cpaid)}</b> / ${fmt(tot)}${done?'<span class="done-tag">เคลียร์แล้ว ✓</span>':''}`;
+      `<b>${fmt(cpaid)}</b> / ${fmt(tot)}${ex>0?` <span class="extra-tag">+โปะ ${fmt(ex)}</span>`:''}${done?'<span class="done-tag">เคลียร์แล้ว ✓</span>':''}`;
   });
 }
 
@@ -542,16 +589,17 @@ function saveLoan(){
 
 function renderLoan(){
   const totalAmt = LOAN.per*LOAN.total;
-  const paidAmt  = LOAN.per*loanPaid;
-  const leftAmt  = totalAmt - paidAmt;
-  const pct = Math.round(loanPaid/LOAN.total*100);
+  const extra    = getExtra('loan40');
+  const paidAmt  = LOAN.per*loanPaid + extra;
+  const leftAmt  = Math.max(0, totalAmt - paidAmt);
+  const pct = Math.min(100, Math.round(paidAmt/totalAmt*100));
 
-  document.getElementById('loanPaidAmt').innerHTML = fmt(paidAmt)+' <small>บาท</small>';
+  document.getElementById('loanPaidAmt').innerHTML = fmt(paidAmt)+' <small>บาท</small>'+(extra>0?` <span class="extra-tag">โปะ ${fmt(extra)}</span>`:'');
   document.getElementById('loanLeftAmt').innerHTML = fmt(leftAmt)+' <small>บาท</small>';
   document.getElementById('loanPaidCnt').innerHTML = loanPaid+' <small>/ '+LOAN.total+' งวด</small>';
   document.getElementById('loanBar').style.width = pct+'%';
   document.getElementById('loanPct').textContent = pct+'% สำเร็จ';
-  document.getElementById('loanRemainCnt').innerHTML = 'เหลืออีก <b>'+(LOAN.total-loanPaid)+'</b> งวด ('+fmt(leftAmt)+' บาท)';
+  document.getElementById('loanRemainCnt').innerHTML = 'เหลืออีก '+fmt(leftAmt)+' บาท';
   document.getElementById('loanCntTxt').textContent = loanPaid;
 
   document.querySelectorAll('#loanChips .chip').forEach(ch=>{
@@ -680,10 +728,12 @@ function renderGoldSystem_v3() {
       if (isGoldCellPaid_v3(m, k)) gPaidAmt += goldData_v3[m][k];
     });
   });
+  const gExtra = getExtra('gold4959') + getExtra('gold4341');
+  gPaidAmt += gExtra;
 
-  const gLeftAmt = gGrandTotal - gPaidAmt;
+  const gLeftAmt = Math.max(0, gGrandTotal - gPaidAmt);
   const gPaidMonthsCount = goldMonths_v3.filter(goldRowFullyPaid_v3).length;
-  const gPct = gGrandTotal ? Math.round((gPaidAmt / gGrandTotal) * 100) : 0;
+  const gPct = gGrandTotal ? Math.min(100, Math.round((gPaidAmt / gGrandTotal) * 100)) : 0;
 
   document.getElementById('gKPaid').innerHTML = fmtGold(gPaidAmt, 2) + ' <small>บาท</small>';
   document.getElementById('gKLeft').innerHTML = fmtGold(gLeftAmt, 2) + ' <small>บาท</small>';
@@ -705,7 +755,7 @@ renderGoldSystem_v3();
 
 /* ================= สำรอง / กู้คืนข้อมูล (ย้ายข้ามเครื่อง) ================= */
 // รวมทุก localStorage key ที่แอปใช้ ไว้ในไฟล์เดียว
-const BACKUP_KEYS = ['debtCellsPaid_v1','loanInstall_v1','goldCellsPaid_isolated_v3','loanCar2_v1','loanKsk_v1'];
+const BACKUP_KEYS = ['debtCellsPaid_v1','loanInstall_v1','goldCellsPaid_isolated_v3','loanCar2_v1','loanKsk_v1','extraPaid_v1','payLog_v1'];
 
 document.getElementById('exportBtn').addEventListener('click',()=>{
   const dump = { app:'debt-plan', version:1, exportedAt:new Date().toISOString(), data:{} };
@@ -994,23 +1044,24 @@ function saveMoreLoan(cfg){
 function renderMoreLoan(cfg){
   const total = totalInstallments(cfg);
   const paidCnt = moreLoanState[cfg.id];
-  const paidAmt = cfg.per*paidCnt;
-  document.getElementById(cfg.id+'-paid').innerHTML = fmt(paidAmt)+' <small>บาท</small>';
+  const extra = getExtra(cfg.id);
+  const paidAmt = cfg.per*paidCnt + extra;
+  document.getElementById(cfg.id+'-paid').innerHTML = fmt(paidAmt)+' <small>บาท</small>'+(extra>0?` <span class="extra-tag">โปะ ${fmt(extra)}</span>`:'');
   document.getElementById(cfg.id+'-cnt').innerHTML = paidCnt+' <small>/ '+(total==null?'—':total)+' งวด</small>';
   document.getElementById(cfg.id+'-cnt2').textContent = paidCnt;
   if(total==null){
     document.getElementById(cfg.id+'-left').innerHTML = '— <small>รอยอด</small>';
     document.getElementById(cfg.id+'-bar').style.width = '0%';
     document.getElementById(cfg.id+'-pct').textContent = 'รอยอดรวม';
-    document.getElementById(cfg.id+'-remain').textContent = '';
+    document.getElementById(cfg.id+'-remain').innerHTML = extra>0 ? ('โปะไปแล้ว <b>'+fmt(extra)+'</b> บาท') : '';
   } else {
     const totalAmt = cfg.per*total;
-    const leftAmt = totalAmt - paidAmt;
-    const pct = Math.round(paidCnt/total*100);
+    const leftAmt = Math.max(0, totalAmt - paidAmt);
+    const pct = Math.min(100, Math.round(paidAmt/totalAmt*100));
     document.getElementById(cfg.id+'-left').innerHTML = fmt(leftAmt)+' <small>บาท</small>';
     document.getElementById(cfg.id+'-bar').style.width = pct+'%';
     document.getElementById(cfg.id+'-pct').textContent = pct+'% สำเร็จ';
-    document.getElementById(cfg.id+'-remain').innerHTML = 'เหลืออีก <b>'+(total-paidCnt)+'</b> งวด ('+fmt(leftAmt)+' บาท)';
+    document.getElementById(cfg.id+'-remain').innerHTML = 'เหลืออีก '+fmt(leftAmt)+' บาท';
   }
   const box=document.getElementById(cfg.id+'-chips');
   box.querySelectorAll('.chip').forEach(ch=> ch.classList.toggle('paid', +ch.dataset.n<=paidCnt));
@@ -1039,6 +1090,82 @@ document.addEventListener('click', e=>{
 });
 
 buildMoreLoans();
+
+/* ================= สมุดบันทึกโปะหนี้ (จ่ายเพิ่มเอง) ================= */
+const payDebts = [
+  {id:'S',        label:'S (หนี้หลัก)'},
+  {id:'G',        label:'G (หนี้หลัก)'},
+  {id:'YourCash', label:'YourCash (หนี้หลัก)'},
+  {id:'LINE BK',  label:'LINE BK (หนี้หลัก)'},
+  {id:'AEON',     label:'AEON (หนี้หลัก)'},
+  {id:'loan40',   label:'สัญญาผ่อน 40 งวด'},
+  {id:'gold4959', label:'ทองคำ สัญญา 4959'},
+  {id:'gold4341', label:'ทองคำ สัญญา 4341'},
+  {id:'car2',     label:'รถคันสีเทา'},
+  {id:'ksk',      label:'กสิกร'},
+];
+const payLabel = id => (payDebts.find(d=>d.id===id)||{label:id}).label;
+
+function renderAllExtra(){
+  render(); renderLoan(); renderGoldSystem_v3();
+  moreLoanConfigs.forEach(renderMoreLoan);
+  renderPayLog();
+}
+
+function renderPayLog(){
+  const box=document.getElementById('payLogList');
+  if(!payLog.length){
+    box.innerHTML='<div class="payempty">ยังไม่มีรายการ — เลือกหนี้ กรอกจำนวนเงิน แล้วกดบันทึกได้เลย</div>';
+    return;
+  }
+  box.innerHTML = payLog.map((e,i)=>({e,i})).reverse().map(({e,i})=>{
+    const d=new Date(e.t);
+    const ds=d.toLocaleDateString('th-TH',{day:'2-digit',month:'short'})+' '+d.toLocaleTimeString('th-TH',{hour:'2-digit',minute:'2-digit'});
+    return `<div class="pl"><span class="pn">${payLabel(e.id)}</span><span class="pd">${ds}</span>`+
+           `<span class="pa">+${fmt(e.amt)} ฿</span><button class="px" data-undo="${i}" title="ลบรายการนี้">✕</button></div>`;
+  }).join('');
+}
+
+function addPayment(id, amt){
+  amt = Math.round(+amt);
+  if(!id){ alert('เลือกหนี้ก่อนนะ'); return; }
+  if(!amt || amt<=0){ alert('กรอกจำนวนเงินให้ถูกต้อง'); return; }
+  extraPaid[id] = getExtra(id) + amt;
+  payLog.push({t:new Date().toISOString(), id, amt});
+  savePay();
+  renderAllExtra();
+}
+function undoPayment(i){
+  const e=payLog[i]; if(!e) return;
+  extraPaid[e.id] = Math.max(0, getExtra(e.id) - e.amt);
+  payLog.splice(i,1);
+  savePay();
+  renderAllExtra();
+}
+
+document.getElementById('payDebt').innerHTML =
+  payDebts.map(d=>`<option value="${d.id}">${d.label}</option>`).join('');
+document.getElementById('payAdd').addEventListener('click', ()=>{
+  const inp=document.getElementById('payAmt');
+  addPayment(document.getElementById('payDebt').value, inp.value);
+  inp.value='';
+});
+document.getElementById('payAmt').addEventListener('keydown', e=>{
+  if(e.key==='Enter') document.getElementById('payAdd').click();
+});
+document.querySelectorAll('.quickamts button').forEach(b=>{
+  b.addEventListener('click', ()=>{
+    const inp=document.getElementById('payAmt');
+    inp.value = (+inp.value||0) + (+b.dataset.q);
+    inp.focus();
+  });
+});
+document.getElementById('payLogList').addEventListener('click', e=>{
+  const b=e.target.closest('[data-undo]'); if(!b) return;
+  undoPayment(+b.dataset.undo);
+});
+
+renderPayLog();
 </script>
 </body>
 </html>
