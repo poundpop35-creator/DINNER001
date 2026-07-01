@@ -93,6 +93,11 @@ h1{font-size:22px;margin:0;color:var(--text2);letter-spacing:.2px}
 .panel.tgtpanel{border-top:4px solid #0891b2}
 .tgtproj{margin-top:14px;padding:12px 14px;background:#ecfeff;border:1px solid #a5f3fc;border-radius:12px;font-size:14px;color:#155e75;line-height:1.6}
 .tgtproj b{color:#0e7490;font-size:16px}
+.patbals{display:grid;grid-template-columns:1fr;gap:10px}
+@media(min-width:560px){.patbals{grid-template-columns:repeat(3,1fr)}}
+.patbals label{display:flex;flex-direction:column;gap:4px;font-size:13px;font-weight:700;color:var(--text2)}
+.patbals input{border:1px solid var(--line);border-radius:10px;padding:9px 11px;font-size:15px;outline:none}
+.patbals input:focus{border-color:#0891b2}
 
 .tablewrap{overflow-x:auto;-webkit-overflow-scrolling:touch;border-radius:18px;border:1px solid var(--line)}
 table{border-collapse:collapse;width:100%;min-width:640px;background:var(--card)}
@@ -459,7 +464,46 @@ body.capturing .loan .lstats{ grid-template-columns:repeat(4,1fr) !important; }
       </div>
       <div id="patProj" class="tgtproj"></div>
     </section>
-    <div id="patLoans"></div>
+
+    <section class="panel tgtpanel noprint">
+      <h2>✏️ ยอดหนี้แต่ละก้อน (แก้ได้)</h2>
+      <div class="patbals">
+        <label>🏆 ทอง<input id="patBal-gold" type="number" inputmode="numeric"></label>
+        <label>📱 โทรศัพท์<input id="patBal-phone" type="number" inputmode="numeric"></label>
+        <label>🛒 Shopee<input id="patBal-shopee" type="number" inputmode="numeric"></label>
+      </div>
+      <button id="patBalSave" class="btn-pay" style="background:#0891b2;margin-top:10px">💾 บันทึกยอด + สร้างตารางใหม่</button>
+    </section>
+
+    <div class="plan-tools">
+      <span class="pt-label">ตารางจ่ายรายเดือนของปัท</span>
+      <button class="reset" data-img="cap-pat" data-name="หนี้ปัท">📷 รูปภาพ</button>
+      <button class="reset" data-xls="pattable">📊 Excel</button>
+      <button class="reset" data-print="cap-pat">🖨️ พิมพ์</button>
+      <button class="reset" data-pdf="cap-pat" data-name="หนี้ปัท">📄 PDF</button>
+    </div>
+
+    <div id="cap-pat" class="capbox">
+      <section class="cards">
+        <div class="kpi glow-cyan"><div class="lab">หนี้ปัทรวม</div><div class="val" id="patKTotal">–</div></div>
+        <div class="kpi glow-green"><div class="lab">จ่ายไปแล้ว</div><div class="val" id="patKPaid">–</div></div>
+        <div class="kpi glow-amber"><div class="lab">คงเหลือ</div><div class="val" id="patKLeft">–</div></div>
+        <div class="kpi"><div class="lab">เดือนที่จ่ายแล้ว</div><div class="val" id="patKMonths">–</div></div>
+      </section>
+      <section class="panel" style="padding:0;overflow:hidden">
+        <div class="tablewrap">
+          <table id="patTbl">
+            <thead><tr id="patHead"></tr></thead>
+            <tbody id="patBody"></tbody>
+            <tfoot><tr id="patFoot"></tr><tr id="patFootRem"></tr></tfoot>
+          </table>
+        </div>
+      </section>
+      <div class="foot-note noprint">
+        👉 แตะที่ตัวเลขแต่ละช่องเพื่อติ๊กว่าจ่ายแล้ว • ตารางนี้กระจายงบต่อเดือนแบบ "ปิดก้อนเล็กก่อน" ให้อัตโนมัติ<br>
+        ✅ ปิด = เดือนที่ก้อนนั้นจ่ายครบ • เปลี่ยนงบ/ยอด แล้วตารางจะคำนวณใหม่ (ติ๊กจะถูกล้าง)
+      </div>
+    </div>
   </div>
 
 </div>
@@ -920,7 +964,7 @@ renderGoldSystem_v3();
 
 /* ================= สำรอง / กู้คืนข้อมูล (ย้ายข้ามเครื่อง) ================= */
 // รวมทุก localStorage key ที่แอปใช้ ไว้ในไฟล์เดียว
-const BACKUP_KEYS = ['debtCellsPaid_v1','loanInstall_v1','goldCellsPaid_isolated_v3','loanCar2_v1','loanKsk_v1','loanKsk_v1_bal','extraPaid_v1','payLog_v1','patGold_v1','patGold_v1_bal','patPhone_v1','patShopee_v1','patShopee_v1_bal','patTarget_v1','activeProfile','monthlyTarget_v1'];
+const BACKUP_KEYS = ['debtCellsPaid_v1','loanInstall_v1','goldCellsPaid_isolated_v3','loanCar2_v1','loanKsk_v1','loanKsk_v1_bal','extraPaid_v1','payLog_v1','patTarget_v1','patBal_gold','patBal_phone','patBal_shopee','patTableCells_v1','activeProfile','monthlyTarget_v1'];
 
 document.getElementById('exportBtn').addEventListener('click',()=>{
   const dump = { app:'debt-plan', version:1, exportedAt:new Date().toISOString(), data:{} };
@@ -1046,6 +1090,7 @@ document.addEventListener('click', e=>{
   else if(b.dataset.xls==='main') xlsMain();
   else if(b.dataset.xls==='loan') xlsLoan();
   else if(b.dataset.xls==='gold') xlsGold();
+  else if(b.dataset.xls==='pattable') xlsPatTable();
   else if(b.dataset.xls && b.dataset.xls.indexOf('simple:')===0) xlsSimple(b.dataset.xls.slice(7));
   else if(b.dataset.print){ printPlan(b.dataset.print); }
   else if(b.dataset.pdf){ sharePdf(document.getElementById(b.dataset.pdf), b.dataset.name, b); }
@@ -1126,9 +1171,6 @@ document.getElementById('sharePdfBtn').addEventListener('click', e=>
 const moreLoanConfigs = [
   { id:'car2', host:'moreLoans', n:4, icon:'🚗', title:'รถคันสีเทา', per:7000, balance:511000, store:'loanCar2_v1', def:0 },
   { id:'ksk',  host:'moreLoans', n:5, icon:'🏦', title:'กสิกร', per:4000, balance:null, store:'loanKsk_v1', def:0, editBal:true },
-  { id:'patGold',  host:'patLoans', n:1, icon:'🏆', title:'ทอง', months:12, balance:29500, store:'patGold_v1', def:0, editBal:true, note:'ตั้งไว้ผ่อน 12 เดือน • ยังไม่รวมดอกเบี้ย (ได้เรตแล้วบอกได้ เดี๋ยวคำนวณให้)' },
-  { id:'patPhone', host:'patLoans', n:2, icon:'📱', title:'โทรศัพท์มือถือ', per:1500, balance:10400, store:'patPhone_v1', def:0 },
-  { id:'patShopee', host:'patLoans', n:3, icon:'🛒', title:'Shopee (SPayLater)', months:4, balance:20982, store:'patShopee_v1', def:0, editBal:true, note:'ยอดบิลค้าง 4 รอบ (ก.ค.–ต.ค.) รวม ~20,982 บาท • แก้ยอดได้ตามบิลจริง' },
 ];
 const moreLoanState = {};
 const cfgById = id => moreLoanConfigs.find(c=>c.id===id);
@@ -1257,27 +1299,127 @@ function renderMoreLoan(cfg){
   }
   const box=document.getElementById(cfg.id+'-chips');
   box.querySelectorAll('.chip').forEach(ch=> ch.classList.toggle('paid', +ch.dataset.n<=paidCnt));
-  if(cfg.host==='patLoans') renderPatSummary();
 }
 
-function loanRemaining(cfg){
-  const total=totalInstallments(cfg);
-  if(total==null) return null;
-  const per=perOf(cfg), totalAmt=totalAmtOf(cfg), cnt=moreLoanState[cfg.id]||0;
-  const base=(cnt>=total)?totalAmt:Math.min(totalAmt, per*cnt);
-  return Math.max(0, totalAmt-(base+getExtra(cfg.id)));
+/* ================= ปัท: ตารางจ่ายรายเดือน (กระจายงบ ปิดก้อนเล็กก่อน) ================= */
+const patDebtDefs = [
+  {key:'gold',   name:'🏆 ทอง',      def:29500},
+  {key:'phone',  name:'📱 โทรศัพท์',  def:10400},
+  {key:'shopee', name:'🛒 Shopee',   def:20982},
+];
+const patMonthNames = ['ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.','ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.'];
+const getPatBal = key => { const v=+localStorage.getItem('patBal_'+key); return v>0 ? v : patDebtDefs.find(d=>d.key===key).def; };
+let patCells = JSON.parse(localStorage.getItem('patTableCells_v1') || '{}');
+const patCellId = (r,k)=> r+'__'+k;
+function savePatCells(){ localStorage.setItem('patTableCells_v1', JSON.stringify(patCells)); }
+
+let patRows = [];
+function patGenerate(){
+  // เรียงจากยอดน้อยไปมาก (ปิดก้อนเล็กก่อน) แล้วกระจายงบต่อเดือน
+  const order = patDebtDefs.map(d=>({key:d.key, bal:getPatBal(d.key)})).filter(d=>d.bal>0).sort((a,b)=>a.bal-b.bal);
+  const budget = getPatTarget();
+  const remaining = {}; order.forEach(d=> remaining[d.key]=d.bal);
+  const rows=[]; let guard=0;
+  while(order.some(d=>remaining[d.key]>0.5) && guard<240){
+    guard++;
+    let left=budget; const alloc={};
+    for(const d of order){
+      if(left<=0) break;
+      if(remaining[d.key]<=0) continue;
+      const pay=Math.min(remaining[d.key], left);
+      alloc[d.key]=pay; remaining[d.key]-=pay; left-=pay;
+    }
+    rows.push(alloc);
+  }
+  return rows;
 }
-function renderPatSummary(){
-  const el=document.getElementById('patProj'); if(!el) return;
-  const pats=moreLoanConfigs.filter(c=>c.host==='patLoans');
-  let rem=0, unknown=false;
-  pats.forEach(c=>{ const r=loanRemaining(c); if(r==null) unknown=true; else rem+=r; });
-  const tgt=getPatTarget();
-  const mo = rem<=0 ? 0 : Math.ceil(rem/tgt);
-  el.innerHTML = (rem<=0 && !unknown)
+const patCellAmt = (r,k)=> (patRows[r] && patRows[r][k]) ? patRows[r][k] : 0;
+const patRowTotal = r => patDebtDefs.reduce((s,d)=>s+patCellAmt(r,d.key),0);
+const isPatCellPaid = (r,k)=> !!patCells[patCellId(r,k)];
+const patRowFullyPaid = r => patDebtDefs.every(d=> patCellAmt(r,d.key)===0 || isPatCellPaid(r,d.key));
+const patDebtPaid = k => patRows.reduce((s,a,r)=> s + (isPatCellPaid(r,k)?patCellAmt(r,k):0), 0);
+const patIsClosing = (r,k)=>{ for(let i=patRows.length-1;i>=0;i--){ if(patCellAmt(i,k)>0) return i===r; } return false; };
+
+function buildPatTable(){
+  patRows = patGenerate();
+  document.getElementById('patHead').innerHTML =
+    '<th style="text-align:left">เดือน</th>' + patDebtDefs.map(d=>`<th>${d.name}</th>`).join('') + '<th>รวมจ่าย</th>';
+  document.getElementById('patBody').innerHTML = patRows.map((a,r)=>{
+    const cells = patDebtDefs.map(d=>{
+      const v=patCellAmt(r,d.key);
+      if(v===0) return '<td class="val zero">–</td>';
+      const on=isPatCellPaid(r,d.key);
+      const closing=patIsClosing(r,d.key);
+      return `<td class="val cell${on?' on':''}" data-r="${r}" data-k="${d.key}">`+
+             `<span class="ck">✓</span><span class="num">${fmt(Math.round(v))}</span>${closing?' <span class="closebadge">✅ ปิด</span>':''}</td>`;
+    }).join('');
+    const label = r<patMonthNames.length ? patMonthNames[r] : ('เดือนที่ '+(r+1));
+    return `<tr class="${patRowFullyPaid(r)?'paid':''}"><td class="mcell"><input type="checkbox" class="pat-mchk" data-r="${r}"><span>${label}</span></td>${cells}<td class="total">${fmt(Math.round(patRowTotal(r)))}</td></tr>`;
+  }).join('');
+  const gt = patDebtDefs.reduce((s,d)=>s+getPatBal(d.key),0);
+  document.getElementById('patFoot').innerHTML =
+    '<td style="text-align:left">หนี้เต็ม</td>'+patDebtDefs.map(d=>`<td>${fmt(getPatBal(d.key))}</td>`).join('')+`<td>${fmt(gt)}</td>`;
+
+  document.querySelectorAll('#patBody td.cell').forEach(td=>{
+    td.addEventListener('click',()=>{
+      const id=patCellId(td.dataset.r,td.dataset.k);
+      if(patCells[id]){ if(!requirePin('ยกเลิกว่าจ่ายช่องนี้แล้ว?')) return; delete patCells[id]; }
+      else patCells[id]=true;
+      savePatCells(); buildPatTable(); renderPatTableKPI();
+    });
+  });
+  document.querySelectorAll('.pat-mchk').forEach(cb=>{
+    cb.addEventListener('change',e=>{
+      const r=+e.target.dataset.r, want=e.target.checked;
+      if(!want && !requirePin('ยกเลิกว่าจ่ายทั้งเดือนนี้?')){ e.target.checked=true; return; }
+      patDebtDefs.forEach(d=>{ if(patCellAmt(r,d.key)===0) return; const id=patCellId(r,d.key); if(want) patCells[id]=true; else delete patCells[id]; });
+      savePatCells(); buildPatTable(); renderPatTableKPI();
+    });
+  });
+  patRows.forEach((a,r)=>{ const cb=document.querySelector(`.pat-mchk[data-r="${r}"]`); if(cb) cb.checked=patRowFullyPaid(r); });
+}
+
+function renderPatTableKPI(){
+  const total = patDebtDefs.reduce((s,d)=>s+getPatBal(d.key),0);
+  const paid = patDebtDefs.reduce((s,d)=>s+patDebtPaid(d.key),0);
+  const left = Math.max(0, total-paid);
+  const paidMonths = patRows.filter((a,r)=>patRowFullyPaid(r)).length;
+  document.getElementById('patKTotal').innerHTML = fmt(total)+' <small>บาท</small>';
+  document.getElementById('patKPaid').innerHTML  = fmt(paid)+' <small>บาท</small>';
+  document.getElementById('patKLeft').innerHTML  = fmt(left)+' <small>บาท</small>';
+  document.getElementById('patKMonths').innerHTML= paidMonths+' <small>/ '+patRows.length+' เดือน</small>';
+  document.getElementById('patFootRem').innerHTML =
+    '<td style="text-align:left">คงเหลือ</td>'+patDebtDefs.map(d=>`<td>${fmt(Math.max(0,getPatBal(d.key)-patDebtPaid(d.key)))}</td>`).join('')+`<td>${fmt(left)}</td>`;
+  const el=document.getElementById('patProj');
+  if(el) el.innerHTML = left<=0
     ? '🎉 ปิดหนี้ปัทครบแล้ว!'
-    : `รวมหนี้ปัทคงเหลือ <b>${fmt(rem)}</b> บาท${unknown?' (+ บางรายการรอยอด)':''}<br>ด้วยงบ <b>${fmt(tgt)}</b> บาท/เดือน → ปิดครบในอีกประมาณ <b>${mo}</b> เดือน`;
+    : `รวมหนี้ปัทคงเหลือ <b>${fmt(left)}</b> บาท • ด้วยงบ <b>${fmt(getPatTarget())}</b> บาท/เดือน → ปิดครบใน <b>${patRows.length}</b> เดือน`;
 }
+
+function renderPatAll(){ buildPatTable(); renderPatTableKPI(); }
+
+function xlsPatTable(){
+  const headers=['เดือน',...patDebtDefs.map(d=>d.name),'รวมจ่าย','สถานะ'];
+  const rows=patRows.map((a,r)=>{
+    const cs=patDebtDefs.map(d=>{ const v=patCellAmt(r,d.key); return v===0?'':(isPatCellPaid(r,d.key)?'✓ ':'')+fmt(Math.round(v)); });
+    const label = r<patMonthNames.length ? patMonthNames[r] : ('เดือนที่ '+(r+1));
+    return [label,...cs,fmt(Math.round(patRowTotal(r))), patRowFullyPaid(r)?'จ่ายครบ':''];
+  });
+  rows.push(['หนี้เต็ม',...patDebtDefs.map(d=>fmt(getPatBal(d.key))),fmt(patDebtDefs.reduce((s,d)=>s+getPatBal(d.key),0)),'']);
+  rows.push(['คงเหลือ',...patDebtDefs.map(d=>fmt(Math.max(0,getPatBal(d.key)-patDebtPaid(d.key)))),'','']);
+  downloadXls('หนี้ปัท','ตารางจ่ายรายเดือนของปัท (งบ '+fmt(getPatTarget())+'/เดือน)',headers,rows);
+}
+
+// ปุ่มแก้ยอดหนี้ปัท
+function initPatBalInputs(){ patDebtDefs.forEach(d=> document.getElementById('patBal-'+d.key).value = getPatBal(d.key)); }
+document.getElementById('patBalSave').addEventListener('click', ()=>{
+  patDebtDefs.forEach(d=>{
+    const v=Math.round(+document.getElementById('patBal-'+d.key).value);
+    localStorage.setItem('patBal_'+d.key, (isNaN(v)||v<0)?0:v);
+  });
+  patCells={}; savePatCells();   // แผนเปลี่ยน ล้างติ๊กเดิม
+  renderPatAll();
+});
 
 function xlsSimple(id){
   const cfg=cfgById(id); if(!cfg) return;
@@ -1325,7 +1467,6 @@ document.addEventListener('click', e=>{
 });
 
 buildMoreLoans('moreLoans');
-buildMoreLoans('patLoans');
 
 /* ================= สมุดบันทึกโปะหนี้ (จ่ายเพิ่มเอง) ================= */
 const payDebts = [
@@ -1424,13 +1565,15 @@ function savePatTarget(v){
   if(!v || v<=0){ alert('กรอกงบให้ถูกต้อง'); return; }
   localStorage.setItem('patTarget_v1', v);
   document.getElementById('patTargetInput').value = v;
-  renderPatSummary();
+  patCells={}; savePatCells();   // งบเปลี่ยน แผนเปลี่ยน ล้างติ๊กเดิม
+  renderPatAll();
 }
 document.getElementById('patTargetSave').addEventListener('click', ()=> savePatTarget(document.getElementById('patTargetInput').value));
 document.getElementById('patTargetInput').addEventListener('keydown', e=>{ if(e.key==='Enter') savePatTarget(e.target.value); });
 document.querySelectorAll('[data-ptq]').forEach(b=> b.addEventListener('click', ()=> savePatTarget(b.dataset.ptq)));
 document.getElementById('patTargetInput').value = getPatTarget();
-renderPatSummary();
+initPatBalInputs();
+renderPatAll();
 
 /* ================= หน้าแรก: เลือกเจ้าของหนี้ (ปอนด์ / ปัท) ================= */
 function showProfile(pk){
