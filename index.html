@@ -381,13 +381,13 @@ body.capturing .loan .lstats{ grid-template-columns:repeat(4,1fr) !important; }
   <div id="cap-main" class="capbox">
 
   <section class="cards">
-    <div class="kpi glow-cyan"><div class="lab">หนี้รวมทั้งหมด</div><div class="val" id="kTotal">–</div></div>
-    <div class="kpi glow-green"><div class="lab">จ่ายไปแล้ว</div><div class="val" id="kPaid">–</div></div>
-    <div class="kpi glow-amber"><div class="lab">คงเหลือ</div><div class="val" id="kLeft">–</div></div>
+    <div class="kpi glow-cyan"><div class="lab">หนี้หลักคงเหลือ</div><div class="val" id="kTotal">–</div></div>
+    <div class="kpi glow-green"><div class="lab">โปะไปแล้ว</div><div class="val" id="kPaid">–</div></div>
+    <div class="kpi glow-amber"><div class="lab">จ่ายเดือนละ</div><div class="val" id="kLeft">–</div></div>
     <div class="kpi"><div class="lab">ปิดครบแล้ว</div><div class="val" id="kMonths">–</div></div>
   </section>
 
-  <section class="panel noprint">
+  <section class="panel noprint" style="display:none">
     <h2>📊 ความคืบหน้าโดยรวม</h2>
     <div class="bar"><i id="overallBar" style="width:0%"></i></div>
     <div class="bar-meta"><span id="overallPct">0%</span><span id="overallAmt"></span></div>
@@ -402,7 +402,7 @@ body.capturing .loan .lstats{ grid-template-columns:repeat(4,1fr) !important; }
     </div>
   </section>
 
-  <section class="panel noprint">
+  <section class="panel noprint" style="display:none">
     <h2>🏦 ความคืบหน้าแยกตามเจ้าหนี้</h2>
     <div id="credList"></div>
     <div class="legend" id="legend"></div>
@@ -661,6 +661,15 @@ function save(){ localStorage.setItem(STORE, JSON.stringify(cells)); }
 /* ===== เงินโปะเพิ่มเอง (จ่ายระหว่างเดือนทีละ 500-1000 ได้ทุกหนี้) ===== */
 let extraPaid = JSON.parse(localStorage.getItem('extraPaid_v1') || '{}');
 let payLog    = JSON.parse(localStorage.getItem('payLog_v1') || '[]');
+const isMainCreditor = id => creditors.some(c=>c.key===id);
+// ล้างของเก่า: หนี้หลักย้ายมาใช้ "ยอดคงเหลือ" ตรงๆ แล้ว โปะเก่าถูกรวมในยอดคงเหลือไปแล้ว
+if(!localStorage.getItem('mainMigrated_v2')){
+  creditors.forEach(c=> delete extraPaid[c.key]);
+  payLog = payLog.filter(e=> !isMainCreditor(e.id));
+  localStorage.setItem('extraPaid_v1', JSON.stringify(extraPaid));
+  localStorage.setItem('payLog_v1', JSON.stringify(payLog));
+  localStorage.setItem('mainMigrated_v2','1');
+}
 const getExtra = id => +extraPaid[id] || 0;
 const getTarget = () => { const v=+localStorage.getItem('monthlyTarget_v1'); return v>0?v:10000; };
 const getPatTarget = () => { const v=+localStorage.getItem('patTarget_v1'); return v>0?v:10000; };
@@ -783,16 +792,16 @@ function buildCreditors(){
 }
 
 function render(){
-  let paidAmt = 0;
-  creditors.forEach(c=>{ paidAmt += Math.min(creditorTotal(c.key), getExtra(c.key)); });
-  const leftAmt = Math.max(0, grandTotal() - paidAmt);
-  const paidMonths = 0;
-  const pct = grandTotal()? Math.min(100, Math.round(paidAmt/grandTotal()*100)):0;
+  const leftAmt = grandTotal();                          // ยอดคงเหลือ = ผลรวมยอดรายใบ
+  const paidAmt = 0;
+  const pct = 0;
+  const mainPaid = payLog.filter(e=>isMainCreditor(e.id)).reduce((s,e)=>s+e.amt,0);
+  const monthly = pondReady ? Math.max(0, getPondBudget()-(4875+7000+4000)-getPondGoldMin()) : 0;
 
-  document.getElementById('kTotal').innerHTML = fmt(grandTotal())+' <small>บาท</small>';
-  document.getElementById('kPaid').innerHTML  = fmt(paidAmt)+' <small>บาท</small>';
-  document.getElementById('kLeft').innerHTML  = fmt(leftAmt)+' <small>บาท</small>';
-  const clearedCnt = creditors.filter(c=> getMainBal(c.key)-Math.min(getMainBal(c.key),getExtra(c.key)) <=0).length;
+  document.getElementById('kTotal').innerHTML = fmt(leftAmt)+' <small>บาท</small>';
+  document.getElementById('kPaid').innerHTML  = fmt(mainPaid)+' <small>บาท</small>';
+  document.getElementById('kLeft').innerHTML  = (monthly>0?fmt(monthly):'–')+' <small>/เดือน</small>';
+  const clearedCnt = creditors.filter(c=> getMainBal(c.key)<=0).length;
   document.getElementById('kMonths').innerHTML= clearedCnt+' <small>/ '+creditors.length+' ใบ</small>';
 
   document.getElementById('overallBar').style.width = pct+'%';
@@ -1648,7 +1657,12 @@ function addPayment(id, amt){
   amt = Math.round(+amt);
   if(!id){ alert('เลือกหนี้ก่อนนะ'); return; }
   if(!amt || amt<=0){ alert('กรอกจำนวนเงินให้ถูกต้อง'); return; }
-  extraPaid[id] = getExtra(id) + amt;
+  if(isMainCreditor(id)){                       // หนี้หลัก: ลดยอดคงเหลือของใบนั้นตรงๆ
+    localStorage.setItem('mainBal_'+id, Math.max(0, getMainBal(id)-amt));
+    buildMainBalForm();                         // อัปเดตช่องกรอกให้ตรง
+  } else {
+    extraPaid[id] = getExtra(id) + amt;
+  }
   payLog.push({t:new Date().toISOString(), id, amt});
   savePay();
   renderAllExtra();
@@ -1656,7 +1670,12 @@ function addPayment(id, amt){
 function undoPayment(i){
   const e=payLog[i]; if(!e) return;
   if(!requirePin('ลบรายการโปะนี้?')) return;
-  extraPaid[e.id] = Math.max(0, getExtra(e.id) - e.amt);
+  if(isMainCreditor(e.id)){
+    localStorage.setItem('mainBal_'+e.id, getMainBal(e.id)+e.amt);
+    buildMainBalForm();
+  } else {
+    extraPaid[e.id] = Math.max(0, getExtra(e.id) - e.amt);
+  }
   payLog.splice(i,1);
   savePay();
   renderAllExtra();
