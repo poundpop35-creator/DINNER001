@@ -273,6 +273,10 @@ body.capturing .loan .lstats{ grid-template-columns:repeat(4,1fr) !important; }
         <span class="hi">👩</span><span class="hn">ปัท</span>
         <span class="hd">ทอง • โทรศัพท์มือถือ</span>
       </button>
+      <button class="homecard" data-profile="pa">
+        <span class="hi">👴</span><span class="hn">ป๊า</span>
+        <span class="hd">กรอกหนี้เองได้ • ทำเป็นตารางแชร์ได้</span>
+      </button>
     </div>
   </section>
 
@@ -596,6 +600,52 @@ body.capturing .loan .lstats{ grid-template-columns:repeat(4,1fr) !important; }
       <div class="foot-note noprint">
         👉 แตะที่ตัวเลขแต่ละช่องเพื่อติ๊กว่าจ่ายแล้ว • ตารางนี้กระจายงบต่อเดือนแบบ "ปิดก้อนเล็กก่อน" ให้อัตโนมัติ<br>
         ✅ ปิด = เดือนที่ก้อนนั้นจ่ายครบ • เปลี่ยนงบ/ยอด แล้วตารางจะคำนวณใหม่ (ติ๊กจะถูกล้าง)
+      </div>
+    </div>
+  </div>
+
+  <div id="app-pa" style="display:none">
+    <section class="panel tgtpanel noprint">
+      <h2>➕ เพิ่มรายการหนี้ของป๊า</h2>
+      <div class="payrow">
+        <input id="paName" type="text" placeholder="ชื่อหนี้ เช่น บัตรเครดิต / รถ / กยศ.">
+      </div>
+      <div class="payrow" style="margin-top:8px">
+        <input id="paTotal" type="number" inputmode="numeric" placeholder="ยอดหนี้ (บาท)">
+        <input id="paPaid" type="number" inputmode="numeric" placeholder="จ่ายแล้ว (ไม่ใส่ก็ได้)">
+        <button id="paAdd" class="btn-pay" style="background:#0891b2">➕ เพิ่ม</button>
+      </div>
+      <div class="tgtproj" style="margin-top:10px;background:#ecfeff;border-color:#a5f3fc;color:#155e75">
+        ℹ️ กรอกหนี้ของป๊าเองได้เลย • แก้ตัวเลขในตารางได้ตลอด • ทำเป็นรูป/PDF ส่งแชร์ได้
+      </div>
+    </section>
+
+    <div class="plan-tools">
+      <span class="pt-label">ตารางหนี้ของป๊า</span>
+      <button class="reset" data-img="cap-pa" data-name="หนี้ป๊า">📷 รูปภาพ</button>
+      <button class="reset" data-xls="padebt">📊 Excel</button>
+      <button class="reset" data-print="cap-pa">🖨️ พิมพ์</button>
+      <button class="reset" data-pdf="cap-pa" data-name="หนี้ป๊า">📄 PDF</button>
+    </div>
+
+    <div id="cap-pa" class="capbox">
+      <section class="cards">
+        <div class="kpi glow-cyan"><div class="lab">หนี้ป๊ารวม</div><div class="val" id="paKTotal">–</div></div>
+        <div class="kpi glow-green"><div class="lab">จ่ายแล้ว</div><div class="val" id="paKPaid">–</div></div>
+        <div class="kpi glow-amber"><div class="lab">คงเหลือ</div><div class="val" id="paKLeft">–</div></div>
+        <div class="kpi"><div class="lab">จำนวนรายการ</div><div class="val" id="paKCount">–</div></div>
+      </section>
+      <section class="panel" style="padding:0;overflow:hidden">
+        <div class="tablewrap">
+          <table id="paTbl">
+            <thead><tr id="paHead"></tr></thead>
+            <tbody id="paBody"></tbody>
+            <tfoot><tr id="paFoot"></tr></tfoot>
+          </table>
+        </div>
+      </section>
+      <div class="foot-note noprint">
+        👉 แก้ยอดในตารางได้เลย (แตะที่ช่องตัวเลข) • กด ✕ เพื่อลบรายการ (ต้องใส่รหัส) • คงเหลือคำนวณให้อัตโนมัติ
       </div>
     </div>
   </div>
@@ -1155,7 +1205,7 @@ renderGoldSystem_v3();
 // รวมทุก localStorage key ที่แอปใช้ ไว้ในไฟล์เดียว
 const BACKUP_KEYS = ['debtCellsPaid_v1','loanInstall_v1','goldCellsPaid_isolated_v3','loanCar2_v1','loanKsk_v1','loanKsk_v1_bal','loanChayo_v1','loanChayo_v1_bal','extraPaid_v1','payLog_v1','patTarget_v1','patBal_gold','patGoldMin','patTableCells_v1','activeProfile','monthlyTarget_v1',
   'mainBal_S','mainBal_G','mainBal_YourCash','mainBal_LINE BK','mainBal_AEON',
-  'pondBudget','pcb_main','pcb_loan40','pcb_gold','pcb_goldmin','pcb_car','pcb_ksk','pcb_chayo','pondCombCells'];
+  'pondBudget','pcb_main','pcb_loan40','pcb_gold','pcb_goldmin','pcb_car','pcb_ksk','pcb_chayo','pondCombCells','paDebts_v1'];
 
 document.getElementById('exportBtn').addEventListener('click',()=>{
   const dump = { app:'debt-plan', version:1, exportedAt:new Date().toISOString(), data:{} };
@@ -1283,6 +1333,7 @@ document.addEventListener('click', e=>{
   else if(b.dataset.xls==='gold') xlsGold();
   else if(b.dataset.xls==='pattable') xlsPatTable();
   else if(b.dataset.xls==='pondcomb') xlsPondComb();
+  else if(b.dataset.xls==='padebt') xlsPaDebt();
   else if(b.dataset.xls && b.dataset.xls.indexOf('simple:')===0) xlsSimple(b.dataset.xls.slice(7));
   else if(b.dataset.print){ printPlan(b.dataset.print); }
   else if(b.dataset.pdf){ sharePdf(document.getElementById(b.dataset.pdf), b.dataset.name, b); }
@@ -1934,6 +1985,90 @@ pondReady=true;
 renderPondAll();
 render();  // รีเฟรชยอด "หนี้หลักจ่ายเดือนละ" ให้ตรงกับแผนรวม
 
+/* ================= ป๊า: ตารางหนี้ (กรอกเอง แชร์ได้) ================= */
+function escAttr(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+let paDebts = JSON.parse(localStorage.getItem('paDebts_v1') || '[]');
+function savePaDebts(){ localStorage.setItem('paDebts_v1', JSON.stringify(paDebts)); }
+function paTotalSum(){ return paDebts.reduce((s,d)=>s+(+d.total||0),0); }
+function paPaidSum(){ return paDebts.reduce((s,d)=>s+Math.min(+d.total||0, +d.paid||0),0); }
+function paLeftSum(){ return Math.max(0, paTotalSum()-paPaidSum()); }
+function paKpi(){
+  const g=document.getElementById('paKTotal'); if(!g) return;
+  g.innerHTML=fmt(Math.round(paTotalSum()))+' <small>บาท</small>';
+  document.getElementById('paKPaid').innerHTML=fmt(Math.round(paPaidSum()))+' <small>บาท</small>';
+  document.getElementById('paKLeft').innerHTML=fmt(Math.round(paLeftSum()))+' <small>บาท</small>';
+  document.getElementById('paKCount').innerHTML=paDebts.length+' <small>รายการ</small>';
+}
+function renderPa(){
+  const head=document.getElementById('paHead'); if(!head) return;
+  const body=document.getElementById('paBody');
+  const foot=document.getElementById('paFoot');
+  head.innerHTML='<th style="text-align:left">ชื่อหนี้</th><th>ยอดหนี้</th><th>จ่ายแล้ว</th><th>คงเหลือ</th><th class="noprint"></th>';
+  if(!paDebts.length){
+    body.innerHTML='<tr><td colspan="5" style="padding:18px;color:#64748b">ยังไม่มีรายการ — กรอกชื่อหนี้กับยอดด้านบนแล้วกด ➕ เพิ่ม</td></tr>';
+    foot.innerHTML='';
+  } else {
+    body.innerHTML=paDebts.map((d,i)=>{
+      const rem=Math.max(0,(+d.total||0)-(+d.paid||0));
+      return `<tr>`+
+        `<td style="text-align:left"><input class="pa-in pa-name" data-i="${i}" type="text" value="${escAttr(d.name)}"></td>`+
+        `<td><input class="pa-in pa-num" data-i="${i}" data-f="total" type="number" inputmode="numeric" value="${+d.total||0}"></td>`+
+        `<td><input class="pa-in pa-num" data-i="${i}" data-f="paid" type="number" inputmode="numeric" value="${+d.paid||0}"></td>`+
+        `<td id="pa-rem-${i}"><b>${fmt(Math.round(rem))}</b></td>`+
+        `<td class="noprint"><button class="px" data-padel="${i}" title="ลบรายการ">✕</button></td>`+
+      `</tr>`;
+    }).join('');
+    foot.innerHTML='<td style="text-align:left">รวม</td>'+
+      `<td>${fmt(Math.round(paTotalSum()))}</td>`+
+      `<td>${fmt(Math.round(paPaidSum()))}</td>`+
+      `<td>${fmt(Math.round(paLeftSum()))}</td>`+
+      '<td class="noprint"></td>';
+  }
+  paKpi();
+}
+function paRecalc(){
+  paDebts.forEach((d,i)=>{ const c=document.getElementById('pa-rem-'+i); if(c) c.innerHTML='<b>'+fmt(Math.round(Math.max(0,(+d.total||0)-(+d.paid||0))))+'</b>'; });
+  const foot=document.getElementById('paFoot');
+  if(foot && paDebts.length) foot.innerHTML='<td style="text-align:left">รวม</td>'+
+    `<td>${fmt(Math.round(paTotalSum()))}</td><td>${fmt(Math.round(paPaidSum()))}</td>`+
+    `<td>${fmt(Math.round(paLeftSum()))}</td><td class="noprint"></td>`;
+  paKpi();
+}
+document.getElementById('paAdd').addEventListener('click', ()=>{
+  const name=document.getElementById('paName').value.trim();
+  const total=Math.round(+document.getElementById('paTotal').value);
+  let paid=Math.round(+document.getElementById('paPaid').value);
+  if(!name){ alert('ใส่ชื่อหนี้ก่อน'); return; }
+  if(!total || total<0 || isNaN(total)){ alert('ใส่ยอดหนี้ให้ถูกต้อง'); return; }
+  if(isNaN(paid)||paid<0) paid=0;
+  paDebts.push({name, total, paid});
+  savePaDebts();
+  document.getElementById('paName').value='';
+  document.getElementById('paTotal').value='';
+  document.getElementById('paPaid').value='';
+  renderPa();
+});
+document.addEventListener('input', e=>{
+  const el=e.target;
+  if(!el.classList || !el.classList.contains('pa-in')) return;
+  const i=+el.dataset.i; if(!paDebts[i]) return;
+  if(el.classList.contains('pa-name')){ paDebts[i].name=el.value; }
+  else { const v=Math.round(+el.value); paDebts[i][el.dataset.f]=(isNaN(v)||v<0)?0:v; paRecalc(); }
+  savePaDebts();
+});
+document.addEventListener('click', e=>{
+  const b=e.target.closest('[data-padel]'); if(!b) return;
+  const i=+b.dataset.padel; if(!paDebts[i]) return;
+  if(!requirePin('ลบรายการหนี้ "'+(paDebts[i].name||'')+'" ?')) return;
+  paDebts.splice(i,1); savePaDebts(); renderPa();
+});
+function xlsPaDebt(){
+  const headers=['ชื่อหนี้','ยอดหนี้','จ่ายแล้ว','คงเหลือ'];
+  const rows=paDebts.map(d=>[d.name||'', fmt(Math.round(+d.total||0)), fmt(Math.round(+d.paid||0)), fmt(Math.round(Math.max(0,(+d.total||0)-(+d.paid||0))))]);
+  rows.push(['รวม', fmt(Math.round(paTotalSum())), fmt(Math.round(paPaidSum())), fmt(Math.round(paLeftSum()))]);
+  downloadXls('หนี้ป๊า','ตารางหนี้ของป๊า',headers,rows);
+}
+
 /* ================= แท็บของปอนด์ ================= */
 function showAllPondTabs(){ document.querySelectorAll('#app-pond .tabpanel').forEach(p=>p.style.display=''); }
 function restorePondTabs(){
@@ -1955,10 +2090,11 @@ function showProfile(pk){
   const home=document.getElementById('home');
   const pond=document.getElementById('app-pond');
   const pat=document.getElementById('app-pat');
+  const pa=document.getElementById('app-pa');
   const tools=document.getElementById('globalTools');
   const bar=document.getElementById('profileBar');
   if(!pk){
-    home.style.display=''; pond.style.display='none'; pat.style.display='none';
+    home.style.display=''; pond.style.display='none'; pat.style.display='none'; pa.style.display='none';
     tools.style.display='none'; bar.style.display='none';
     localStorage.removeItem('activeProfile');
     window.scrollTo(0,0);
@@ -1967,9 +2103,11 @@ function showProfile(pk){
   home.style.display='none';
   pond.style.display = pk==='pond' ? '' : 'none';
   pat.style.display  = pk==='pat'  ? '' : 'none';
+  pa.style.display   = pk==='pa'   ? '' : 'none';
   tools.style.display=''; bar.style.display='';
   document.getElementById('resetBtn').style.display = pk==='pond' ? '' : 'none';
-  document.getElementById('profileName').textContent = pk==='pond' ? 'ปอนด์' : 'ปัท';
+  document.getElementById('profileName').textContent = pk==='pond' ? 'ปอนด์' : pk==='pat' ? 'ปัท' : 'ป๊า';
+  if(pk==='pa') renderPa();
   localStorage.setItem('activeProfile', pk);
   window.scrollTo(0,0);
 }
