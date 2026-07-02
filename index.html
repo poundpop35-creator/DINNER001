@@ -274,8 +274,8 @@ body.capturing .loan .lstats{ grid-template-columns:repeat(4,1fr) !important; }
         <span class="hd">ทอง • โทรศัพท์มือถือ</span>
       </button>
       <button class="homecard" data-profile="pa">
-        <span class="hi">👴</span><span class="hn">ป๊า</span>
-        <span class="hd">กรอกหนี้เองได้ • ทำเป็นตารางแชร์ได้</span>
+        <span class="hi">🧔‍♂️</span><span class="hn">ป๊า</span>
+        <span class="hd">เงินที่ป๊าต้องจ่ายคืนเรา • ทำเป็นตารางแชร์ได้</span>
       </button>
     </div>
   </section>
@@ -606,36 +606,36 @@ body.capturing .loan .lstats{ grid-template-columns:repeat(4,1fr) !important; }
 
   <div id="app-pa" style="display:none">
     <section class="panel tgtpanel noprint">
-      <h2>➕ เพิ่มรายการหนี้ของป๊า</h2>
+      <h2>➕ เพิ่มรายการที่ป๊าติดเรา</h2>
       <div class="payrow">
-        <input id="paName" type="text" placeholder="ชื่อหนี้ เช่น บัตรเครดิต / รถ / กยศ.">
+        <input id="paName" type="text" placeholder="รายการ เช่น ยืมค่ารถ / สำรองจ่ายค่าบ้าน">
       </div>
       <div class="payrow" style="margin-top:8px">
-        <input id="paTotal" type="number" inputmode="numeric" placeholder="ยอดหนี้ (บาท)">
-        <input id="paPaid" type="number" inputmode="numeric" placeholder="จ่ายแล้ว (ไม่ใส่ก็ได้)">
+        <input id="paTotal" type="number" inputmode="numeric" placeholder="ยอดที่ติดเรา (บาท)">
+        <input id="paPaid" type="number" inputmode="numeric" placeholder="จ่ายคืนแล้ว (ไม่ใส่ก็ได้)">
         <button id="paAdd" class="btn-pay" style="background:#0891b2">➕ เพิ่ม</button>
       </div>
       <div class="payrow" style="margin-top:8px">
-        <input id="paNote" type="text" placeholder="หมายเหตุ เช่น ดอกเบี้ย / กำหนดจ่าย / เจ้าหนี้ (ไม่ใส่ก็ได้)">
+        <input id="paNote" type="text" placeholder="หมายเหตุ เช่น วันที่ยืม / กำหนดคืน / นัดจ่าย (ไม่ใส่ก็ได้)">
       </div>
       <div class="tgtproj" style="margin-top:10px;background:#ecfeff;border-color:#a5f3fc;color:#155e75">
-        ℹ️ กรอกหนี้ของป๊าเองได้เลย • แก้ตัวเลขในตารางได้ตลอด • ทำเป็นรูป/PDF ส่งแชร์ได้
+        ℹ️ บันทึกเงินที่ป๊าต้องจ่ายคืนเรา • พอป๊าจ่ายคืน ใส่ยอดในช่อง "จ่ายคืนแล้ว" • ทำเป็นรูป/PDF ส่งให้ป๊าดูได้
       </div>
     </section>
 
     <div class="plan-tools">
-      <span class="pt-label">ตารางหนี้ของป๊า</span>
-      <button class="reset" data-img="cap-pa" data-name="หนี้ป๊า">📷 รูปภาพ</button>
+      <span class="pt-label">ป๊าต้องจ่ายคืนเรา</span>
+      <button class="reset" data-img="cap-pa" data-name="ป๊าจ่ายคืนเรา">📷 รูปภาพ</button>
       <button class="reset" data-xls="padebt">📊 Excel</button>
       <button class="reset" data-print="cap-pa">🖨️ พิมพ์</button>
-      <button class="reset" data-pdf="cap-pa" data-name="หนี้ป๊า">📄 PDF</button>
+      <button class="reset" data-pdf="cap-pa" data-name="ป๊าจ่ายคืนเรา">📄 PDF</button>
     </div>
 
     <div id="cap-pa" class="capbox">
       <section class="cards">
-        <div class="kpi glow-cyan"><div class="lab">หนี้ป๊ารวม</div><div class="val" id="paKTotal">–</div></div>
-        <div class="kpi glow-green"><div class="lab">จ่ายแล้ว</div><div class="val" id="paKPaid">–</div></div>
-        <div class="kpi glow-amber"><div class="lab">คงเหลือ</div><div class="val" id="paKLeft">–</div></div>
+        <div class="kpi glow-cyan"><div class="lab">ป๊าติดเราทั้งหมด</div><div class="val" id="paKTotal">–</div></div>
+        <div class="kpi glow-green"><div class="lab">จ่ายคืนแล้ว</div><div class="val" id="paKPaid">–</div></div>
+        <div class="kpi glow-amber"><div class="lab">ค้างอยู่</div><div class="val" id="paKLeft">–</div></div>
         <div class="kpi"><div class="lab">จำนวนรายการ</div><div class="val" id="paKCount">–</div></div>
       </section>
       <section class="panel" style="padding:0;overflow:hidden">
@@ -648,7 +648,7 @@ body.capturing .loan .lstats{ grid-template-columns:repeat(4,1fr) !important; }
         </div>
       </section>
       <div class="foot-note noprint">
-        👉 แก้ยอดในตารางได้เลย (แตะที่ช่องตัวเลข) • กด ✕ เพื่อลบรายการ (ต้องใส่รหัส) • คงเหลือคำนวณให้อัตโนมัติ
+        👉 พอป๊าจ่ายคืน แก้ยอดในช่อง "จ่ายคืนแล้ว" ได้เลย • กด ✕ เพื่อลบรายการ (ต้องใส่รหัส) • ยอดค้างคำนวณให้อัตโนมัติ
       </div>
     </div>
   </div>
@@ -2006,9 +2006,9 @@ function renderPa(){
   const head=document.getElementById('paHead'); if(!head) return;
   const body=document.getElementById('paBody');
   const foot=document.getElementById('paFoot');
-  head.innerHTML='<th style="text-align:left">ชื่อหนี้</th><th>ยอดหนี้</th><th>จ่ายแล้ว</th><th>คงเหลือ</th><th style="text-align:left">หมายเหตุ</th><th class="noprint"></th>';
+  head.innerHTML='<th style="text-align:left">รายการ</th><th>ยอดที่ติด</th><th>จ่ายคืนแล้ว</th><th>ค้างอยู่</th><th style="text-align:left">หมายเหตุ</th><th class="noprint"></th>';
   if(!paDebts.length){
-    body.innerHTML='<tr><td colspan="6" style="padding:18px;color:#64748b">ยังไม่มีรายการ — กรอกชื่อหนี้กับยอดด้านบนแล้วกด ➕ เพิ่ม</td></tr>';
+    body.innerHTML='<tr><td colspan="6" style="padding:18px;color:#64748b">ยังไม่มีรายการ — กรอกรายการกับยอดที่ป๊าติดด้านบนแล้วกด ➕ เพิ่ม</td></tr>';
     foot.innerHTML='';
   } else {
     body.innerHTML=paDebts.map((d,i)=>{
@@ -2070,10 +2070,10 @@ document.addEventListener('click', e=>{
   paDebts.splice(i,1); savePaDebts(); renderPa();
 });
 function xlsPaDebt(){
-  const headers=['ชื่อหนี้','ยอดหนี้','จ่ายแล้ว','คงเหลือ','หมายเหตุ'];
+  const headers=['รายการ','ยอดที่ติด','จ่ายคืนแล้ว','ค้างอยู่','หมายเหตุ'];
   const rows=paDebts.map(d=>[d.name||'', fmt(Math.round(+d.total||0)), fmt(Math.round(+d.paid||0)), fmt(Math.round(Math.max(0,(+d.total||0)-(+d.paid||0)))), d.note||'']);
   rows.push(['รวม', fmt(Math.round(paTotalSum())), fmt(Math.round(paPaidSum())), fmt(Math.round(paLeftSum())), '']);
-  downloadXls('หนี้ป๊า','ตารางหนี้ของป๊า',headers,rows);
+  downloadXls('ป๊าจ่ายคืนเรา','เงินที่ป๊าต้องจ่ายคืนเรา',headers,rows);
 }
 
 /* ================= แท็บของปอนด์ ================= */
