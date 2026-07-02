@@ -259,7 +259,7 @@ body.capturing .loan .lstats{ grid-template-columns:repeat(4,1fr) !important; }
     <div class="homecards">
       <button class="homecard" data-profile="pond">
         <span class="hi">🧑</span><span class="hn">ปอนด์</span>
-        <span class="hd">หนี้หลัก • สัญญาผ่อน 40 งวด • ทองคำ • รถคันสีเทา • กสิกร</span>
+        <span class="hd">หนี้หลัก • สัญญาผ่อน 40 งวด • ทองคำ • รถคันสีเทา • ชโย เจวี</span>
       </button>
       <button class="homecard" data-profile="pat">
         <span class="hi">👩</span><span class="hn">ปัท</span>
@@ -289,7 +289,6 @@ body.capturing .loan .lstats{ grid-template-columns:repeat(4,1fr) !important; }
       <label>🏆 ทอง (เงินต้น)<input id="pcb-gold" type="number" inputmode="numeric"></label>
       <label>🔄 ต่อดอกทอง/เดือน<input id="pcb-goldmin" type="number" inputmode="numeric"></label>
       <label>🚙 รถคันสีเทา<input id="pcb-car" type="number" inputmode="numeric"></label>
-      <label>🏦 กสิกร<input id="pcb-ksk" type="number" inputmode="numeric"></label>
       <label>📄 ชโย เจวี<input id="pcb-chayo" type="number" inputmode="numeric"></label>
     </div>
     <button id="pondBalSave" class="btn-pay" style="background:#0891b2;margin-top:10px">💾 บันทึกยอด + สร้างตารางใหม่</button>
@@ -322,7 +321,7 @@ body.capturing .loan .lstats{ grid-template-columns:repeat(4,1fr) !important; }
     </section>
     <div class="foot-note noprint">
       👉 แตะช่องเพื่อติ๊กว่าจ่ายแล้ว • แผน = จ่ายค่างวดครบทุกสัญญา + ทองต่อดอกทุกเดือน + เงินที่เหลือโปะก้อนเล็กสุดก่อน<br>
-      ✅ ปิด = เดือนที่ก้อนนั้นหมด • ใส่ยอดกสิกรด้วยจะได้ครบ • เปลี่ยนงบ/ยอด แล้วตารางคำนวณใหม่ (ติ๊กถูกล้าง)
+      ✅ ปิด = เดือนที่ก้อนนั้นหมด • เปลี่ยนงบ/ยอด แล้วตารางคำนวณใหม่ (ติ๊กถูกล้าง)
     </div>
   </div>
 
@@ -1232,8 +1231,7 @@ document.getElementById('sharePdfBtn').addEventListener('click', e=>
 /* ================= สัญญาผ่อนเพิ่มเติม (สร้างแบบ generic) ================= */
 const moreLoanConfigs = [
   { id:'car2', host:'moreLoans', n:4, icon:'🚗', title:'รถคันสีเทา', per:7000, balance:511000, store:'loanCar2_v1', def:0 },
-  { id:'ksk',  host:'moreLoans', n:5, icon:'🏦', title:'กสิกร', per:4000, balance:null, store:'loanKsk_v1', def:0, editBal:true },
-  { id:'chayo', host:'moreLoans', n:6, icon:'📄', title:'ชโย เจวี', per:4000, balance:92000, store:'loanChayo_v1', def:0, editBal:true, note:'สัญญา 4417704017460276 • 23 งวด × 4,000' },
+  { id:'chayo', host:'moreLoans', n:5, icon:'📄', title:'ชโย เจวี', per:4000, balance:92000, store:'loanChayo_v1', def:0, editBal:true, note:'เดิมคือกสิกร (ขายหนี้ให้ ชโย เจวี) • สัญญา 4417704017460276 • 23 งวด × 4,000' },
 ];
 const moreLoanState = {};
 const cfgById = id => moreLoanConfigs.find(c=>c.id===id);
@@ -1556,7 +1554,6 @@ const payDebts = [
   {id:'gold4959', label:'ทองคำ สัญญา 4959'},
   {id:'gold4341', label:'ทองคำ สัญญา 4341'},
   {id:'car2',     label:'รถคันสีเทา'},
-  {id:'ksk',      label:'กสิกร'},
   {id:'chayo',    label:'ชโย เจวี'},
 ];
 const payLabel = id => (payDebts.find(d=>d.id===id)||{label:id}).label;
@@ -1659,10 +1656,9 @@ const pondCombDebts = [
   {key:'loan40', name:'🚗 ผ่อน40งวด',  fixed:true, per:4875},
   {key:'gold',   name:'🏆 ทอง',        fixed:false, gold:true},
   {key:'car',    name:'🚙 รถคันสีเทา',  fixed:true, per:7000},
-  {key:'ksk',    name:'🏦 กสิกร',       fixed:true, per:4000},
-  {key:'chayo',  name:'📄 ชโย',         fixed:true, per:4000},
+  {key:'chayo',  name:'📄 ชโย เจวี',     fixed:true, per:4000},
 ];
-const pondCombDefaults = {main:74850, loan40:136500, gold:60049, car:511000, ksk:0, chayo:92000};
+const pondCombDefaults = {main:74850, loan40:136500, gold:60049, car:511000, chayo:92000};
 const getPondBudget  = ()=>{ const v=+localStorage.getItem('pondBudget'); return v>0?v:25000; };
 const getPondGoldMin = ()=>{ const v=+localStorage.getItem('pcb_goldmin'); return v>0?v:750; };
 const getPondBal = k =>{ const raw=localStorage.getItem('pcb_'+k); if(raw===null||raw==='') return pondCombDefaults[k]; const v=+raw; return (isNaN(v)||v<0)?pondCombDefaults[k]:v; };
@@ -1772,7 +1768,7 @@ function xlsPondComb(){
 
 function initPondBalInputs(){
   document.getElementById('pondBudget').value=getPondBudget();
-  ['main','loan40','gold','car','ksk','chayo'].forEach(k=> document.getElementById('pcb-'+k).value=getPondBal(k));
+  ['main','loan40','gold','car','chayo'].forEach(k=> document.getElementById('pcb-'+k).value=getPondBal(k));
   document.getElementById('pcb-goldmin').value=getPondGoldMin();
 }
 function savePondBudget(v){ v=Math.round(+v); if(!v||v<=0){alert('กรอกงบให้ถูกต้อง');return;} localStorage.setItem('pondBudget',v); document.getElementById('pondBudget').value=v; pondCells={}; savePondCells(); renderPondAll(); }
@@ -1780,7 +1776,7 @@ document.getElementById('pondBudgetSave').addEventListener('click',()=> savePond
 document.getElementById('pondBudget').addEventListener('keydown',e=>{ if(e.key==='Enter') savePondBudget(e.target.value); });
 document.querySelectorAll('[data-pbq]').forEach(b=> b.addEventListener('click',()=> savePondBudget(b.dataset.pbq)));
 document.getElementById('pondBalSave').addEventListener('click',()=>{
-  ['main','loan40','gold','car','ksk','chayo'].forEach(k=>{ const v=Math.round(+document.getElementById('pcb-'+k).value); localStorage.setItem('pcb_'+k,(isNaN(v)||v<0)?0:v); });
+  ['main','loan40','gold','car','chayo'].forEach(k=>{ const v=Math.round(+document.getElementById('pcb-'+k).value); localStorage.setItem('pcb_'+k,(isNaN(v)||v<0)?0:v); });
   const gm=Math.round(+document.getElementById('pcb-goldmin').value); localStorage.setItem('pcb_goldmin',(isNaN(gm)||gm<0)?0:gm);
   pondCells={}; savePondCells(); renderPondAll();
 });
