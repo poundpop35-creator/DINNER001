@@ -1767,7 +1767,7 @@ function buildPondTable(){
     return `<tr><td class="mcell"><span>${pondMonthLabel(r)}</span></td>${cells}<td class="total">${fmt(Math.round(pondRowTotal(r)))}</td></tr>`;
   }).join('');
   document.getElementById('pondFoot').innerHTML =
-    '<td style="text-align:left">ต้องจ่ายอีก</td>'+pondCombDebts.map(d=>`<td>${fmt(Math.round(pondColTotal(d.key)))}</td>`).join('')+`<td>${fmt(Math.round(pondCombDebts.reduce((s,d)=>s+pondColTotal(d.key),0)))}</td>`;
+    '<td style="text-align:left">คงเหลือ</td>'+pondCombDebts.map(d=>`<td>${fmt(Math.round(pondColTotal(d.key)))}</td>`).join('')+`<td>${fmt(Math.round(pondCombDebts.reduce((s,d)=>s+pondColTotal(d.key),0)))}</td>`;
   document.getElementById('pondFootRem').innerHTML='';
   renderPondPager(nPages);
 }
