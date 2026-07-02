@@ -384,7 +384,7 @@ body.capturing .loan .lstats{ grid-template-columns:repeat(4,1fr) !important; }
     <div class="kpi glow-cyan"><div class="lab">หนี้รวมทั้งหมด</div><div class="val" id="kTotal">–</div></div>
     <div class="kpi glow-green"><div class="lab">จ่ายไปแล้ว</div><div class="val" id="kPaid">–</div></div>
     <div class="kpi glow-amber"><div class="lab">คงเหลือ</div><div class="val" id="kLeft">–</div></div>
-    <div class="kpi"><div class="lab">เดือนที่จ่ายแล้ว</div><div class="val" id="kMonths">–</div></div>
+    <div class="kpi"><div class="lab">ปิดครบแล้ว</div><div class="val" id="kMonths">–</div></div>
   </section>
 
   <section class="panel noprint">
@@ -393,13 +393,22 @@ body.capturing .loan .lstats{ grid-template-columns:repeat(4,1fr) !important; }
     <div class="bar-meta"><span id="overallPct">0%</span><span id="overallAmt"></span></div>
   </section>
 
+  <section class="panel">
+    <h2>✏️ ยอดคงเหลือรายใบ (แก้ได้)</h2>
+    <div id="mainBalForm" class="patbals" style="grid-template-columns:1fr"></div>
+    <button id="mainBalSave" class="btn-pay" style="background:#0891b2;margin-top:10px">💾 บันทึกยอด</button>
+    <div class="tgtproj" style="margin-top:10px;background:#ecfeff;border-color:#a5f3fc;color:#155e75">
+      ℹ️ ใส่ยอดคงเหลือจริงของแต่ละใบ • เวลาจ่าย/โปะ บันทึกที่แท็บ 💰 โปะหนี้ แล้วยอดจะลดให้เอง
+    </div>
+  </section>
+
   <section class="panel noprint">
     <h2>🏦 ความคืบหน้าแยกตามเจ้าหนี้</h2>
     <div id="credList"></div>
     <div class="legend" id="legend"></div>
   </section>
 
-  <section class="panel" style="padding:0;overflow:hidden">
+  <section class="panel" style="padding:0;overflow:hidden;display:none">
     <div class="tablewrap">
       <table id="tbl">
         <thead><tr id="head"></tr></thead>
@@ -410,8 +419,7 @@ body.capturing .loan .lstats{ grid-template-columns:repeat(4,1fr) !important; }
   </section>
 
   <div class="foot-note noprint">
-    👉 <b>แตะที่ตัวเลขแต่ละช่อง</b> เพื่อติ๊กว่าจ่ายเจ้าหนี้รายนั้นแล้ว (จ่ายคนละวันก็ติ๊กแยกได้) &nbsp;•&nbsp; ติ๊กช่องหน้าเดือน = ติ๊กทั้งแถวรวดเดียว<br>
-    ✅ = เดือนที่ <b>ปิดยอด</b> ของเจ้าหนี้รายนั้น &nbsp;•&nbsp; ข้อมูลถูกบันทึกในเครื่องนี้อัตโนมัติ (localStorage)
+    💡 ใส่ยอดคงเหลือจริงของแต่ละใบในช่อง "ยอดคงเหลือรายใบ" • เวลาจ่าย/โปะ บันทึกที่แท็บ 💰 โปะหนี้ แล้วยอดจะลดให้เอง
   </div>
 
   </div><!-- /cap-main -->
@@ -638,8 +646,11 @@ if(cells===null){
 }
 
 function monthTotal(m){ return creditors.reduce((s,c)=>s+data[m][c.key],0); }
-function creditorTotal(k){ return months.reduce((s,m)=>s+data[m][k],0); }
-const grandTotal = months.reduce((s,m)=>s+monthTotal(m),0);
+// ยอดคงเหลือรายเจ้า (แก้ได้เอง) — ยอดเดิมจากตารางเป็นค่าเริ่มต้น
+const mainBalDefaults={S:8315,G:13621,YourCash:11000,'LINE BK':29492,AEON:7000};
+function getMainBal(k){ const raw=localStorage.getItem('mainBal_'+k); const v=+raw; return (raw!==null&&raw!==''&&!isNaN(v)&&v>=0)?v:mainBalDefaults[k]; }
+function creditorTotal(k){ return getMainBal(k); }
+function grandTotal(){ return creditors.reduce((s,c)=>s+getMainBal(c.key),0); }
 
 function isCellPaid(m,k){ return !!cells[cellId(m,k)]; }
 // เดือนนี้จ่ายครบทุกช่องที่มียอดหรือยัง
@@ -717,7 +728,7 @@ function buildTable(){
   document.getElementById('foot').innerHTML =
     '<td style="text-align:left">หนี้เต็ม</td>' +
     creditors.map(c=>`<td>${fmt(creditorTotal(c.key))}</td>`).join('') +
-    `<td>${fmt(grandTotal)}</td>`;
+    `<td>${fmt(grandTotal())}</td>`;
 
   // แตะรายช่อง
   document.querySelectorAll('td.cell').forEach(td=>{
@@ -773,19 +784,16 @@ function buildCreditors(){
 
 function render(){
   let paidAmt = 0;
-  creditors.forEach(c=>{
-    const tot = creditorTotal(c.key);
-    const ticked = months.reduce((s,m)=> s + (isCellPaid(m,c.key)?data[m][c.key]:0), 0);
-    paidAmt += Math.min(tot, ticked + getExtra(c.key)); // โปะเกินยอดของหนี้ตัวนั้นไม่ไปลดตัวอื่น
-  });
-  const leftAmt = Math.max(0, grandTotal - paidAmt);
-  const paidMonths = months.filter(monthFullyPaid).length;
-  const pct = grandTotal? Math.min(100, Math.round(paidAmt/grandTotal*100)):0;
+  creditors.forEach(c=>{ paidAmt += Math.min(creditorTotal(c.key), getExtra(c.key)); });
+  const leftAmt = Math.max(0, grandTotal() - paidAmt);
+  const paidMonths = 0;
+  const pct = grandTotal()? Math.min(100, Math.round(paidAmt/grandTotal()*100)):0;
 
-  document.getElementById('kTotal').innerHTML = fmt(grandTotal)+' <small>บาท</small>';
+  document.getElementById('kTotal').innerHTML = fmt(grandTotal())+' <small>บาท</small>';
   document.getElementById('kPaid').innerHTML  = fmt(paidAmt)+' <small>บาท</small>';
   document.getElementById('kLeft').innerHTML  = fmt(leftAmt)+' <small>บาท</small>';
-  document.getElementById('kMonths').innerHTML= paidMonths+' <small>/ '+months.length+' เดือน</small>';
+  const clearedCnt = creditors.filter(c=> getMainBal(c.key)-Math.min(getMainBal(c.key),getExtra(c.key)) <=0).length;
+  document.getElementById('kMonths').innerHTML= clearedCnt+' <small>/ '+creditors.length+' ใบ</small>';
 
   document.getElementById('overallBar').style.width = pct+'%';
   document.getElementById('overallPct').textContent = pct+'% สำเร็จ';
@@ -793,23 +801,25 @@ function render(){
 
   creditors.forEach(c=>{
     const tot = creditorTotal(c.key);
-    const cpaid = Math.min(tot, months.reduce((s,m)=> s + (isCellPaid(m,c.key)?data[m][c.key]:0), 0) + getExtra(c.key));
+    const cpaid = Math.min(tot, getExtra(c.key));
     const rem = Math.max(0, tot - cpaid);
     const cpct = tot? Math.min(100, Math.round(cpaid/tot*100)):0;
-    document.getElementById('pb-'+c.key).style.width = cpct+'%';
+    const pbEl=document.getElementById('pb-'+c.key); if(pbEl) pbEl.style.width = cpct+'%';
     const done = cpct>=100 && tot>0;
     const ex = getExtra(c.key);
-    document.getElementById('amt-'+c.key).innerHTML =
+    const amtEl=document.getElementById('amt-'+c.key);
+    if(amtEl) amtEl.innerHTML =
       done ? `<span class="done-tag">เคลียร์แล้ว ✓</span>`
            : `เหลือ <b>${fmt(rem)}</b> / ${fmt(tot)}${ex>0?` <span class="extra-tag">โปะ ${fmt(ex)}</span>`:''}`;
   });
 
   // แถวคงเหลือใต้ตาราง (ลดลงเมื่อจ่าย/โปะ)
-  document.getElementById('footRem').innerHTML =
+  const footRemEl=document.getElementById('footRem');
+  if(footRemEl) footRemEl.innerHTML =
     '<td style="text-align:left">คงเหลือ</td>' +
     creditors.map(c=>{
       const tot=creditorTotal(c.key);
-      const cp=Math.min(tot, months.reduce((s,m)=> s+(isCellPaid(m,c.key)?data[m][c.key]:0),0)+getExtra(c.key));
+      const cp=Math.min(tot, getExtra(c.key));
       return `<td>${fmt(Math.max(0,tot-cp))}</td>`;
     }).join('') +
     `<td>${fmt(leftAmt)}</td>`;
@@ -839,7 +849,27 @@ document.getElementById('resetBtn').addEventListener('click',()=>{
 
 buildTable();
 buildCreditors();
+buildMainBalForm();
 render();
+
+function mbalId(k){ return 'mbal-'+k.replace(/\s/g,'_'); }
+function buildMainBalForm(){
+  const host=document.getElementById('mainBalForm');
+  if(!host) return;
+  host.innerHTML = creditors.map(c=>`<label>${c.name}<input id="${mbalId(c.key)}" type="number" inputmode="numeric" value="${getMainBal(c.key)}"></label>`).join('');
+}
+document.getElementById('mainBalSave').addEventListener('click',()=>{
+  creditors.forEach(c=>{
+    const el=document.getElementById(mbalId(c.key)); if(!el) return;
+    const v=Math.round(+el.value);
+    localStorage.setItem('mainBal_'+c.key,(isNaN(v)||v<0)?0:v);
+    delete extraPaid[c.key];                 // ยอดที่กรอก = คงเหลือปัจจุบันแล้ว เริ่มนับโปะใหม่จาก 0
+  });
+  payLog = payLog.filter(e=> !creditors.some(c=>c.key===e.id));  // ล้างประวัติโปะเก่าของหนี้หลัก
+  savePay();
+  renderAllExtra();  // อัปเดตทุกส่วน (หนี้หลัก + ตารางรวม + สมุดโปะ)
+  alert('บันทึกยอดคงเหลือแล้ว ✅');
+});
 
 /* ================= สัญญาผ่อนแยกต่างหาก (40 งวด) ================= */
 const LOAN = { per:4875, total:40, store:'loanInstall_v1', def:12 };
@@ -1048,6 +1078,7 @@ renderGoldSystem_v3();
 /* ================= สำรอง / กู้คืนข้อมูล (ย้ายข้ามเครื่อง) ================= */
 // รวมทุก localStorage key ที่แอปใช้ ไว้ในไฟล์เดียว
 const BACKUP_KEYS = ['debtCellsPaid_v1','loanInstall_v1','goldCellsPaid_isolated_v3','loanCar2_v1','loanKsk_v1','loanKsk_v1_bal','loanChayo_v1','loanChayo_v1_bal','extraPaid_v1','payLog_v1','patTarget_v1','patBal_gold','patGoldMin','patTableCells_v1','activeProfile','monthlyTarget_v1',
+  'mainBal_S','mainBal_G','mainBal_YourCash','mainBal_LINE BK','mainBal_AEON',
   'pondBudget','pcb_main','pcb_loan40','pcb_gold','pcb_goldmin','pcb_car','pcb_ksk','pcb_chayo','pondCombCells'];
 
 document.getElementById('exportBtn').addEventListener('click',()=>{
@@ -1140,7 +1171,7 @@ function xlsMain(){
     const st=monthFullyPaid(m)?'จ่ายครบ':(creditors.some(c=>data[m][c.key]>0&&isCellPaid(m,c.key))?'จ่ายบางส่วน':'ยังไม่จ่าย');
     return [m,...cs,fmt(monthTotal(m)),st];
   });
-  rows.push(['รวมทั้งหมด',...creditors.map(c=>fmt(creditorTotal(c.key))),fmt(grandTotal),'']);
+  rows.push(['รวมทั้งหมด',...creditors.map(c=>fmt(creditorTotal(c.key))),fmt(grandTotal()),'']);
   downloadXls('หนี้หลัก','แผนหนี้หลัก (✓ = จ่ายแล้ว)',headers,rows);
 }
 
@@ -1688,8 +1719,8 @@ const getPondGoldPrincipal = ()=>{ const raw=localStorage.getItem('pcb_gold'); c
 function getPondBal(k){
   if(k==='main'){
     let paid=0;
-    creditors.forEach(c=>{ const tot=creditorTotal(c.key); const t=months.reduce((s,m)=>s+(isCellPaid(m,c.key)?data[m][c.key]:0),0); paid+=Math.min(tot,t+getExtra(c.key)); });
-    return Math.max(0, grandTotal-paid);
+    creditors.forEach(c=>{ paid+=Math.min(creditorTotal(c.key), getExtra(c.key)); });
+    return Math.max(0, grandTotal()-paid);
   }
   if(k==='loan40') return Math.max(0, 4875*LOAN.total - (4875*loanPaid + getExtra('loan40')));
   if(k==='car'){ const c=cfgById('car2'); const cnt=moreLoanState['car2']||0; return Math.max(0, c.balance - (c.per*cnt + getExtra('car2'))); }
