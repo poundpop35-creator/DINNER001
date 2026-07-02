@@ -270,6 +270,64 @@ body.capturing .loan .lstats{ grid-template-columns:repeat(4,1fr) !important; }
 
   <div id="app-pond" style="display:none">
 
+  <div class="divider">📊 ภาพรวม — ตารางรวมทุกสัญญา</div>
+
+  <section class="panel tgtpanel noprint">
+    <h2>🎯 งบรวมต่อเดือน + ยอดหนี้ (แก้ได้)</h2>
+    <div class="payrow">
+      <input id="pondBudget" type="number" inputmode="numeric" placeholder="งบรวม/เดือน เช่น 25,000">
+      <button id="pondBudgetSave" class="btn-pay" style="background:#0891b2">💾 คำนวณ</button>
+    </div>
+    <div class="quickamts">
+      <button data-pbq="20000">20,000</button>
+      <button data-pbq="22000">22,000</button>
+      <button data-pbq="25000">25,000</button>
+    </div>
+    <div class="patbals" style="margin-top:12px">
+      <label>💳 หนี้หลัก<input id="pcb-main" type="number" inputmode="numeric"></label>
+      <label>🚗 ผ่อน 40 งวด<input id="pcb-loan40" type="number" inputmode="numeric"></label>
+      <label>🏆 ทอง (เงินต้น)<input id="pcb-gold" type="number" inputmode="numeric"></label>
+      <label>🔄 ต่อดอกทอง/เดือน<input id="pcb-goldmin" type="number" inputmode="numeric"></label>
+      <label>🚙 รถคันสีเทา<input id="pcb-car" type="number" inputmode="numeric"></label>
+      <label>🏦 กสิกร<input id="pcb-ksk" type="number" inputmode="numeric"></label>
+      <label>📄 ชโย เจวี<input id="pcb-chayo" type="number" inputmode="numeric"></label>
+    </div>
+    <button id="pondBalSave" class="btn-pay" style="background:#0891b2;margin-top:10px">💾 บันทึกยอด + สร้างตารางใหม่</button>
+    <div id="pondProj" class="tgtproj" style="margin-top:12px"></div>
+  </section>
+
+  <div class="plan-tools">
+    <span class="pt-label">ตารางรวมทุกสัญญา</span>
+    <button class="reset" data-img="cap-pond-comb" data-name="รวมทุกสัญญา">📷 รูปภาพ</button>
+    <button class="reset" data-xls="pondcomb">📊 Excel</button>
+    <button class="reset" data-print="cap-pond-comb">🖨️ พิมพ์</button>
+    <button class="reset" data-pdf="cap-pond-comb" data-name="รวมทุกสัญญา">📄 PDF</button>
+  </div>
+
+  <div id="cap-pond-comb" class="capbox">
+    <section class="cards">
+      <div class="kpi glow-cyan"><div class="lab">หนี้รวมทุกสัญญา</div><div class="val" id="pcKTotal">–</div></div>
+      <div class="kpi glow-green"><div class="lab">จ่ายไปแล้ว</div><div class="val" id="pcKPaid">–</div></div>
+      <div class="kpi glow-amber"><div class="lab">คงเหลือ</div><div class="val" id="pcKLeft">–</div></div>
+      <div class="kpi"><div class="lab">ปิดครบใน</div><div class="val" id="pcKMonths">–</div></div>
+    </section>
+    <section class="panel" style="padding:0;overflow:hidden">
+      <div class="tablewrap">
+        <table id="pondTbl">
+          <thead><tr id="pondHead"></tr></thead>
+          <tbody id="pondBody"></tbody>
+          <tfoot><tr id="pondFoot"></tr><tr id="pondFootRem"></tr></tfoot>
+        </table>
+      </div>
+    </section>
+    <div class="foot-note noprint">
+      👉 แตะช่องเพื่อติ๊กว่าจ่ายแล้ว • แผน = จ่ายค่างวดครบทุกสัญญา + ทองต่อดอกทุกเดือน + เงินที่เหลือโปะก้อนเล็กสุดก่อน<br>
+      ✅ ปิด = เดือนที่ก้อนนั้นหมด • ใส่ยอดกสิกรด้วยจะได้ครบ • เปลี่ยนงบ/ยอด แล้วตารางคำนวณใหม่ (ติ๊กถูกล้าง)
+    </div>
+  </div>
+
+  <div class="divider">📁 รายละเอียดแยกทีละสัญญา</div>
+
   <section class="panel paypanel noprint">
     <h2>💰 บันทึกจ่ายเพิ่ม / โปะหนี้ (ระหว่างเดือน)</h2>
     <div class="payrow">
@@ -966,7 +1024,8 @@ renderGoldSystem_v3();
 
 /* ================= สำรอง / กู้คืนข้อมูล (ย้ายข้ามเครื่อง) ================= */
 // รวมทุก localStorage key ที่แอปใช้ ไว้ในไฟล์เดียว
-const BACKUP_KEYS = ['debtCellsPaid_v1','loanInstall_v1','goldCellsPaid_isolated_v3','loanCar2_v1','loanKsk_v1','loanKsk_v1_bal','loanChayo_v1','loanChayo_v1_bal','extraPaid_v1','payLog_v1','patTarget_v1','patBal_gold','patGoldMin','patTableCells_v1','activeProfile','monthlyTarget_v1'];
+const BACKUP_KEYS = ['debtCellsPaid_v1','loanInstall_v1','goldCellsPaid_isolated_v3','loanCar2_v1','loanKsk_v1','loanKsk_v1_bal','loanChayo_v1','loanChayo_v1_bal','extraPaid_v1','payLog_v1','patTarget_v1','patBal_gold','patGoldMin','patTableCells_v1','activeProfile','monthlyTarget_v1',
+  'pondBudget','pcb_main','pcb_loan40','pcb_gold','pcb_goldmin','pcb_car','pcb_ksk','pcb_chayo','pondCombCells'];
 
 document.getElementById('exportBtn').addEventListener('click',()=>{
   const dump = { app:'debt-plan', version:1, exportedAt:new Date().toISOString(), data:{} };
@@ -1093,6 +1152,7 @@ document.addEventListener('click', e=>{
   else if(b.dataset.xls==='loan') xlsLoan();
   else if(b.dataset.xls==='gold') xlsGold();
   else if(b.dataset.xls==='pattable') xlsPatTable();
+  else if(b.dataset.xls==='pondcomb') xlsPondComb();
   else if(b.dataset.xls && b.dataset.xls.indexOf('simple:')===0) xlsSimple(b.dataset.xls.slice(7));
   else if(b.dataset.print){ printPlan(b.dataset.print); }
   else if(b.dataset.pdf){ sharePdf(document.getElementById(b.dataset.pdf), b.dataset.name, b); }
@@ -1592,6 +1652,140 @@ document.querySelectorAll('[data-ptq]').forEach(b=> b.addEventListener('click', 
 document.getElementById('patTargetInput').value = getPatTarget();
 initPatBalInputs();
 renderPatAll();
+
+/* ================= ปอนด์: ตารางรวมทุกสัญญา ================= */
+const pondCombDebts = [
+  {key:'main',   name:'💳 หนี้หลัก',   fixed:false},
+  {key:'loan40', name:'🚗 ผ่อน40งวด',  fixed:true, per:4875},
+  {key:'gold',   name:'🏆 ทอง',        fixed:false, gold:true},
+  {key:'car',    name:'🚙 รถคันสีเทา',  fixed:true, per:7000},
+  {key:'ksk',    name:'🏦 กสิกร',       fixed:true, per:4000},
+  {key:'chayo',  name:'📄 ชโย',         fixed:true, per:4000},
+];
+const pondCombDefaults = {main:74850, loan40:136500, gold:60049, car:511000, ksk:0, chayo:92000};
+const getPondBudget  = ()=>{ const v=+localStorage.getItem('pondBudget'); return v>0?v:25000; };
+const getPondGoldMin = ()=>{ const v=+localStorage.getItem('pcb_goldmin'); return v>0?v:750; };
+const getPondBal = k =>{ const raw=localStorage.getItem('pcb_'+k); if(raw===null||raw==='') return pondCombDefaults[k]; const v=+raw; return (isNaN(v)||v<0)?pondCombDefaults[k]:v; };
+let pondCells = JSON.parse(localStorage.getItem('pondCombCells')||'{}');
+const pondCellId=(r,k)=> r+'__'+k;
+function savePondCells(){ localStorage.setItem('pondCombCells', JSON.stringify(pondCells)); }
+
+let pondRows=[];
+function pondGenerate(){
+  const B=getPondBudget(), goldMin=getPondGoldMin();
+  const bal={}; pondCombDebts.forEach(d=> bal[d.key]=getPondBal(d.key));
+  const anyBal=()=> pondCombDebts.some(d=>bal[d.key]>0.5);
+  const rows=[]; let guard=0;
+  while(anyBal() && guard<400){
+    guard++;
+    let left=B; const alloc={};
+    // 1) ค่างวดฟิกทุกสัญญา
+    for(const d of pondCombDebts){
+      if(!d.fixed || bal[d.key]<=0.5) continue;
+      const pay=Math.min(d.per, bal[d.key], left);
+      bal[d.key]-=pay; alloc[d.key]=(alloc[d.key]||0)+pay; left-=pay;
+      if(left<=0) break;
+    }
+    // 2) ทองต่อดอกทุกเดือน (จ่ายดอก เงินต้นไม่ลด)
+    if(bal.gold>0.5 && left>0){ const intr=Math.min(goldMin,left); alloc.gold=(alloc.gold||0)+intr; left-=intr; }
+    // 3) เงินที่เหลือ → หนี้หลักก่อน แล้วเร่งปิดค่างวดก้อนเล็กสุด สุดท้ายค่อยลดต้นทอง
+    const prio=[];
+    if(bal.main>0.5) prio.push('main');
+    pondCombDebts.filter(d=>d.fixed && bal[d.key]>0.5).sort((a,b)=>bal[a.key]-bal[b.key]).forEach(d=>prio.push(d.key));
+    if(bal.gold>0.5) prio.push('gold');   // ลดต้นทองไว้ท้ายสุด
+    for(const k of prio){
+      if(left<=0.5) break;
+      const pay=Math.min(bal[k],left); bal[k]-=pay; alloc[k]=(alloc[k]||0)+pay; left-=pay;
+    }
+    rows.push(alloc);
+  }
+  return rows;
+}
+const pondCellAmt=(r,k)=> (pondRows[r]&&pondRows[r][k])?pondRows[r][k]:0;
+const pondColTotal=k=> pondRows.reduce((s,a,r)=>s+pondCellAmt(r,k),0);
+const pondRowTotal=r=> pondCombDebts.reduce((s,d)=>s+pondCellAmt(r,d.key),0);
+const isPondCellPaid=(r,k)=> !!pondCells[pondCellId(r,k)];
+const pondRowFullyPaid=r=> pondCombDebts.every(d=> pondCellAmt(r,d.key)===0 || isPondCellPaid(r,d.key));
+const pondDebtPaid=k=> pondRows.reduce((s,a,r)=> s+(isPondCellPaid(r,k)?pondCellAmt(r,k):0),0);
+const pondIsClosing=(r,k)=>{ for(let i=pondRows.length-1;i>=0;i--){ if(pondCellAmt(i,k)>0) return i===r; } return false; };
+const pondMonthLabel=r=> r<patMonthNames.length ? patMonthNames[r] : ('เดือนที่ '+(r+1));
+
+function buildPondTable(){
+  pondRows=pondGenerate();
+  document.getElementById('pondHead').innerHTML =
+    '<th style="text-align:left">เดือน</th>'+pondCombDebts.map(d=>`<th>${d.name}</th>`).join('')+'<th>รวมจ่าย</th>';
+  document.getElementById('pondBody').innerHTML = pondRows.map((a,r)=>{
+    const cells=pondCombDebts.map(d=>{
+      const v=pondCellAmt(r,d.key);
+      if(v===0) return '<td class="val zero">–</td>';
+      const on=isPondCellPaid(r,d.key), closing=pondIsClosing(r,d.key);
+      return `<td class="val cell${on?' on':''}" data-r="${r}" data-k="${d.key}"><span class="ck">✓</span><span class="num">${fmt(Math.round(v))}</span>${closing?' <span class="closebadge">✅ ปิด</span>':''}</td>`;
+    }).join('');
+    return `<tr class="${pondRowFullyPaid(r)?'paid':''}"><td class="mcell"><input type="checkbox" class="pond-mchk" data-r="${r}"><span>${pondMonthLabel(r)}</span></td>${cells}<td class="total">${fmt(Math.round(pondRowTotal(r)))}</td></tr>`;
+  }).join('');
+  const gt=pondCombDebts.reduce((s,d)=>s+pondColTotal(d.key),0);
+  document.getElementById('pondFoot').innerHTML =
+    '<td style="text-align:left">หนี้เต็ม</td>'+pondCombDebts.map(d=>`<td>${fmt(Math.round(pondColTotal(d.key)))}</td>`).join('')+`<td>${fmt(Math.round(gt))}</td>`;
+  document.querySelectorAll('#pondBody td.cell').forEach(td=>{
+    td.addEventListener('click',()=>{
+      const id=pondCellId(td.dataset.r,td.dataset.k);
+      if(pondCells[id]){ if(!requirePin('ยกเลิกว่าจ่ายช่องนี้แล้ว?')) return; delete pondCells[id]; }
+      else pondCells[id]=true;
+      savePondCells(); buildPondTable(); renderPondKPI();
+    });
+  });
+  document.querySelectorAll('.pond-mchk').forEach(cb=>{
+    cb.addEventListener('change',e=>{
+      const r=+e.target.dataset.r, want=e.target.checked;
+      if(!want && !requirePin('ยกเลิกว่าจ่ายทั้งเดือนนี้?')){ e.target.checked=true; return; }
+      pondCombDebts.forEach(d=>{ if(pondCellAmt(r,d.key)===0) return; const id=pondCellId(r,d.key); if(want) pondCells[id]=true; else delete pondCells[id]; });
+      savePondCells(); buildPondTable(); renderPondKPI();
+    });
+  });
+  pondRows.forEach((a,r)=>{ const cb=document.querySelector(`.pond-mchk[data-r="${r}"]`); if(cb) cb.checked=pondRowFullyPaid(r); });
+}
+function renderPondKPI(){
+  const total=pondCombDebts.reduce((s,d)=>s+pondColTotal(d.key),0);
+  const paid=pondCombDebts.reduce((s,d)=>s+pondDebtPaid(d.key),0);
+  const left=Math.max(0,total-paid);
+  document.getElementById('pcKTotal').innerHTML=fmt(Math.round(total))+' <small>บาท</small>';
+  document.getElementById('pcKPaid').innerHTML=fmt(Math.round(paid))+' <small>บาท</small>';
+  document.getElementById('pcKLeft').innerHTML=fmt(Math.round(left))+' <small>บาท</small>';
+  document.getElementById('pcKMonths').innerHTML=pondRows.length+' <small>เดือน</small>';
+  document.getElementById('pondFootRem').innerHTML=
+    '<td style="text-align:left">คงเหลือ</td>'+pondCombDebts.map(d=>`<td>${fmt(Math.round(Math.max(0,pondColTotal(d.key)-pondDebtPaid(d.key))))}</td>`).join('')+`<td>${fmt(Math.round(left))}</td>`;
+  const el=document.getElementById('pondProj');
+  if(el) el.innerHTML = left<=0 ? '🎉 ปิดหนี้ทุกสัญญาครบแล้ว!' :
+    `รวมหนี้ทุกสัญญา <b>${fmt(Math.round(total))}</b> บาท (รวมต่อดอกทอง) • ด้วยงบ <b>${fmt(getPondBudget())}</b>/เดือน → ปิดครบใน <b>${pondRows.length}</b> เดือน`;
+}
+function renderPondAll(){ buildPondTable(); renderPondKPI(); }
+
+function xlsPondComb(){
+  const headers=['เดือน',...pondCombDebts.map(d=>d.name),'รวมจ่าย','สถานะ'];
+  const rows=pondRows.map((a,r)=>{
+    const cs=pondCombDebts.map(d=>{ const v=pondCellAmt(r,d.key); return v===0?'':(isPondCellPaid(r,d.key)?'✓ ':'')+fmt(Math.round(v)); });
+    return [pondMonthLabel(r),...cs,fmt(Math.round(pondRowTotal(r))), pondRowFullyPaid(r)?'จ่ายครบ':''];
+  });
+  rows.push(['หนี้เต็ม',...pondCombDebts.map(d=>fmt(Math.round(pondColTotal(d.key)))),fmt(Math.round(pondCombDebts.reduce((s,d)=>s+pondColTotal(d.key),0))),'']);
+  downloadXls('รวมทุกสัญญา-ปอนด์','ตารางรวมทุกสัญญา (งบ '+fmt(getPondBudget())+'/เดือน)',headers,rows);
+}
+
+function initPondBalInputs(){
+  document.getElementById('pondBudget').value=getPondBudget();
+  ['main','loan40','gold','car','ksk','chayo'].forEach(k=> document.getElementById('pcb-'+k).value=getPondBal(k));
+  document.getElementById('pcb-goldmin').value=getPondGoldMin();
+}
+function savePondBudget(v){ v=Math.round(+v); if(!v||v<=0){alert('กรอกงบให้ถูกต้อง');return;} localStorage.setItem('pondBudget',v); document.getElementById('pondBudget').value=v; pondCells={}; savePondCells(); renderPondAll(); }
+document.getElementById('pondBudgetSave').addEventListener('click',()=> savePondBudget(document.getElementById('pondBudget').value));
+document.getElementById('pondBudget').addEventListener('keydown',e=>{ if(e.key==='Enter') savePondBudget(e.target.value); });
+document.querySelectorAll('[data-pbq]').forEach(b=> b.addEventListener('click',()=> savePondBudget(b.dataset.pbq)));
+document.getElementById('pondBalSave').addEventListener('click',()=>{
+  ['main','loan40','gold','car','ksk','chayo'].forEach(k=>{ const v=Math.round(+document.getElementById('pcb-'+k).value); localStorage.setItem('pcb_'+k,(isNaN(v)||v<0)?0:v); });
+  const gm=Math.round(+document.getElementById('pcb-goldmin').value); localStorage.setItem('pcb_goldmin',(isNaN(gm)||gm<0)?0:gm);
+  pondCells={}; savePondCells(); renderPondAll();
+});
+initPondBalInputs();
+renderPondAll();
 
 /* ================= หน้าแรก: เลือกเจ้าของหนี้ (ปอนด์ / ปัท) ================= */
 function showProfile(pk){
