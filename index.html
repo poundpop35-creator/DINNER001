@@ -860,29 +860,59 @@ function buildCreditors(){
     `<span><i style="background:var(${c.cvar})"></i>${c.name}</span>`).join('');
 }
 
-// ===== แผนจ่ายหนี้หลักรายเดือน (snowball ปิดใบเล็กก่อน) =====
+// ===== แผนจ่ายหนี้หลักรายเดือน =====
+// ตัวฟิก (S, G) = จ่ายตามงวดฟิกเต็มทุกเดือน (จ่ายก่อน → ปิดก่อน)
+// ตัวจ่ายขั้นต่ำ (YourCash, LINE BK, AEON) = จ่ายขั้นต่ำไปก่อน
+// งบส่วนเกินหลังจ่ายฟิก+ขั้นต่ำ → เร่งปิดตัวจ่ายขั้นต่ำ ใบเล็กก่อน
+const MAIN_FIXED = { S:[4231,4084], G:[4046,4046,4046,1483] };
+const MAIN_MIN   = { YourCash:400, 'LINE BK':1000, AEON:700 };
 function mainMonthlyBudget(){ return pondReady ? Math.max(0, getPondBudget()-(4875+7000+4000)-getPondGoldMin()) : 8375; }
 const PLAN_MN=['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
 function planMonthLabel(i){ const d=new Date(); return PLAN_MN[(d.getMonth()+i)%12]; }
 function mainPlanGenerate(){
   const budget=mainMonthlyBudget();
   const rows=[];
-  if(budget<=0) return rows;
-  let bals=creditors.map(c=>({key:c.key, bal:getMainBal(c.key)}));
+  const bal={}; creditors.forEach(c=>{ bal[c.key]=getMainBal(c.key); });
+  if(!creditors.some(c=>bal[c.key]>0)) return rows;
+  const fixedKeys = creditors.map(c=>c.key).filter(k=>MAIN_FIXED[k]);
+  const flexKeys  = creditors.map(c=>c.key).filter(k=>!MAIN_FIXED[k]);
+  const fixIdx={}; fixedKeys.forEach(k=>fixIdx[k]=0);
   let guard=0;
-  while(bals.some(b=>b.bal>0) && guard<200){
+  while(creditors.some(c=>bal[c.key]>0) && guard<400){
     guard++;
-    let pool=budget;
     const pay={}, closed={};
     creditors.forEach(c=>{ pay[c.key]=0; });
-    const order=bals.filter(b=>b.bal>0).sort((a,b)=>a.bal-b.bal);
-    for(const b of order){
-      if(pool<=0) break;
-      const p=Math.min(pool, b.bal);
-      pay[b.key]+=p; b.bal-=p; pool-=p;
-      if(b.bal<=0) closed[b.key]=true;
+    // 1) ตัวฟิก (S/G) จ่ายเต็มงวดเสมอ — ให้ปิดก่อน
+    fixedKeys.forEach(k=>{
+      if(bal[k]<=0) return;
+      const sched=MAIN_FIXED[k];
+      const base = fixIdx[k] < sched.length ? sched[fixIdx[k]] : sched[sched.length-1];
+      const amt = Math.min(base, bal[k]);
+      pay[k]+=amt; bal[k]-=amt; fixIdx[k]++;
+      if(bal[k]<=0) closed[k]=true;
+    });
+    // 2) ตัวจ่ายขั้นต่ำ — จ่ายขั้นต่ำก่อน
+    flexKeys.forEach(k=>{
+      if(bal[k]<=0) return;
+      const amt = Math.min(MAIN_MIN[k]||0, bal[k]);
+      pay[k]+=amt; bal[k]-=amt;
+      if(bal[k]<=0) closed[k]=true;
+    });
+    // 3) งบส่วนเกิน (ถ้ามี) → เร่งปิดตัวจ่ายขั้นต่ำ ใบเล็กก่อน
+    let spent=creditors.reduce((s,c)=>s+pay[c.key],0);
+    let pool=Math.max(0, budget-spent);
+    if(pool>0){
+      const order=flexKeys.map(k=>({key:k,bal:bal[k]})).filter(x=>x.bal>0).sort((a,b)=>a.bal-b.bal);
+      for(const x of order){
+        if(pool<=0) break;
+        const p=Math.min(pool, bal[x.key]);
+        pay[x.key]+=p; bal[x.key]-=p; pool-=p;
+        if(bal[x.key]<=0) closed[x.key]=true;
+      }
     }
-    rows.push({pay, closed, total: budget-pool});
+    const total=creditors.reduce((s,c)=>s+pay[c.key],0);
+    rows.push({pay, closed, total});
+    if(total<=0) break;
   }
   return rows;
 }
@@ -911,7 +941,13 @@ function buildMainPlan(){
     return `<tr><td style="text-align:left">${planMonthLabel(i)}</td>${tds}<td><b>${fmt(Math.round(r.total))}</b></td></tr>`;
   }).join('');
   foot.innerHTML='<td style="text-align:left">รวม</td>'+creditors.map(c=>`<td>${fmt(Math.round(colSum[c.key]))}</td>`).join('')+`<td>${fmt(Math.round(grand))}</td>`;
-  if(note) note.innerHTML=`จ่ายเดือนละ <b>${fmt(Math.round(budget))}</b> บาท • ปิดใบยอดน้อยก่อน • ปิดครบใน <b>${rows.length}</b> เดือน`;
+  if(note){
+    const maxNeed = Math.max(...rows.map(r=>r.total));
+    const over = rows.some(r=> r.total > budget+1);
+    note.innerHTML =
+      `<b>S, G</b> จ่ายตามงวดฟิก (ปิดก่อน) • <b>YourCash / LINE BK / AEON</b> จ่ายขั้นต่ำ (${fmt(MAIN_MIN.YourCash)} / ${fmt(MAIN_MIN['LINE BK'])} / ${fmt(MAIN_MIN.AEON)}) แล้วงบเหลือค่อยเร่งปิด • ปิดครบใน <b>${rows.length}</b> เดือน`
+      + (over ? `<br>⚠️ งบหนี้หลัก ${fmt(Math.round(budget))}/เดือน ไม่พอจ่ายงวดฟิก+ขั้นต่ำในช่วงแรก (ต้องใช้ราว ${fmt(Math.round(maxNeed))}) — เพิ่มงบรวม หรือปรับยอดขั้นต่ำได้` : '');
+  }
 }
 
 function render(){
