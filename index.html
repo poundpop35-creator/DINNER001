@@ -1212,7 +1212,7 @@ renderGoldSystem_v3();
 // รวมทุก localStorage key ที่แอปใช้ ไว้ในไฟล์เดียว
 const BACKUP_KEYS = ['debtCellsPaid_v1','loanInstall_v1','goldCellsPaid_isolated_v3','loanCar2_v1','loanKsk_v1','loanKsk_v1_bal','loanChayo_v1','loanChayo_v1_bal','extraPaid_v1','payLog_v1','patTarget_v1','patBal_gold','patGoldMin','patTableCells_v1','activeProfile','monthlyTarget_v1',
   'mainBal_S','mainBal_G','mainBal_YourCash','mainBal_LINE BK','mainBal_AEON',
-  'pondBudget','pcb_main','pcb_loan40','pcb_gold','pcb_goldmin','pcb_car','pcb_ksk','pcb_chayo','pondCombCells','paDebts_v1'];
+  'pondBudget','pcb_main','pcb_loan40','pcb_gold','pcb_goldmin','pcb_car','pcb_ksk','pcb_chayo','pondCombCells','paDebts_v1','chayoInit21_v1'];
 
 document.getElementById('exportBtn').addEventListener('click',()=>{
   const dump = { app:'debt-plan', version:1, exportedAt:new Date().toISOString(), data:{} };
@@ -1450,8 +1450,14 @@ document.getElementById('sharePdfBtn').addEventListener('click', async e=>{
 /* ================= สัญญาผ่อนเพิ่มเติม (สร้างแบบ generic) ================= */
 const moreLoanConfigs = [
   { id:'car2', host:'moreLoans', n:4, icon:'🚗', title:'รถคันสีเทา', per:7000, balance:511000, store:'loanCar2_v1', def:0 },
-  { id:'chayo', host:'moreLoans', n:5, icon:'📄', title:'ชโย เจวี', per:4000, balance:92000, store:'loanChayo_v1', def:0, editBal:true, note:'เดิมคือกสิกร (ขายหนี้ให้ ชโย เจวี) • สัญญา 4417704017460276 • 23 งวด × 4,000' },
+  { id:'chayo', host:'moreLoans', n:5, icon:'📄', title:'ชโย เจวี', per:4000, balance:92000, store:'loanChayo_v1', def:2, editBal:true, note:'เดิมคือกสิกร (ขายหนี้ให้ ชโย เจวี) • สัญญา 4417704017460276 • 23 งวด × 4,000 • เหลือ 21 งวด' },
 ];
+// ปรับ ชโย เจวี = จ่ายแล้ว 2 งวด (เหลือ 21 งวด) ครั้งเดียว — ไม่ลดถ้าจ่ายมากกว่านี้ไปแล้ว
+if(!localStorage.getItem('chayoInit21_v1')){
+  const cur=parseInt(localStorage.getItem('loanChayo_v1')||'0',10);
+  if(isNaN(cur)||cur<2) localStorage.setItem('loanChayo_v1','2');
+  localStorage.setItem('chayoInit21_v1','1');
+}
 const moreLoanState = {};
 const cfgById = id => moreLoanConfigs.find(c=>c.id===id);
 function totalInstallments(cfg){
