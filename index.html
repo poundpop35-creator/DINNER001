@@ -363,18 +363,11 @@ body.capturing .loan .lstats{ grid-template-columns:repeat(4,1fr) !important; }
 
   <div class="tabpanel" data-tab="main" style="display:none">
   <section class="panel tgtpanel">
-    <h2>🎯 เป้าจ่ายต่อเดือน (หนี้หลัก)</h2>
-    <div class="payrow">
-      <input id="targetInput" type="number" inputmode="numeric" min="1" placeholder="เช่น 10,000">
-      <button id="targetSave" class="btn-pay" style="background:#0891b2">💾 ตั้งเป้า</button>
-    </div>
-    <div class="quickamts">
-      <button data-tq="5000">5,000</button>
-      <button data-tq="10000">10,000</button>
-      <button data-tq="15000">15,000</button>
-      <button data-tq="20000">20,000</button>
-    </div>
+    <h2>🎯 หนี้หลัก — จ่ายเดือนละเท่าไหร่</h2>
     <div id="targetProj" class="tgtproj"></div>
+    <div class="tgtproj" style="background:#fff7ed;border-color:#fed7aa;color:#9a3412;margin-top:10px">
+      ℹ️ ยอดนี้มาจาก <b>แผนรวม</b> (แบ่งงบให้ทุกสัญญา) — อยากเปลี่ยนงบ ไปที่แท็บ 📊 ภาพรวม
+    </div>
   </section>
 
   <div class="plan-tools">
@@ -821,13 +814,17 @@ function render(){
     }).join('') +
     `<td>${fmt(leftAmt)}</td>`;
 
-  // เป้าจ่ายต่อเดือน → ประเมินจำนวนเดือนที่จะปิดหนี้หลัก
+  // หนี้หลักจ่ายเดือนละเท่าไหร่ → ดึงจากแผนรวม (ให้ตรงกับหน้าภาพรวม)
   const projEl = document.getElementById('targetProj');
   if(projEl){
-    const tgt = getTarget();
-    projEl.innerHTML = leftAmt<=0
-      ? '🎉 ปิดหนี้หลักครบแล้ว!'
-      : `ด้วยงบ <b>${fmt(tgt)}</b> บาท/เดือน • คงเหลือ <b>${fmt(leftAmt)}</b> บาท<br>→ จะปิดหนี้หลักครบในอีกประมาณ <b>${Math.ceil(leftAmt/tgt)}</b> เดือน`;
+    if(pondReady){
+      const monthly = Math.max(0, getPondBudget() - (4875+7000+4000) - getPondGoldMin());
+      projEl.innerHTML = leftAmt<=0
+        ? '🎉 ปิดหนี้หลักครบแล้ว!'
+        : `จ่ายหนี้หลักเดือนละ <b>${fmt(monthly)}</b> บาท (จากงบรวม ${fmt(getPondBudget())})<br>คงเหลือ <b>${fmt(leftAmt)}</b> → ปิดในอีกประมาณ <b>${monthly>0?Math.ceil(leftAmt/monthly):'—'}</b> เดือน`;
+    } else {
+      projEl.innerHTML = `คงเหลือ <b>${fmt(leftAmt)}</b> บาท`;
+    }
   }
   pondSync();  // อัปเดตตารางรวมเมื่อจ่ายหนี้หลัก
 }
@@ -1658,18 +1655,7 @@ document.getElementById('payLogList').addEventListener('click', e=>{
 
 renderPayLog();
 
-/* ================= เป้าจ่ายต่อเดือน (หนี้หลัก) ================= */
-function saveTarget(v){
-  v=Math.round(+v);
-  if(!v || v<=0){ alert('กรอกเป้าให้ถูกต้อง'); return; }
-  localStorage.setItem('monthlyTarget_v1', v);
-  document.getElementById('targetInput').value = v;
-  render();
-}
-document.getElementById('targetSave').addEventListener('click', ()=> saveTarget(document.getElementById('targetInput').value));
-document.getElementById('targetInput').addEventListener('keydown', e=>{ if(e.key==='Enter') saveTarget(e.target.value); });
-document.querySelectorAll('[data-tq]').forEach(b=> b.addEventListener('click', ()=> saveTarget(b.dataset.tq)));
-document.getElementById('targetInput').value = getTarget();
+/* หนี้หลักจ่ายเดือนละเท่าไหร่ = ดึงจากแผนรวม (หน้าภาพรวม) — ไม่มีเป้าแยกแล้ว */
 
 /* ================= งบต่อเดือนของปัท ================= */
 function savePatTarget(v){
@@ -1829,6 +1815,7 @@ document.getElementById('pondBalSave').addEventListener('click',()=>{
 initPondBalInputs();
 pondReady=true;
 renderPondAll();
+render();  // รีเฟรชยอด "หนี้หลักจ่ายเดือนละ" ให้ตรงกับแผนรวม
 
 /* ================= แท็บของปอนด์ ================= */
 function showAllPondTabs(){ document.querySelectorAll('#app-pond .tabpanel').forEach(p=>p.style.display=''); }
