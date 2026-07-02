@@ -966,7 +966,7 @@ renderGoldSystem_v3();
 
 /* ================= สำรอง / กู้คืนข้อมูล (ย้ายข้ามเครื่อง) ================= */
 // รวมทุก localStorage key ที่แอปใช้ ไว้ในไฟล์เดียว
-const BACKUP_KEYS = ['debtCellsPaid_v1','loanInstall_v1','goldCellsPaid_isolated_v3','loanCar2_v1','loanKsk_v1','loanKsk_v1_bal','extraPaid_v1','payLog_v1','patTarget_v1','patBal_gold','patGoldMin','patTableCells_v1','activeProfile','monthlyTarget_v1'];
+const BACKUP_KEYS = ['debtCellsPaid_v1','loanInstall_v1','goldCellsPaid_isolated_v3','loanCar2_v1','loanKsk_v1','loanKsk_v1_bal','loanChayo_v1','loanChayo_v1_bal','extraPaid_v1','payLog_v1','patTarget_v1','patBal_gold','patGoldMin','patTableCells_v1','activeProfile','monthlyTarget_v1'];
 
 document.getElementById('exportBtn').addEventListener('click',()=>{
   const dump = { app:'debt-plan', version:1, exportedAt:new Date().toISOString(), data:{} };
@@ -1173,6 +1173,7 @@ document.getElementById('sharePdfBtn').addEventListener('click', e=>
 const moreLoanConfigs = [
   { id:'car2', host:'moreLoans', n:4, icon:'🚗', title:'รถคันสีเทา', per:7000, balance:511000, store:'loanCar2_v1', def:0 },
   { id:'ksk',  host:'moreLoans', n:5, icon:'🏦', title:'กสิกร', per:4000, balance:null, store:'loanKsk_v1', def:0, editBal:true },
+  { id:'chayo', host:'moreLoans', n:6, icon:'📄', title:'ชโย เจวี', per:4000, balance:92000, store:'loanChayo_v1', def:0, editBal:true, note:'สัญญา 4417704017460276 • 23 งวด × 4,000' },
 ];
 const moreLoanState = {};
 const cfgById = id => moreLoanConfigs.find(c=>c.id===id);
@@ -1496,6 +1497,7 @@ const payDebts = [
   {id:'gold4341', label:'ทองคำ สัญญา 4341'},
   {id:'car2',     label:'รถคันสีเทา'},
   {id:'ksk',      label:'กสิกร'},
+  {id:'chayo',    label:'ชโย เจวี'},
 ];
 const payLabel = id => (payDebts.find(d=>d.id===id)||{label:id}).label;
 
