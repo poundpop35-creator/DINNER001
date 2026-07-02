@@ -615,6 +615,9 @@ body.capturing .loan .lstats{ grid-template-columns:repeat(4,1fr) !important; }
         <input id="paPaid" type="number" inputmode="numeric" placeholder="จ่ายแล้ว (ไม่ใส่ก็ได้)">
         <button id="paAdd" class="btn-pay" style="background:#0891b2">➕ เพิ่ม</button>
       </div>
+      <div class="payrow" style="margin-top:8px">
+        <input id="paNote" type="text" placeholder="หมายเหตุ เช่น ดอกเบี้ย / กำหนดจ่าย / เจ้าหนี้ (ไม่ใส่ก็ได้)">
+      </div>
       <div class="tgtproj" style="margin-top:10px;background:#ecfeff;border-color:#a5f3fc;color:#155e75">
         ℹ️ กรอกหนี้ของป๊าเองได้เลย • แก้ตัวเลขในตารางได้ตลอด • ทำเป็นรูป/PDF ส่งแชร์ได้
       </div>
@@ -2003,9 +2006,9 @@ function renderPa(){
   const head=document.getElementById('paHead'); if(!head) return;
   const body=document.getElementById('paBody');
   const foot=document.getElementById('paFoot');
-  head.innerHTML='<th style="text-align:left">ชื่อหนี้</th><th>ยอดหนี้</th><th>จ่ายแล้ว</th><th>คงเหลือ</th><th class="noprint"></th>';
+  head.innerHTML='<th style="text-align:left">ชื่อหนี้</th><th>ยอดหนี้</th><th>จ่ายแล้ว</th><th>คงเหลือ</th><th style="text-align:left">หมายเหตุ</th><th class="noprint"></th>';
   if(!paDebts.length){
-    body.innerHTML='<tr><td colspan="5" style="padding:18px;color:#64748b">ยังไม่มีรายการ — กรอกชื่อหนี้กับยอดด้านบนแล้วกด ➕ เพิ่ม</td></tr>';
+    body.innerHTML='<tr><td colspan="6" style="padding:18px;color:#64748b">ยังไม่มีรายการ — กรอกชื่อหนี้กับยอดด้านบนแล้วกด ➕ เพิ่ม</td></tr>';
     foot.innerHTML='';
   } else {
     body.innerHTML=paDebts.map((d,i)=>{
@@ -2015,6 +2018,7 @@ function renderPa(){
         `<td><input class="pa-in pa-num" data-i="${i}" data-f="total" type="number" inputmode="numeric" value="${+d.total||0}"></td>`+
         `<td><input class="pa-in pa-num" data-i="${i}" data-f="paid" type="number" inputmode="numeric" value="${+d.paid||0}"></td>`+
         `<td id="pa-rem-${i}"><b>${fmt(Math.round(rem))}</b></td>`+
+        `<td style="text-align:left"><input class="pa-in pa-note" data-i="${i}" type="text" value="${escAttr(d.note)}" placeholder="—"></td>`+
         `<td class="noprint"><button class="px" data-padel="${i}" title="ลบรายการ">✕</button></td>`+
       `</tr>`;
     }).join('');
@@ -2022,7 +2026,7 @@ function renderPa(){
       `<td>${fmt(Math.round(paTotalSum()))}</td>`+
       `<td>${fmt(Math.round(paPaidSum()))}</td>`+
       `<td>${fmt(Math.round(paLeftSum()))}</td>`+
-      '<td class="noprint"></td>';
+      '<td></td><td class="noprint"></td>';
   }
   paKpi();
 }
@@ -2031,21 +2035,23 @@ function paRecalc(){
   const foot=document.getElementById('paFoot');
   if(foot && paDebts.length) foot.innerHTML='<td style="text-align:left">รวม</td>'+
     `<td>${fmt(Math.round(paTotalSum()))}</td><td>${fmt(Math.round(paPaidSum()))}</td>`+
-    `<td>${fmt(Math.round(paLeftSum()))}</td><td class="noprint"></td>`;
+    `<td>${fmt(Math.round(paLeftSum()))}</td><td></td><td class="noprint"></td>`;
   paKpi();
 }
 document.getElementById('paAdd').addEventListener('click', ()=>{
   const name=document.getElementById('paName').value.trim();
   const total=Math.round(+document.getElementById('paTotal').value);
   let paid=Math.round(+document.getElementById('paPaid').value);
+  const note=document.getElementById('paNote').value.trim();
   if(!name){ alert('ใส่ชื่อหนี้ก่อน'); return; }
   if(!total || total<0 || isNaN(total)){ alert('ใส่ยอดหนี้ให้ถูกต้อง'); return; }
   if(isNaN(paid)||paid<0) paid=0;
-  paDebts.push({name, total, paid});
+  paDebts.push({name, total, paid, note});
   savePaDebts();
   document.getElementById('paName').value='';
   document.getElementById('paTotal').value='';
   document.getElementById('paPaid').value='';
+  document.getElementById('paNote').value='';
   renderPa();
 });
 document.addEventListener('input', e=>{
@@ -2053,6 +2059,7 @@ document.addEventListener('input', e=>{
   if(!el.classList || !el.classList.contains('pa-in')) return;
   const i=+el.dataset.i; if(!paDebts[i]) return;
   if(el.classList.contains('pa-name')){ paDebts[i].name=el.value; }
+  else if(el.classList.contains('pa-note')){ paDebts[i].note=el.value; }
   else { const v=Math.round(+el.value); paDebts[i][el.dataset.f]=(isNaN(v)||v<0)?0:v; paRecalc(); }
   savePaDebts();
 });
@@ -2063,9 +2070,9 @@ document.addEventListener('click', e=>{
   paDebts.splice(i,1); savePaDebts(); renderPa();
 });
 function xlsPaDebt(){
-  const headers=['ชื่อหนี้','ยอดหนี้','จ่ายแล้ว','คงเหลือ'];
-  const rows=paDebts.map(d=>[d.name||'', fmt(Math.round(+d.total||0)), fmt(Math.round(+d.paid||0)), fmt(Math.round(Math.max(0,(+d.total||0)-(+d.paid||0))))]);
-  rows.push(['รวม', fmt(Math.round(paTotalSum())), fmt(Math.round(paPaidSum())), fmt(Math.round(paLeftSum()))]);
+  const headers=['ชื่อหนี้','ยอดหนี้','จ่ายแล้ว','คงเหลือ','หมายเหตุ'];
+  const rows=paDebts.map(d=>[d.name||'', fmt(Math.round(+d.total||0)), fmt(Math.round(+d.paid||0)), fmt(Math.round(Math.max(0,(+d.total||0)-(+d.paid||0)))), d.note||'']);
+  rows.push(['รวม', fmt(Math.round(paTotalSum())), fmt(Math.round(paPaidSum())), fmt(Math.round(paLeftSum())), '']);
   downloadXls('หนี้ป๊า','ตารางหนี้ของป๊า',headers,rows);
 }
 
