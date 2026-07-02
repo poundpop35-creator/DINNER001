@@ -402,6 +402,18 @@ body.capturing .loan .lstats{ grid-template-columns:repeat(4,1fr) !important; }
     </div>
   </section>
 
+  <section class="panel" style="padding:0;overflow:hidden">
+    <h2 style="padding:14px 16px 0">🗓️ แผนจ่ายหนี้หลักรายเดือน</h2>
+    <div id="mainPlanNote" class="tgtproj" style="margin:8px 16px 12px;background:#f0fdf4;border-color:#bbf7d0;color:#166534"></div>
+    <div class="tablewrap">
+      <table id="mainPlanTbl">
+        <thead><tr id="mainPlanHead"></tr></thead>
+        <tbody id="mainPlanBody"></tbody>
+        <tfoot><tr id="mainPlanFoot"></tr></tfoot>
+      </table>
+    </div>
+  </section>
+
   <section class="panel noprint" style="display:none">
     <h2>🏦 ความคืบหน้าแยกตามเจ้าหนี้</h2>
     <div id="credList"></div>
@@ -791,6 +803,60 @@ function buildCreditors(){
     `<span><i style="background:var(${c.cvar})"></i>${c.name}</span>`).join('');
 }
 
+// ===== แผนจ่ายหนี้หลักรายเดือน (snowball ปิดใบเล็กก่อน) =====
+function mainMonthlyBudget(){ return pondReady ? Math.max(0, getPondBudget()-(4875+7000+4000)-getPondGoldMin()) : 8375; }
+const PLAN_MN=['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+function planMonthLabel(i){ const d=new Date(); return PLAN_MN[(d.getMonth()+i)%12]; }
+function mainPlanGenerate(){
+  const budget=mainMonthlyBudget();
+  const rows=[];
+  if(budget<=0) return rows;
+  let bals=creditors.map(c=>({key:c.key, bal:getMainBal(c.key)}));
+  let guard=0;
+  while(bals.some(b=>b.bal>0) && guard<200){
+    guard++;
+    let pool=budget;
+    const pay={}, closed={};
+    creditors.forEach(c=>{ pay[c.key]=0; });
+    const order=bals.filter(b=>b.bal>0).sort((a,b)=>a.bal-b.bal);
+    for(const b of order){
+      if(pool<=0) break;
+      const p=Math.min(pool, b.bal);
+      pay[b.key]+=p; b.bal-=p; pool-=p;
+      if(b.bal<=0) closed[b.key]=true;
+    }
+    rows.push({pay, closed, total: budget-pool});
+  }
+  return rows;
+}
+function buildMainPlan(){
+  const head=document.getElementById('mainPlanHead'); if(!head) return;
+  const body=document.getElementById('mainPlanBody');
+  const foot=document.getElementById('mainPlanFoot');
+  const note=document.getElementById('mainPlanNote');
+  head.innerHTML='<th style="text-align:left">เดือน</th>'+creditors.map(c=>`<th>${c.name}</th>`).join('')+'<th>รวมจ่าย</th>';
+  const budget=mainMonthlyBudget();
+  const rows=mainPlanGenerate();
+  if(!rows.length){
+    body.innerHTML=`<tr><td colspan="${creditors.length+2}" style="padding:16px;color:#64748b">${grandTotal()<=0?'🎉 ปิดหนี้หลักครบแล้ว!':'ยังไม่มีงบสำหรับหนี้หลัก (ตั้งงบที่แท็บ 📊 ภาพรวม)'}</td></tr>`;
+    foot.innerHTML='';
+    if(note) note.textContent='';
+    return;
+  }
+  const colSum={}; creditors.forEach(c=>{ colSum[c.key]=0; }); let grand=0;
+  body.innerHTML=rows.map((r,i)=>{
+    const tds=creditors.map(c=>{
+      const p=r.pay[c.key]||0; colSum[c.key]+=p;
+      if(p<=0) return '<td style="color:#cbd5e1">–</td>';
+      return `<td>${fmt(Math.round(p))}${r.closed[c.key]?' <span class="done-tag">ปิด✓</span>':''}</td>`;
+    }).join('');
+    grand+=r.total;
+    return `<tr><td style="text-align:left">${planMonthLabel(i)}</td>${tds}<td><b>${fmt(Math.round(r.total))}</b></td></tr>`;
+  }).join('');
+  foot.innerHTML='<td style="text-align:left">รวม</td>'+creditors.map(c=>`<td>${fmt(Math.round(colSum[c.key]))}</td>`).join('')+`<td>${fmt(Math.round(grand))}</td>`;
+  if(note) note.innerHTML=`จ่ายเดือนละ <b>${fmt(Math.round(budget))}</b> บาท • ปิดใบยอดน้อยก่อน • ปิดครบใน <b>${rows.length}</b> เดือน`;
+}
+
 function render(){
   const leftAmt = grandTotal();                          // ยอดคงเหลือ = ผลรวมยอดรายใบ
   const paidAmt = 0;
@@ -845,6 +911,7 @@ function render(){
       projEl.innerHTML = `คงเหลือ <b>${fmt(leftAmt)}</b> บาท`;
     }
   }
+  buildMainPlan();  // อัปเดตแผนจ่ายหนี้หลักรายเดือน
   pondSync();  // อัปเดตตารางรวมเมื่อจ่ายหนี้หลัก
 }
 
@@ -1853,7 +1920,7 @@ function initPondBalInputs(){
   document.getElementById('pcb-gold').value=getPondGoldPrincipal();
   document.getElementById('pcb-goldmin').value=getPondGoldMin();
 }
-function savePondBudget(v){ v=Math.round(+v); if(!v||v<=0){alert('กรอกงบให้ถูกต้อง');return;} localStorage.setItem('pondBudget',v); document.getElementById('pondBudget').value=v; renderPondAll(); }
+function savePondBudget(v){ v=Math.round(+v); if(!v||v<=0){alert('กรอกงบให้ถูกต้อง');return;} localStorage.setItem('pondBudget',v); document.getElementById('pondBudget').value=v; renderPondAll(); render(); }
 document.getElementById('pondBudgetSave').addEventListener('click',()=> savePondBudget(document.getElementById('pondBudget').value));
 document.getElementById('pondBudget').addEventListener('keydown',e=>{ if(e.key==='Enter') savePondBudget(e.target.value); });
 document.querySelectorAll('[data-pbq]').forEach(b=> b.addEventListener('click',()=> savePondBudget(b.dataset.pbq)));
