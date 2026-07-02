@@ -190,6 +190,10 @@ body.capturing .tablewrap{ overflow:visible !important; }
 body.capturing table{ min-width:0 !important; width:100% !important; }
 body.capturing .cards{ grid-template-columns:repeat(4,1fr) !important; }
 body.capturing .loan .lstats{ grid-template-columns:repeat(4,1fr) !important; }
+/* ข้อความแทนช่องกรอกตอนถ่ายภาพ — ให้อ่านชัด ตัวอักษรเต็ม ไม่โดนตัด */
+.cap-text{ display:inline-block; font-size:15px; font-weight:600; color:#0f172a; white-space:normal; word-break:break-word; }
+body.capturing #paTbl th, body.capturing #paTbl td{ white-space:normal; font-size:15px; padding:12px 10px; }
+body.capturing #paTbl .cap-text{ text-align:inherit; }
 
 /* ============ จัดหน้าสำหรับพิมพ์ / PDF ขนาด A4 ============ */
 @media print{
@@ -1251,32 +1255,54 @@ document.getElementById('importFile').addEventListener('change',e=>{
 // เรนเดอร์ element เป็น canvas โดยบังคับ layout แบบจอกว้าง (กันตารางโดนตัดบนมือถือ)
 async function renderCanvas(el){
   document.body.classList.add('capturing');
+  // แปลงช่องกรอก (input) เป็นข้อความจริง เพื่อให้ตัวอักษรเต็ม ไม่โดนตัด และอ่านชัด
+  const swapped=[];
+  el.querySelectorAll('input').forEach(inp=>{
+    if(inp.type==='file'||inp.type==='checkbox'||inp.type==='radio') return;
+    const span=document.createElement('span');
+    span.className='cap-text';
+    span.textContent = (inp.value!==''&&inp.value!=null) ? inp.value : '—';
+    inp.style.display='none';
+    inp.insertAdjacentElement('afterend', span);
+    swapped.push({inp, span});
+  });
   await new Promise(r=> requestAnimationFrame(()=> requestAnimationFrame(r)));
   try{
     return await Promise.race([
       html2canvas(el, {
-        backgroundColor:'#ffffff', scale:2, windowWidth:960,
+        backgroundColor:'#ffffff', scale:3, windowWidth:960,
         ignoreElements: e => e.classList && (e.classList.contains('topbtns') || e.classList.contains('plan-tools') || e.classList.contains('pbar'))
       }),
       new Promise((_,rej)=> setTimeout(()=> rej(new Error('หมดเวลาสร้างภาพ')), 20000))
     ]);
   } finally {
+    swapped.forEach(({inp,span})=>{ span.remove(); inp.style.display=''; });
     document.body.classList.remove('capturing');
   }
 }
 
-async function exportImage(elId, name){
+async function exportImage(elId, name, btn){
   if(typeof html2canvas === 'undefined'){
     alert('โหลดเครื่องมือสร้างรูปไม่สำเร็จ — ต้องต่ออินเทอร์เน็ตสักครู่แล้วลองใหม่');
     return;
   }
+  const old = btn ? btn.textContent : '';
+  if(btn){ btn.textContent='⏳ กำลังสร้าง...'; btn.disabled=true; }
   try{
     const canvas = await renderCanvas(document.getElementById(elId));
-    const a=document.createElement('a');
-    a.href=canvas.toDataURL('image/png');
-    a.download = name+'-'+new Date().toISOString().slice(0,10)+'.png';
-    a.click();
+    const blob = await new Promise(res=> canvas.toBlob(res, 'image/png'));
+    const fname = name+'-'+new Date().toISOString().slice(0,10)+'.png';
+    const file = new File([blob], fname, {type:'image/png'});
+    if(navigator.canShare && navigator.canShare({files:[file]})){
+      try{ await navigator.share({files:[file], title:name}); }
+      catch(err){ if(err.name!=='AbortError') throw err; }
+    }else{
+      const a=document.createElement('a');
+      a.href=URL.createObjectURL(blob); a.download=fname; a.click();
+      URL.revokeObjectURL(a.href);
+    }
   }catch(err){ alert('สร้างรูปไม่สำเร็จ: '+err.message); }
+  finally{ if(btn){ btn.textContent=old; btn.disabled=false; } }
 }
 
 function downloadXls(filename, title, headers, rows){
@@ -1330,7 +1356,7 @@ function xlsGold(){
 
 document.addEventListener('click', e=>{
   const b=e.target.closest('button'); if(!b) return;
-  if(b.dataset.img){ exportImage(b.dataset.img, b.dataset.name); }
+  if(b.dataset.img){ exportImage(b.dataset.img, b.dataset.name, b); }
   else if(b.dataset.xls==='main') xlsMain();
   else if(b.dataset.xls==='loan') xlsLoan();
   else if(b.dataset.xls==='gold') xlsGold();
