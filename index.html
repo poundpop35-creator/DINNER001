@@ -892,7 +892,9 @@ function buildCreditors(){
 const MAIN_FIXED = { S:[4611,3622], G:[4046,4046,4046,1483] };
 const MAIN_MIN   = { YourCash:1000, 'LINE BK':1000, AEON:1000 };
 // งบหนี้หลักตั้งเองได้ (แยกจากงบรวม) — เริ่มต้น 10,000
-function getMainBudget(){ const raw=localStorage.getItem('mainBudget'); const v=+raw; return (raw!==null&&raw!==''&&!isNaN(v)&&v>0)?v:10000; }
+function getMainBudget(){ const raw=localStorage.getItem('mainBudget'); const v=+raw; return (raw!==null&&raw!==''&&!isNaN(v)&&v>0)?v:15000; }
+// ตั้งงบหนี้หลักเป็น 15,000 (ครั้งเดียว) — override ค่าที่ตั้งไว้เดิม
+if(!localStorage.getItem('mainBudget15k_v1')){ localStorage.setItem('mainBudget','15000'); localStorage.setItem('mainBudget15k_v1','1'); }
 function mainMonthlyBudget(){ return getMainBudget(); }
 const PLAN_MN=['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
 function planMonthLabel(i){ const d=new Date(); return PLAN_MN[(d.getMonth()+i)%12]; }
@@ -1286,7 +1288,7 @@ renderGoldSystem_v3();
 // รวมทุก localStorage key ที่แอปใช้ ไว้ในไฟล์เดียว
 const BACKUP_KEYS = ['debtCellsPaid_v1','loanInstall_v1','goldCellsPaid_isolated_v3','loanCar2_v1','loanKsk_v1','loanKsk_v1_bal','loanChayo_v1','loanChayo_v1_bal','extraPaid_v1','payLog_v1','patTarget_v1','patBal_gold','patGoldMin','patTableCells_v1','activeProfile','monthlyTarget_v1',
   'mainBal_S','mainBal_G','mainBal_YourCash','mainBal_LINE BK','mainBal_AEON',
-  'pondBudget','pcb_main','pcb_loan40','pcb_gold','pcb_goldmin','pcb_car','pcb_ksk','pcb_chayo','pondCombCells','paDebts_v1','chayoInit21_v1','mainBudget','ycAdd2000_v1','ycAdd1000_v1','mainBalSet_20260704'];
+  'pondBudget','pcb_main','pcb_loan40','pcb_gold','pcb_goldmin','pcb_car','pcb_ksk','pcb_chayo','pondCombCells','paDebts_v1','chayoInit21_v1','mainBudget','ycAdd2000_v1','ycAdd1000_v1','mainBalSet_20260704','mainBudget15k_v1'];
 
 document.getElementById('exportBtn').addEventListener('click',()=>{
   const dump = { app:'debt-plan', version:1, exportedAt:new Date().toISOString(), data:{} };
