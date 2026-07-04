@@ -722,7 +722,7 @@ if(cells===null){
 
 function monthTotal(m){ return creditors.reduce((s,c)=>s+data[m][c.key],0); }
 // ยอดคงเหลือรายเจ้า (แก้ได้เอง) — ยอดเดิมจากตารางเป็นค่าเริ่มต้น
-const mainBalDefaults={S:8233,G:13621,YourCash:15000,'LINE BK':29492,AEON:10000};
+const mainBalDefaults={S:7900,G:13621,YourCash:15000,'LINE BK':29492,AEON:10000};
 // เพิ่มวงเงิน YourCash อีก 2,000 (ครั้งเดียว) — บวกเข้ายอดที่บันทึกไว้
 if(!localStorage.getItem('ycAdd2000_v1')){
   const raw=localStorage.getItem('mainBal_YourCash');
@@ -735,12 +735,16 @@ if(!localStorage.getItem('ycAdd1000_v1')){
   if(raw!==null && raw!=='') localStorage.setItem('mainBal_YourCash', String(Math.max(0, Math.round(+raw)+1000)));
   localStorage.setItem('ycAdd1000_v1','1');
 }
-// ปรับยอดตามที่แจ้ง (4 ก.ค.) — S ตามรูป, YourCash 15,000, AEON 10,000 (G/LINE BK คงเดิม) — ครั้งเดียว
+// ปรับยอดตามที่แจ้ง (4 ก.ค.) — YourCash 15,000, AEON 10,000 (G/LINE BK คงเดิม) — ครั้งเดียว
 if(!localStorage.getItem('mainBalSet_20260704')){
-  localStorage.setItem('mainBal_S','8233');          // งวดฟิก: 4,611 (ส.ค.) + 3,622 (ก.ย.)
   localStorage.setItem('mainBal_YourCash','15000');
   localStorage.setItem('mainBal_AEON','10000');
   localStorage.setItem('mainBalSet_20260704','1');
+}
+// ปรับยอด S เป็น ~7,900 (ดอกถูกสุด หมุนได้ ปิดท้ายสุด) — ครั้งเดียว
+if(!localStorage.getItem('mainBalSetS_v2')){
+  localStorage.setItem('mainBal_S','7900');
+  localStorage.setItem('mainBalSetS_v2','1');
 }
 function getMainBal(k){ const raw=localStorage.getItem('mainBal_'+k); const v=+raw; return (raw!==null&&raw!==''&&!isNaN(v)&&v>=0)?v:mainBalDefaults[k]; }
 function creditorTotal(k){ return getMainBal(k); }
@@ -886,11 +890,12 @@ function buildCreditors(){
 }
 
 // ===== แผนจ่ายหนี้หลักรายเดือน =====
-// ตัวฟิก (S, G) = จ่ายตามงวดฟิกเต็มทุกเดือน (จ่ายก่อน → ปิดก่อน)
-// ตัวจ่ายขั้นต่ำ (YourCash, LINE BK, AEON) = จ่ายขั้นต่ำไปก่อน
-// งบส่วนเกินหลังจ่ายฟิก+ขั้นต่ำ → เร่งปิดตัวจ่ายขั้นต่ำ ใบเล็กก่อน
-const MAIN_FIXED = { S:[4611,3622], G:[4046,4046,4046,1483] };
-const MAIN_MIN   = { YourCash:1000, 'LINE BK':1000, AEON:1000 };
+// G = ฟิก จ่ายตามงวดเต็มทุกเดือน
+// S = ดอกถูกสุด (หมุนได้) → จ่ายขั้นต่ำ แล้ว "ปิดท้ายสุด" (avalanche: ปิดก้อนแพงก่อน)
+// YourCash / LINE BK / AEON = จ่ายขั้นต่ำ แล้วทุ่มงบที่เหลือปิดก่อน (ใบเล็กก่อน)
+const MAIN_FIXED = { G:[4046,4046,4046,1483] };
+const MAIN_MIN   = { S:1000, YourCash:1000, 'LINE BK':1000, AEON:1000 };
+const MAIN_PAYLAST = ['S'];   // ปิดเป็นก้อนสุดท้าย (ดอกถูกสุด)
 // งบหนี้หลักตั้งเองได้ (แยกจากงบรวม) — เริ่มต้น 10,000
 function getMainBudget(){ const raw=localStorage.getItem('mainBudget'); const v=+raw; return (raw!==null&&raw!==''&&!isNaN(v)&&v>0)?v:15000; }
 // ตั้งงบหนี้หลักเป็น 15,000 (ครั้งเดียว) — override ค่าที่ตั้งไว้เดิม
@@ -927,11 +932,15 @@ function mainPlanGenerate(){
       pay[k]+=amt; bal[k]-=amt;
       if(bal[k]<=0) closed[k]=true;
     });
-    // 3) งบส่วนเกิน (ถ้ามี) → เร่งปิดตัวจ่ายขั้นต่ำ ใบเล็กก่อน
+    // 3) งบส่วนเกิน → ทุ่มปิดก้อนแพงก่อน (ใบเล็กก่อน) เก็บ S (ดอกถูกสุด) ไว้ปิดท้ายสุด
     let spent=creditors.reduce((s,c)=>s+pay[c.key],0);
     let pool=Math.max(0, budget-spent);
     if(pool>0){
-      const order=flexKeys.map(k=>({key:k,bal:bal[k]})).filter(x=>x.bal>0).sort((a,b)=>a.bal-b.bal);
+      const attack = flexKeys.filter(k=>!MAIN_PAYLAST.includes(k))
+                       .map(k=>({key:k,bal:bal[k]})).filter(x=>x.bal>0).sort((a,b)=>a.bal-b.bal);
+      const last   = flexKeys.filter(k=>MAIN_PAYLAST.includes(k))
+                       .map(k=>({key:k,bal:bal[k]})).filter(x=>x.bal>0);
+      const order = attack.concat(last);   // S อยู่ท้ายสุดเสมอ
       for(const x of order){
         if(pool<=0) break;
         const p=Math.min(pool, bal[x.key]);
@@ -974,8 +983,8 @@ function buildMainPlan(){
     const maxNeed = Math.max(...rows.map(r=>r.total));
     const over = rows.some(r=> r.total > budget+1);
     note.innerHTML =
-      `<b>S, G</b> จ่ายตามงวดฟิก (ปิดก่อน) • <b>YourCash / LINE BK / AEON</b> จ่ายขั้นต่ำ (${fmt(MAIN_MIN.YourCash)} / ${fmt(MAIN_MIN['LINE BK'])} / ${fmt(MAIN_MIN.AEON)}) แล้วทุ่มงบที่เหลือปิดตัวที่ไม่ฟิกให้ไวสุด • ปิดครบใน <b>${rows.length}</b> เดือน`
-      + (over ? `<br>💡 ช่วงแรกต้องจ่ายจริงราว <b>${fmt(Math.round(maxNeed))}</b>/เดือน (งวดฟิก S+G + ขั้นต่ำตัวอื่น) แล้วค่อยลดลง` : '');
+      `<b>G</b> จ่ายตามงวดฟิก • <b>S</b> (ดอกถูกสุด) จ่ายขั้นต่ำ เก็บไว้ปิดท้ายสุด • <b>YourCash / LINE BK / AEON</b> จ่ายขั้นต่ำ ${fmt(MAIN_MIN.AEON)} แล้วทุ่มงบที่เหลือปิดก้อนแพงก่อน • ปิดครบใน <b>${rows.length}</b> เดือน`
+      + (over ? `<br>💡 ช่วงแรกต้องจ่ายจริงราว <b>${fmt(Math.round(maxNeed))}</b>/เดือน แล้วค่อยลดลง` : '');
   }
 }
 
@@ -1288,7 +1297,7 @@ renderGoldSystem_v3();
 // รวมทุก localStorage key ที่แอปใช้ ไว้ในไฟล์เดียว
 const BACKUP_KEYS = ['debtCellsPaid_v1','loanInstall_v1','goldCellsPaid_isolated_v3','loanCar2_v1','loanKsk_v1','loanKsk_v1_bal','loanChayo_v1','loanChayo_v1_bal','extraPaid_v1','payLog_v1','patTarget_v1','patBal_gold','patGoldMin','patTableCells_v1','activeProfile','monthlyTarget_v1',
   'mainBal_S','mainBal_G','mainBal_YourCash','mainBal_LINE BK','mainBal_AEON',
-  'pondBudget','pcb_main','pcb_loan40','pcb_gold','pcb_goldmin','pcb_car','pcb_ksk','pcb_chayo','pondCombCells','paDebts_v1','chayoInit21_v1','mainBudget','ycAdd2000_v1','ycAdd1000_v1','mainBalSet_20260704','mainBudget15k_v1'];
+  'pondBudget','pcb_main','pcb_loan40','pcb_gold','pcb_goldmin','pcb_car','pcb_ksk','pcb_chayo','pondCombCells','paDebts_v1','chayoInit21_v1','mainBudget','ycAdd2000_v1','ycAdd1000_v1','mainBalSet_20260704','mainBudget15k_v1','mainBalSetS_v2'];
 
 document.getElementById('exportBtn').addEventListener('click',()=>{
   const dump = { app:'debt-plan', version:1, exportedAt:new Date().toISOString(), data:{} };
