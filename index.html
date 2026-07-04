@@ -891,11 +891,11 @@ function buildCreditors(){
 
 // ===== แผนจ่ายหนี้หลักรายเดือน =====
 // G = ฟิก จ่ายตามงวดเต็มทุกเดือน
-// S = ดอกถูกสุด (หมุนได้) → จ่ายขั้นต่ำ แล้ว "ปิดท้ายสุด" (avalanche: ปิดก้อนแพงก่อน)
+// S = ดอกถูกสุด (หมุนเอง) → แยกไว้ ไม่แตะระหว่างทาง ปิดก้อนเดียวเดือนสุดท้าย
 // YourCash / LINE BK / AEON = จ่ายขั้นต่ำ แล้วทุ่มงบที่เหลือปิดก่อน (ใบเล็กก่อน)
 const MAIN_FIXED = { G:[4046,4046,4046,1483] };
-const MAIN_MIN   = { S:1000, YourCash:1000, 'LINE BK':1000, AEON:1000 };
-const MAIN_PAYLAST = ['S'];   // ปิดเป็นก้อนสุดท้าย (ดอกถูกสุด)
+const MAIN_MIN   = { YourCash:1000, 'LINE BK':1000, AEON:1000 };
+const MAIN_PAYLAST = ['S'];   // แยกไว้ปิดก้อนเดียวเดือนสุดท้าย
 // งบหนี้หลักตั้งเองได้ (แยกจากงบรวม) — เริ่มต้น 10,000
 function getMainBudget(){ const raw=localStorage.getItem('mainBudget'); const v=+raw; return (raw!==null&&raw!==''&&!isNaN(v)&&v>0)?v:15000; }
 // ตั้งงบหนี้หลักเป็น 15,000 (ครั้งเดียว) — override ค่าที่ตั้งไว้เดิม
@@ -909,44 +909,51 @@ function mainPlanGenerate(){
   const bal={}; creditors.forEach(c=>{ bal[c.key]=getMainBal(c.key); });
   if(!creditors.some(c=>bal[c.key]>0)) return rows;
   const fixedKeys = creditors.map(c=>c.key).filter(k=>MAIN_FIXED[k]);
-  const flexKeys  = creditors.map(c=>c.key).filter(k=>!MAIN_FIXED[k]);
+  const lastKeys  = creditors.map(c=>c.key).filter(k=>MAIN_PAYLAST.includes(k));
+  const minKeys   = creditors.map(c=>c.key).filter(k=>!MAIN_FIXED[k] && !MAIN_PAYLAST.includes(k));
   const fixIdx={}; fixedKeys.forEach(k=>fixIdx[k]=0);
   let guard=0;
   while(creditors.some(c=>bal[c.key]>0) && guard<400){
     guard++;
     const pay={}, closed={};
     creditors.forEach(c=>{ pay[c.key]=0; });
-    // 1) ตัวฟิก (S/G) จ่ายเต็มงวดเสมอ — ให้ปิดก่อน
-    fixedKeys.forEach(k=>{
-      if(bal[k]<=0) return;
-      const sched=MAIN_FIXED[k];
-      const base = fixIdx[k] < sched.length ? sched[fixIdx[k]] : sched[sched.length-1];
-      const amt = Math.min(base, bal[k]);
-      pay[k]+=amt; bal[k]-=amt; fixIdx[k]++;
-      if(bal[k]<=0) closed[k]=true;
-    });
-    // 2) ตัวจ่ายขั้นต่ำ — จ่ายขั้นต่ำก่อน
-    flexKeys.forEach(k=>{
-      if(bal[k]<=0) return;
-      const amt = Math.min(MAIN_MIN[k]||0, bal[k]);
-      pay[k]+=amt; bal[k]-=amt;
-      if(bal[k]<=0) closed[k]=true;
-    });
-    // 3) งบส่วนเกิน → ทุ่มปิดก้อนแพงก่อน (ใบเล็กก่อน) เก็บ S (ดอกถูกสุด) ไว้ปิดท้ายสุด
-    let spent=creditors.reduce((s,c)=>s+pay[c.key],0);
-    let pool=Math.max(0, budget-spent);
-    if(pool>0){
-      const attack = flexKeys.filter(k=>!MAIN_PAYLAST.includes(k))
-                       .map(k=>({key:k,bal:bal[k]})).filter(x=>x.bal>0).sort((a,b)=>a.bal-b.bal);
-      const last   = flexKeys.filter(k=>MAIN_PAYLAST.includes(k))
-                       .map(k=>({key:k,bal:bal[k]})).filter(x=>x.bal>0);
-      const order = attack.concat(last);   // S อยู่ท้ายสุดเสมอ
+    const othersLeft = fixedKeys.concat(minKeys).some(k=>bal[k]>0);
+    if(othersLeft){
+      // 1) G จ่ายงวดฟิก
+      fixedKeys.forEach(k=>{
+        if(bal[k]<=0) return;
+        const sched=MAIN_FIXED[k];
+        const base = fixIdx[k] < sched.length ? sched[fixIdx[k]] : sched[sched.length-1];
+        const amt = Math.min(base, bal[k]);
+        pay[k]+=amt; bal[k]-=amt; fixIdx[k]++;
+        if(bal[k]<=0) closed[k]=true;
+      });
+      // 2) YourCash/LINE BK/AEON จ่ายขั้นต่ำ (ยังไม่แตะ S)
+      minKeys.forEach(k=>{
+        if(bal[k]<=0) return;
+        const amt = Math.min(MAIN_MIN[k]||0, bal[k]);
+        pay[k]+=amt; bal[k]-=amt;
+        if(bal[k]<=0) closed[k]=true;
+      });
+      // 3) งบส่วนเกิน → ทุ่มปิด YourCash/LINE BK/AEON ใบเล็กก่อน (เว้น S ไว้)
+      let spent=creditors.reduce((s,c)=>s+pay[c.key],0);
+      let pool=Math.max(0, budget-spent);
+      const order=minKeys.map(k=>({key:k,bal:bal[k]})).filter(x=>x.bal>0).sort((a,b)=>a.bal-b.bal);
       for(const x of order){
         if(pool<=0) break;
         const p=Math.min(pool, bal[x.key]);
         pay[x.key]+=p; bal[x.key]-=p; pool-=p;
         if(bal[x.key]<=0) closed[x.key]=true;
       }
+    } else {
+      // เหลือแต่ S → ปิดก้อนเดียวด้วยงบเต็ม (เดือนสุดท้าย)
+      let pool=budget;
+      lastKeys.forEach(k=>{
+        if(bal[k]<=0 || pool<=0) return;
+        const amt=Math.min(bal[k], pool);
+        pay[k]+=amt; bal[k]-=amt; pool-=amt;
+        if(bal[k]<=0) closed[k]=true;
+      });
     }
     const total=creditors.reduce((s,c)=>s+pay[c.key],0);
     rows.push({pay, closed, total});
@@ -983,7 +990,7 @@ function buildMainPlan(){
     const maxNeed = Math.max(...rows.map(r=>r.total));
     const over = rows.some(r=> r.total > budget+1);
     note.innerHTML =
-      `<b>G</b> จ่ายตามงวดฟิก • <b>S</b> (ดอกถูกสุด) จ่ายขั้นต่ำ เก็บไว้ปิดท้ายสุด • <b>YourCash / LINE BK / AEON</b> จ่ายขั้นต่ำ ${fmt(MAIN_MIN.AEON)} แล้วทุ่มงบที่เหลือปิดก้อนแพงก่อน • ปิดครบใน <b>${rows.length}</b> เดือน`
+      `<b>G</b> จ่ายตามงวดฟิก • <b>YourCash / LINE BK / AEON</b> จ่ายขั้นต่ำ ${fmt(MAIN_MIN.AEON)} แล้วทุ่มงบที่เหลือปิดก้อนแพงก่อน • <b>S</b> (ดอกถูกสุด) แยกไว้ปิดก้อนเดียวเดือนสุดท้าย (หมุนเอง) • ปิดครบใน <b>${rows.length}</b> เดือน`
       + (over ? `<br>💡 ช่วงแรกต้องจ่ายจริงราว <b>${fmt(Math.round(maxNeed))}</b>/เดือน แล้วค่อยลดลง` : '');
   }
 }
