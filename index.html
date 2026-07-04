@@ -890,7 +890,7 @@ function buildCreditors(){
 // ตัวจ่ายขั้นต่ำ (YourCash, LINE BK, AEON) = จ่ายขั้นต่ำไปก่อน
 // งบส่วนเกินหลังจ่ายฟิก+ขั้นต่ำ → เร่งปิดตัวจ่ายขั้นต่ำ ใบเล็กก่อน
 const MAIN_FIXED = { S:[4611,3622], G:[4046,4046,4046,1483] };
-const MAIN_MIN   = { YourCash:400, 'LINE BK':1000, AEON:700 };
+const MAIN_MIN   = { YourCash:1000, 'LINE BK':1000, AEON:1000 };
 // งบหนี้หลักตั้งเองได้ (แยกจากงบรวม) — เริ่มต้น 10,000
 function getMainBudget(){ const raw=localStorage.getItem('mainBudget'); const v=+raw; return (raw!==null&&raw!==''&&!isNaN(v)&&v>0)?v:10000; }
 function mainMonthlyBudget(){ return getMainBudget(); }
@@ -1979,11 +1979,13 @@ let pondRows=[];
 let pondPage=0, pondShowAll=false;
 const POND_PER_PAGE=12;
 function pondGenerate(){
-  const B=getPondBudget(), goldMin=getPondGoldMin(), mainBud=getMainBudget();
+  const B=getPondBudget(), goldMin=getPondGoldMin();
+  const mainPlan=mainPlanGenerate();   // แผนหนี้หลักจริง (ยอดต่อเดือนตรงกับแท็บหนี้หลัก)
   const bal={}; pondCombDebts.forEach(d=> bal[d.key]=getPondBal(d.key));
   const anyBal=()=> pondCombDebts.some(d=>bal[d.key]>0.5);
   const rows=[]; let guard=0;
   while(anyBal() && guard<400){
+    const idx=rows.length;
     guard++;
     const alloc={};
     // 1) ค่างวดฟิกทุกสัญญา (จ่ายเต็มเสมอ — ผ่อน40 / รถ / ชโย)
@@ -1992,18 +1994,14 @@ function pondGenerate(){
       const pay=Math.min(d.per, bal[d.key]);
       bal[d.key]-=pay; alloc[d.key]=(alloc[d.key]||0)+pay;
     }
-    // 2) หนี้หลัก = งบหนี้หลักที่ตั้งไว้ (จัดการปิดตัวไม่ฟิกในหนี้หลักเองในแท็บหนี้หลัก)
-    if(bal.main>0.5){ const pay=Math.min(mainBud, bal.main); bal.main-=pay; alloc.main=(alloc.main||0)+pay; }
+    // 2) หนี้หลัก = ยอดจริงจากแผนหนี้หลักเดือนนั้น (S/G ฟิก + ขั้นต่ำ + ทุ่มปิด)
+    if(bal.main>0.5){ const mp = mainPlan[idx] ? mainPlan[idx].total : bal.main; const pay=Math.min(mp, bal.main); bal.main-=pay; alloc.main=(alloc.main||0)+pay; }
     // 3) ทองต่อดอกทุกเดือน (จ่ายดอก เงินต้นไม่ลด)
     if(bal.gold>0.5){ const intr=Math.min(goldMin,bal.gold); alloc.gold=(alloc.gold||0)+intr; bal.gold-=intr; }
-    // 4) งบส่วนเกิน (ถ้างบรวม > ที่จ่ายฟิก+หนี้หลัก+ดอกทอง) → ทุ่มปิดตัวไม่ฟิก: ทอง → หนี้หลัก
+    // 4) งบส่วนเกิน (ถ้างบรวม > ที่จ่ายไปแล้ว) → ทุ่มปิดตัวไม่ฟิก: ทอง
     let spent=pondCombDebts.reduce((s,d)=>s+(alloc[d.key]||0),0);
     let left=Math.max(0, B-spent);
-    for(const k of ['gold','main']){
-      if(left<=0.5) break;
-      if(bal[k]<=0.5) continue;
-      const pay=Math.min(bal[k],left); bal[k]-=pay; alloc[k]=(alloc[k]||0)+pay; left-=pay;
-    }
+    if(bal.gold>0.5 && left>0.5){ const pay=Math.min(bal.gold,left); bal.gold-=pay; alloc.gold=(alloc.gold||0)+pay; left-=pay; }
     rows.push(alloc);
   }
   return rows;
