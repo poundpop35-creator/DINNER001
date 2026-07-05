@@ -195,6 +195,22 @@ body.capturing .loan .lstats{ grid-template-columns:repeat(4,1fr) !important; }
 body.capturing #paTbl th, body.capturing #paTbl td{ white-space:normal; font-size:15px; padding:12px 10px; }
 body.capturing #paTbl .cap-text{ text-align:inherit; }
 
+/* ====== หน้าป๊า: ดูง่าย น่ารัก + แถบสถานะสี ====== */
+.pa-hero{ text-align:center; padding:20px 16px 8px; }
+.pa-hero-emoji{ font-size:42px; line-height:1; }
+.pa-hero-title{ font-size:21px; font-weight:900; color:#0f172a; margin-top:6px; letter-spacing:.3px; }
+.pa-hero-sub{ font-size:13px; color:#f97316; margin-top:3px; font-weight:700; }
+#paTbl tbody tr.pa-paid{ background:rgba(16,185,129,.10); }
+#paTbl tbody tr.pa-part{ background:rgba(245,158,11,.12); }
+#paTbl tbody tr.pa-owe{ background:rgba(239,68,68,.10); }
+.pa-pill{ display:inline-block; padding:4px 11px; border-radius:999px; font-size:12px; font-weight:800; white-space:nowrap; color:#fff; }
+.pa-pill.pa-paid{ background:#10b981; }
+.pa-pill.pa-part{ background:#f59e0b; }
+.pa-pill.pa-owe{ background:#ef4444; }
+.pa-legend{ display:flex; gap:10px; justify-content:center; flex-wrap:wrap; padding:12px 10px 4px; }
+/* ตอนแชร์รูป/พิมพ์: ซ่อนคอลัมน์ปุ่มลบของตารางป๊า ให้สะอาดตา */
+body.capturing #paTbl .noprint{ display:none !important; }
+
 /* ============ จัดหน้าสำหรับพิมพ์ / PDF ขนาด A4 ============ */
 @media print{
   @page{ size:A4 portrait; margin:8mm; }
@@ -642,6 +658,11 @@ body.capturing #paTbl .cap-text{ text-align:inherit; }
     </div>
 
     <div id="cap-pa" class="capbox">
+      <div class="pa-hero">
+        <div class="pa-hero-emoji">🧔‍♂️💸</div>
+        <div class="pa-hero-title">สรุปหนี้ที่ป๊าติดเราไว้</div>
+        <div class="pa-hero-sub">รีบจ่ายนะป๊า เดี๋ยวลูกคิดดอกน้า 😝</div>
+      </div>
       <section class="cards">
         <div class="kpi glow-cyan"><div class="lab">ป๊าติดเราทั้งหมด</div><div class="val" id="paKTotal">–</div></div>
         <div class="kpi glow-green"><div class="lab">จ่ายคืนแล้ว</div><div class="val" id="paKPaid">–</div></div>
@@ -657,6 +678,11 @@ body.capturing #paTbl .cap-text{ text-align:inherit; }
           </table>
         </div>
       </section>
+      <div class="pa-legend">
+        <span class="pa-pill pa-paid">✅ จ่ายครบแล้ว</span>
+        <span class="pa-pill pa-part">🟠 จ่ายบางส่วน</span>
+        <span class="pa-pill pa-owe">🔴 ยังไม่จ่าย</span>
+      </div>
       <div class="foot-note noprint">
         👉 พอป๊าจ่ายคืน แก้ยอดในช่อง "จ่ายคืนแล้ว" ได้เลย • กด ✕ เพื่อลบรายการ (ต้องใส่รหัส) • ยอดค้างคำนวณให้อัตโนมัติ
       </div>
@@ -2131,22 +2157,30 @@ function paKpi(){
   document.getElementById('paKLeft').innerHTML=fmt(Math.round(paLeftSum()))+' <small>บาท</small>';
   document.getElementById('paKCount').innerHTML=paDebts.length+' <small>รายการ</small>';
 }
+function paStatus(total, paid){
+  const t=+total||0, pd=+paid||0, rem=Math.max(0,t-pd);
+  if(t>0 && rem<=0) return {cls:'pa-paid', pill:'✅ จ่ายครบแล้ว'};
+  if(pd>0 && rem>0) return {cls:'pa-part', pill:'🟠 จ่ายบางส่วน'};
+  return {cls:'pa-owe', pill:'🔴 ยังไม่จ่าย'};
+}
 function renderPa(){
   const head=document.getElementById('paHead'); if(!head) return;
   const body=document.getElementById('paBody');
   const foot=document.getElementById('paFoot');
-  head.innerHTML='<th style="text-align:left">รายการ</th><th>ยอดที่ติด</th><th>จ่ายคืนแล้ว</th><th>ค้างอยู่</th><th style="text-align:left">หมายเหตุ</th><th class="noprint"></th>';
+  head.innerHTML='<th style="text-align:left">รายการ</th><th>ยอดที่ติด</th><th>จ่ายคืนแล้ว</th><th>ค้างอยู่</th><th>สถานะ</th><th style="text-align:left">หมายเหตุ</th><th class="noprint"></th>';
   if(!paDebts.length){
-    body.innerHTML='<tr><td colspan="6" style="padding:18px;color:#64748b">ยังไม่มีรายการ — กรอกรายการกับยอดที่ป๊าติดด้านบนแล้วกด ➕ เพิ่ม</td></tr>';
+    body.innerHTML='<tr><td colspan="7" style="padding:18px;color:#64748b">ยังไม่มีรายการ — กรอกรายการกับยอดที่ป๊าติดด้านบนแล้วกด ➕ เพิ่ม</td></tr>';
     foot.innerHTML='';
   } else {
     body.innerHTML=paDebts.map((d,i)=>{
       const rem=Math.max(0,(+d.total||0)-(+d.paid||0));
-      return `<tr>`+
+      const st=paStatus(d.total, d.paid);
+      return `<tr id="pa-row-${i}" class="${st.cls}">`+
         `<td style="text-align:left"><input class="pa-in pa-name" data-i="${i}" type="text" value="${escAttr(d.name)}"></td>`+
         `<td><input class="pa-in pa-num" data-i="${i}" data-f="total" type="number" inputmode="numeric" value="${+d.total||0}"></td>`+
         `<td><input class="pa-in pa-num" data-i="${i}" data-f="paid" type="number" inputmode="numeric" value="${+d.paid||0}"></td>`+
         `<td id="pa-rem-${i}"><b>${fmt(Math.round(rem))}</b></td>`+
+        `<td id="pa-st-${i}"><span class="pa-pill ${st.cls}">${st.pill}</span></td>`+
         `<td style="text-align:left"><input class="pa-in pa-note" data-i="${i}" type="text" value="${escAttr(d.note)}" placeholder="—"></td>`+
         `<td class="noprint"><button class="px" data-padel="${i}" title="ลบรายการ">✕</button></td>`+
       `</tr>`;
@@ -2155,16 +2189,24 @@ function renderPa(){
       `<td>${fmt(Math.round(paTotalSum()))}</td>`+
       `<td>${fmt(Math.round(paPaidSum()))}</td>`+
       `<td>${fmt(Math.round(paLeftSum()))}</td>`+
-      '<td></td><td class="noprint"></td>';
+      '<td></td><td></td><td class="noprint"></td>';
   }
   paKpi();
 }
 function paRecalc(){
-  paDebts.forEach((d,i)=>{ const c=document.getElementById('pa-rem-'+i); if(c) c.innerHTML='<b>'+fmt(Math.round(Math.max(0,(+d.total||0)-(+d.paid||0))))+'</b>'; });
+  paDebts.forEach((d,i)=>{
+    const c=document.getElementById('pa-rem-'+i);
+    if(c) c.innerHTML='<b>'+fmt(Math.round(Math.max(0,(+d.total||0)-(+d.paid||0))))+'</b>';
+    const st=paStatus(d.total, d.paid);
+    const sc=document.getElementById('pa-st-'+i);
+    if(sc) sc.innerHTML='<span class="pa-pill '+st.cls+'">'+st.pill+'</span>';
+    const row=document.getElementById('pa-row-'+i);
+    if(row){ row.classList.remove('pa-paid','pa-part','pa-owe'); row.classList.add(st.cls); }
+  });
   const foot=document.getElementById('paFoot');
   if(foot && paDebts.length) foot.innerHTML='<td style="text-align:left">รวม</td>'+
     `<td>${fmt(Math.round(paTotalSum()))}</td><td>${fmt(Math.round(paPaidSum()))}</td>`+
-    `<td>${fmt(Math.round(paLeftSum()))}</td><td></td><td class="noprint"></td>`;
+    `<td>${fmt(Math.round(paLeftSum()))}</td><td></td><td></td><td class="noprint"></td>`;
   paKpi();
 }
 document.getElementById('paAdd').addEventListener('click', ()=>{
@@ -2199,9 +2241,9 @@ document.addEventListener('click', e=>{
   paDebts.splice(i,1); savePaDebts(); renderPa();
 });
 function xlsPaDebt(){
-  const headers=['รายการ','ยอดที่ติด','จ่ายคืนแล้ว','ค้างอยู่','หมายเหตุ'];
-  const rows=paDebts.map(d=>[d.name||'', fmt(Math.round(+d.total||0)), fmt(Math.round(+d.paid||0)), fmt(Math.round(Math.max(0,(+d.total||0)-(+d.paid||0)))), d.note||'']);
-  rows.push(['รวม', fmt(Math.round(paTotalSum())), fmt(Math.round(paPaidSum())), fmt(Math.round(paLeftSum())), '']);
+  const headers=['รายการ','ยอดที่ติด','จ่ายคืนแล้ว','ค้างอยู่','สถานะ','หมายเหตุ'];
+  const rows=paDebts.map(d=>[d.name||'', fmt(Math.round(+d.total||0)), fmt(Math.round(+d.paid||0)), fmt(Math.round(Math.max(0,(+d.total||0)-(+d.paid||0)))), paStatus(d.total,d.paid).pill, d.note||'']);
+  rows.push(['รวม', fmt(Math.round(paTotalSum())), fmt(Math.round(paPaidSum())), fmt(Math.round(paLeftSum())), '', '']);
   downloadXls('ป๊าจ่ายคืนเรา','เงินที่ป๊าต้องจ่ายคืนเรา',headers,rows);
 }
 
