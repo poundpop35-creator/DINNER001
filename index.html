@@ -82,13 +82,19 @@ h1{font-size:22px;margin:0;color:var(--text2);letter-spacing:.2px}
 .paystep{font-size:13px;font-weight:800;color:#6d28d9;margin:4px 0 8px}
 .pg-title{font-size:15px;font-weight:900;color:#0f172a;margin:16px 0 4px;padding-bottom:6px;border-bottom:2px solid var(--line)}
 .paygroup:first-child .pg-title{margin-top:6px}
-.payline{display:flex;align-items:center;gap:8px;padding:9px 0;border-bottom:1px dashed var(--line)}
+.payline{display:flex;flex-direction:column;gap:7px;padding:11px 0;border-bottom:1px dashed var(--line)}
 .payline:last-child{border-bottom:none}
-.payline .pl-info{flex:1;min-width:0;display:flex;flex-direction:column}
-.payline .pl-info b{font-size:14px;color:var(--text)}
-.payline .pl-info .due{font-size:12px;color:#dc2626;font-weight:700;font-variant-numeric:tabular-nums}
-.payline .pl-info .ok{font-size:12px;color:#059669;font-weight:700}
-.payline input{width:105px;background:#fff;color:var(--text);border:1px solid var(--line);border-radius:10px;padding:10px;font-size:15px;outline:none;flex:none}
+.pl-head{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.pl-head b{font-size:15px;color:var(--text)}
+.pl-head .due{font-size:12px;color:#dc2626;font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap}
+.pl-head .ok{font-size:12px;color:#059669;font-weight:700}
+.pl-month{font-size:12.5px}
+.pl-month .mdue{color:#92400e;font-weight:700}
+.pl-month .mok{color:#059669;font-weight:700}
+.pl-month .mnote{color:var(--muted);font-weight:600}
+.pl-act{display:flex;gap:8px;align-items:stretch;flex-wrap:wrap}
+.pl-full{background:#059669;color:#fff;border:none;border-radius:10px;padding:10px 14px;font-weight:800;font-size:13px;cursor:pointer;flex:none;font-family:inherit;white-space:nowrap}
+.payline input{flex:1;min-width:90px;background:#fff;color:var(--text);border:1px solid var(--line);border-radius:10px;padding:10px;font-size:15px;outline:none}
 .payline input:focus{border-color:#7c3aed;box-shadow:0 0 0 2px rgba(124,58,237,.15)}
 .pl-pay{background:#7c3aed;color:#fff;border:none;border-radius:10px;padding:10px 16px;font-weight:800;font-size:14px;cursor:pointer;flex:none;font-family:inherit}
 .payline.done{opacity:.65}
@@ -938,10 +944,11 @@ if(!localStorage.getItem('mainBudget15k_v1')){ localStorage.setItem('mainBudget'
 function mainMonthlyBudget(){ return getMainBudget(); }
 const PLAN_MN=['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
 function planMonthLabel(i){ const d=new Date(); return PLAN_MN[(d.getMonth()+i)%12]; }
-function mainPlanGenerate(){
+function mainPlanGenerate(balGetter){
+  const getBal = balGetter || getMainBal;
   const budget=mainMonthlyBudget();
   const rows=[];
-  const bal={}; creditors.forEach(c=>{ bal[c.key]=getMainBal(c.key); });
+  const bal={}; creditors.forEach(c=>{ bal[c.key]=getBal(c.key); });
   if(!creditors.some(c=>bal[c.key]>0)) return rows;
   const fixedKeys = creditors.map(c=>c.key).filter(k=>MAIN_FIXED[k]);
   const lastKeys  = creditors.map(c=>c.key).filter(k=>MAIN_PAYLAST.includes(k));
@@ -1905,8 +1912,8 @@ const payDebts = [
   {id:'LINE BK',  name:'LINE BK',    tag:'หนี้หลัก'},
   {id:'AEON',     name:'AEON',       tag:'หนี้หลัก'},
   {id:'loan40',   name:'ผ่อน 40 งวด', tag:'สัญญาผ่อน'},
-  {id:'gold4959', name:'ทอง 4959',   tag:'ทองรวมทั้ง 2 สัญญา'},
-  {id:'gold4341', name:'ทอง 4341',   tag:'ทองรวมทั้ง 2 สัญญา'},
+  {id:'gold4959', name:'ทอง (รวม 2 สัญญา)', tag:'ทอง'},
+  {id:'gold4341', name:'ทอง 4341',   tag:'ทอง'},
   {id:'car2',     name:'รถคันสีเทา',  tag:'สัญญาผ่อน'},
   {id:'chayo',    name:'ชโย เจวี',    tag:'สัญญาผ่อน'},
 ];
@@ -1922,25 +1929,52 @@ function payRemaining(id){
 }
 // กลุ่มสัญญาในหน้าโปะหนี้ (จ่ายตรงที่แถวของสัญญานั้นเลย)
 const payGroupDefs = [
-  {title:'💳 สัญญาหนี้หลัก',                ids:['S','G','YourCash','LINE BK','AEON']},
-  {title:'🏆 สัญญาทอง (ยอดรวมกัน 2 สัญญา)', ids:['gold4959','gold4341']},
-  {title:'🚗 สัญญารถ / ผ่อน',               ids:['loan40','car2','chayo']},
+  {title:'💳 สัญญาหนี้หลัก',   ids:['S','G','YourCash','LINE BK','AEON']},
+  {title:'🏆 สัญญาทอง',        ids:['gold4959']},
+  {title:'🚗 สัญญารถ / ผ่อน',  ids:['loan40','car2','chayo']},
 ];
+// จ่ายไปแล้วเดือนนี้ (จากประวัติ) — ทองนับรวมทั้ง 2 สัญญา
+function paidThisMonth(id){
+  const now=new Date(), m=now.getMonth(), y=now.getFullYear();
+  const ids = id==='gold4959' ? ['gold4959','gold4341'] : [id];
+  return payLog.reduce((s,e)=>{
+    const d=new Date(e.t);
+    return s + ((ids.includes(e.id) && d.getMonth()===m && d.getFullYear()===y) ? e.amt : 0);
+  },0);
+}
 var payLastMsg=null, payReady=false;
 function buildPayPick(){
   const host=document.getElementById('payGroups'); if(!host) return;
+  // งวดเดือนนี้ของหนี้หลัก = แผนเดือนแรก คิดจากยอด "ต้นเดือน" (ยอดตอนนี้ + ที่จ่ายไปแล้วเดือนนี้)
+  const mainDue={};
+  const plan=mainPlanGenerate(k=> getMainBal(k)+paidThisMonth(k));
+  if(plan.length) creditors.forEach(c=>{ mainDue[c.key]=Math.round(plan[0].pay[c.key]||0); });
+  const dueOf = id =>
+    isMainCreditor(id) ? (mainDue[id]||0) :
+    id==='loan40' ? 4875 : id==='car2' ? 7000 : id==='chayo' ? 4000 :
+    id==='gold4959' ? getPondGoldMin() : 0;
+  const msgFor = id => (payLastMsg && payLastMsg.id===id) ? `<div class="payresult">${payLastMsg.msg}</div>` : '';
   host.innerHTML = payGroupDefs.map(g=>{
     const rows=g.ids.map(id=>{
       const d=payDebts.find(x=>x.id===id);
       const rem=Math.round(payRemaining(id));
-      const done=rem<=0;
-      return `<div class="payline${done?' done':''}">`+
-        `<div class="pl-info"><b>${d.name}</b>`+
-        `<span class="${done?'ok':'due'}">${done?'เคลียร์แล้ว ✓':'ค้าง '+fmt(rem)+' ฿'}</span></div>`+
-        (done?'':`<input type="number" inputmode="numeric" min="1" placeholder="บาท" data-payin="${d.id}">`+
-        `<button class="pl-pay" data-payfor="${d.id}">จ่าย</button>`)+
-      `</div>`+
-      (payLastMsg && payLastMsg.id===id ? `<div class="payresult">${payLastMsg.msg}</div>` : '');
+      if(rem<=0) return `<div class="payline done"><div class="pl-head"><b>${d.name}</b><span class="ok">เคลียร์แล้ว ✓</span></div></div>`+msgFor(id);
+      const due=Math.min(dueOf(id), rem);
+      const paidM=Math.round(paidThisMonth(id));
+      const leftM=Math.max(0, due-paidM);
+      let mline;
+      if(due<=0)       mline=`<span class="mnote">เดือนนี้ยังไม่ถึงคิวตามแผน (โปะเพิ่มได้)</span>`;
+      else if(leftM<=0) mline=`<span class="mok">✅ งวดเดือนนี้จ่ายครบแล้ว (${fmt(paidM)} บาท)</span>`;
+      else mline=`<span class="mdue">งวดเดือนนี้เหลือ <b>${fmt(leftM)}</b> บาท${paidM>0?` (จ่ายแล้ว ${fmt(paidM)} จาก ${fmt(due)})`:''}</span>`;
+      return `<div class="payline">`+
+        `<div class="pl-head"><b>${d.name}</b><span class="due">ค้างรวม ${fmt(rem)} ฿</span></div>`+
+        `<div class="pl-month">${mline}</div>`+
+        `<div class="pl-act">`+
+          (leftM>0?`<button class="pl-full" data-payfull="${d.id}" data-amt="${leftM}">✓ จ่ายเต็มงวด ${fmt(leftM)}</button>`:'')+
+          `<input type="number" inputmode="numeric" min="1" placeholder="จ่ายย่อย (บาท)" data-payin="${d.id}">`+
+          `<button class="pl-pay" data-payfor="${d.id}">จ่าย</button>`+
+        `</div>`+
+      `</div>`+msgFor(id);
     }).join('');
     return `<div class="paygroup"><div class="pg-title">${g.title}</div>${rows}</div>`;
   }).join('');
@@ -1996,16 +2030,21 @@ function undoPayment(i){
   renderAllExtra();
 }
 
-function payFromRow(id){
-  const inp=document.querySelector(`input[data-payin="${CSS.escape(id)}"]`);
-  const amt=Math.round(+(inp?inp.value:0));
-  if(!amt || amt<=0){ alert('กรอกจำนวนเงินก่อนนะ'); if(inp) inp.focus(); return; }
+function doPay(id, amt){
   addPayment(id, amt);   // renderAllExtra ภายในจะวาดแถวใหม่ให้
   const rem=Math.round(payRemaining(id));
   payLastMsg={id, msg:`✅ จ่าย <b>${fmt(amt)}</b> บาทแล้ว • `+(rem<=0?'🎉 ก้อนนี้หมดแล้ว!':`เหลือค้าง <b>${fmt(rem)}</b> บาท`)};
   buildPayPick();
 }
+function payFromRow(id){
+  const inp=document.querySelector(`input[data-payin="${CSS.escape(id)}"]`);
+  const amt=Math.round(+(inp?inp.value:0));
+  if(!amt || amt<=0){ alert('กรอกจำนวนเงินก่อนนะ'); if(inp) inp.focus(); return; }
+  doPay(id, amt);
+}
 document.getElementById('payGroups').addEventListener('click', e=>{
+  const f=e.target.closest('[data-payfull]');
+  if(f){ const amt=Math.round(+f.dataset.amt); if(amt>0) doPay(f.dataset.payfull, amt); return; }
   const b=e.target.closest('[data-payfor]'); if(!b) return;
   payFromRow(b.dataset.payfor);
 });
