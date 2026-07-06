@@ -80,17 +80,19 @@ h1{font-size:22px;margin:0;color:var(--text2);letter-spacing:.2px}
 .btn-pay{background:#7c3aed;color:#fff;border:none;border-radius:10px;padding:11px 18px;font-size:15px;font-weight:800;cursor:pointer;white-space:nowrap}
 .btn-pay:hover{background:#6d28d9}
 .paystep{font-size:13px;font-weight:800;color:#6d28d9;margin:4px 0 8px}
-.paypick{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
-.pp-card{background:#fff;border:2px solid var(--line);border-radius:12px;padding:10px 12px;text-align:left;cursor:pointer;font-family:inherit;min-width:0}
-.pp-card .ppn{display:block;font-size:14px;font-weight:800;color:var(--text)}
-.pp-card .ppt{display:block;font-size:10px;color:var(--muted);margin-top:1px}
-.pp-card .ppb{display:block;font-size:13px;font-weight:800;color:#dc2626;margin-top:4px;font-variant-numeric:tabular-nums}
-.pp-card.done .ppb{color:#059669}
-.pp-card.done{opacity:.6}
-.pp-card.sel{border-color:#7c3aed;background:#f5f3ff;box-shadow:0 0 0 2px rgba(124,58,237,.18)}
-.paybig{width:100%;margin-top:12px;padding:14px;font-size:17px;border-radius:12px}
-.paybig:disabled{background:#cbd5e1;cursor:default}
-.payresult{margin-top:10px;background:#ecfdf5;border:1px solid #a7f3d0;color:#065f46;border-radius:12px;padding:12px 14px;font-size:14px;font-weight:700}
+.pg-title{font-size:15px;font-weight:900;color:#0f172a;margin:16px 0 4px;padding-bottom:6px;border-bottom:2px solid var(--line)}
+.paygroup:first-child .pg-title{margin-top:6px}
+.payline{display:flex;align-items:center;gap:8px;padding:9px 0;border-bottom:1px dashed var(--line)}
+.payline:last-child{border-bottom:none}
+.payline .pl-info{flex:1;min-width:0;display:flex;flex-direction:column}
+.payline .pl-info b{font-size:14px;color:var(--text)}
+.payline .pl-info .due{font-size:12px;color:#dc2626;font-weight:700;font-variant-numeric:tabular-nums}
+.payline .pl-info .ok{font-size:12px;color:#059669;font-weight:700}
+.payline input{width:105px;background:#fff;color:var(--text);border:1px solid var(--line);border-radius:10px;padding:10px;font-size:15px;outline:none;flex:none}
+.payline input:focus{border-color:#7c3aed;box-shadow:0 0 0 2px rgba(124,58,237,.15)}
+.pl-pay{background:#7c3aed;color:#fff;border:none;border-radius:10px;padding:10px 16px;font-weight:800;font-size:14px;cursor:pointer;flex:none;font-family:inherit}
+.payline.done{opacity:.65}
+.payresult{margin:6px 0;background:#ecfdf5;border:1px solid #a7f3d0;color:#065f46;border-radius:12px;padding:10px 12px;font-size:13px;font-weight:700}
 .quickamts{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
 .quickamts button{background:#f3e8ff;color:#6d28d9;border:1px solid #e9d5ff;border-radius:999px;padding:7px 14px;font-size:13px;font-weight:700;cursor:pointer}
 .quickamts button:hover{background:#e9d5ff}
@@ -382,22 +384,10 @@ body.capturing #paTbl .noprint{ display:none !important; }
   <div class="tabpanel" data-tab="pay" style="display:none">
   <section class="panel paypanel noprint">
     <h2>💰 จ่ายหนี้ / โปะหนี้</h2>
-
-    <div class="paystep">1️⃣ แตะเลือกหนี้ที่จะจ่าย (เห็นยอดค้างของทุกก้อน)</div>
-    <div id="payPick" class="paypick"></div>
-
-    <div class="paystep" style="margin-top:14px">2️⃣ ใส่จำนวนเงิน แล้วกดจ่าย</div>
-    <div class="payrow">
-      <input id="payAmt" type="number" inputmode="numeric" min="1" placeholder="จำนวนเงิน (บาท)">
+    <div class="tgtproj" style="margin-bottom:4px">
+      ใส่จำนวนเงินที่ช่องของสัญญานั้น แล้วกด <b>จ่าย</b> — ยอดค้างลดให้ทันที
     </div>
-    <div class="quickamts">
-      <button data-q="500">+500</button>
-      <button data-q="1000">+1,000</button>
-      <button data-q="2000">+2,000</button>
-      <button data-q="5000">+5,000</button>
-    </div>
-    <button id="payAdd" class="btn-pay paybig" disabled>แตะเลือกหนี้ก่อน</button>
-    <div id="payResult" class="payresult" style="display:none"></div>
+    <div id="payGroups"></div>
 
     <div class="paystep" style="margin-top:16px">📒 ประวัติที่จ่ายไป (กด ✕ เพื่อยกเลิกรายการ)</div>
     <div id="payLogList" class="paylog"></div>
@@ -1930,22 +1920,30 @@ function payRemaining(id){
   if(id==='gold4959'||id==='gold4341') return getPondBal('gold');
   return 0;
 }
-var paySel=null, payReady=false;
+// กลุ่มสัญญาในหน้าโปะหนี้ (จ่ายตรงที่แถวของสัญญานั้นเลย)
+const payGroupDefs = [
+  {title:'💳 สัญญาหนี้หลัก',                ids:['S','G','YourCash','LINE BK','AEON']},
+  {title:'🏆 สัญญาทอง (ยอดรวมกัน 2 สัญญา)', ids:['gold4959','gold4341']},
+  {title:'🚗 สัญญารถ / ผ่อน',               ids:['loan40','car2','chayo']},
+];
+var payLastMsg=null, payReady=false;
 function buildPayPick(){
-  const host=document.getElementById('payPick'); if(!host) return;
-  if(paySel!==null && payRemaining(paySel)<=0) paySel=null;   // ก้อนที่เลือกหมดแล้ว → ยกเลิกเลือก
-  host.innerHTML = payDebts.map(d=>{
-    const rem=Math.round(payRemaining(d.id));
-    const done=rem<=0;
-    return `<button class="pp-card${paySel===d.id?' sel':''}${done?' done':''}" data-pick="${d.id}">`+
-      `<span class="ppn">${d.name}</span><span class="ppt">${d.tag}</span>`+
-      `<span class="ppb">${done?'เคลียร์แล้ว ✓':'ค้าง '+fmt(rem)+' ฿'}</span></button>`;
+  const host=document.getElementById('payGroups'); if(!host) return;
+  host.innerHTML = payGroupDefs.map(g=>{
+    const rows=g.ids.map(id=>{
+      const d=payDebts.find(x=>x.id===id);
+      const rem=Math.round(payRemaining(id));
+      const done=rem<=0;
+      return `<div class="payline${done?' done':''}">`+
+        `<div class="pl-info"><b>${d.name}</b>`+
+        `<span class="${done?'ok':'due'}">${done?'เคลียร์แล้ว ✓':'ค้าง '+fmt(rem)+' ฿'}</span></div>`+
+        (done?'':`<input type="number" inputmode="numeric" min="1" placeholder="บาท" data-payin="${d.id}">`+
+        `<button class="pl-pay" data-payfor="${d.id}">จ่าย</button>`)+
+      `</div>`+
+      (payLastMsg && payLastMsg.id===id ? `<div class="payresult">${payLastMsg.msg}</div>` : '');
+    }).join('');
+    return `<div class="paygroup"><div class="pg-title">${g.title}</div>${rows}</div>`;
   }).join('');
-  const btn=document.getElementById('payAdd');
-  if(btn){
-    btn.disabled = paySel===null;
-    btn.textContent = paySel===null ? 'แตะเลือกหนี้ก่อน' : '✓ จ่ายให้ '+payLabel(paySel);
-  }
 }
 
 function renderAllExtra(){
@@ -1998,33 +1996,21 @@ function undoPayment(i){
   renderAllExtra();
 }
 
-document.getElementById('payPick').addEventListener('click', e=>{
-  const c=e.target.closest('[data-pick]'); if(!c) return;
-  paySel = (paySel===c.dataset.pick) ? null : c.dataset.pick;   // แตะซ้ำ = ยกเลิกเลือก
-  buildPayPick();
-});
-document.getElementById('payAdd').addEventListener('click', ()=>{
-  const inp=document.getElementById('payAmt');
-  const id=paySel, amt=Math.round(+inp.value);
-  if(!id){ alert('แตะเลือกหนี้ก่อนนะ'); return; }
-  if(!amt || amt<=0){ alert('กรอกจำนวนเงินให้ถูกต้อง'); inp.focus(); return; }
-  addPayment(id, amt);
-  inp.value='';
+function payFromRow(id){
+  const inp=document.querySelector(`input[data-payin="${CSS.escape(id)}"]`);
+  const amt=Math.round(+(inp?inp.value:0));
+  if(!amt || amt<=0){ alert('กรอกจำนวนเงินก่อนนะ'); if(inp) inp.focus(); return; }
+  addPayment(id, amt);   // renderAllExtra ภายในจะวาดแถวใหม่ให้
   const rem=Math.round(payRemaining(id));
-  const res=document.getElementById('payResult');
-  res.style.display='';
-  res.innerHTML = `✅ จ่าย <b>${fmt(amt)}</b> บาท ให้ <b>${payLabel(id)}</b> แล้ว • `+
-    (rem<=0 ? `🎉 ก้อนนี้หมดแล้ว!` : `เหลือค้างอีก <b>${fmt(rem)}</b> บาท`);
+  payLastMsg={id, msg:`✅ จ่าย <b>${fmt(amt)}</b> บาทแล้ว • `+(rem<=0?'🎉 ก้อนนี้หมดแล้ว!':`เหลือค้าง <b>${fmt(rem)}</b> บาท`)};
+  buildPayPick();
+}
+document.getElementById('payGroups').addEventListener('click', e=>{
+  const b=e.target.closest('[data-payfor]'); if(!b) return;
+  payFromRow(b.dataset.payfor);
 });
-document.getElementById('payAmt').addEventListener('keydown', e=>{
-  if(e.key==='Enter') document.getElementById('payAdd').click();
-});
-document.querySelectorAll('.quickamts button').forEach(b=>{
-  b.addEventListener('click', ()=>{
-    const inp=document.getElementById('payAmt');
-    inp.value = (+inp.value||0) + (+b.dataset.q);
-    inp.focus();
-  });
+document.getElementById('payGroups').addEventListener('keydown', e=>{
+  if(e.key==='Enter' && e.target.dataset && e.target.dataset.payin) payFromRow(e.target.dataset.payin);
 });
 document.getElementById('payLogList').addEventListener('click', e=>{
   const b=e.target.closest('[data-undo]'); if(!b) return;
