@@ -79,6 +79,18 @@ h1{font-size:22px;margin:0;color:var(--text2);letter-spacing:.2px}
 .payrow select:focus,.payrow input:focus{border-color:#7c3aed;box-shadow:0 0 0 2px rgba(124,58,237,.15)}
 .btn-pay{background:#7c3aed;color:#fff;border:none;border-radius:10px;padding:11px 18px;font-size:15px;font-weight:800;cursor:pointer;white-space:nowrap}
 .btn-pay:hover{background:#6d28d9}
+.paystep{font-size:13px;font-weight:800;color:#6d28d9;margin:4px 0 8px}
+.paypick{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
+.pp-card{background:#fff;border:2px solid var(--line);border-radius:12px;padding:10px 12px;text-align:left;cursor:pointer;font-family:inherit;min-width:0}
+.pp-card .ppn{display:block;font-size:14px;font-weight:800;color:var(--text)}
+.pp-card .ppt{display:block;font-size:10px;color:var(--muted);margin-top:1px}
+.pp-card .ppb{display:block;font-size:13px;font-weight:800;color:#dc2626;margin-top:4px;font-variant-numeric:tabular-nums}
+.pp-card.done .ppb{color:#059669}
+.pp-card.done{opacity:.6}
+.pp-card.sel{border-color:#7c3aed;background:#f5f3ff;box-shadow:0 0 0 2px rgba(124,58,237,.18)}
+.paybig{width:100%;margin-top:12px;padding:14px;font-size:17px;border-radius:12px}
+.paybig:disabled{background:#cbd5e1;cursor:default}
+.payresult{margin-top:10px;background:#ecfdf5;border:1px solid #a7f3d0;color:#065f46;border-radius:12px;padding:12px 14px;font-size:14px;font-weight:700}
 .quickamts{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
 .quickamts button{background:#f3e8ff;color:#6d28d9;border:1px solid #e9d5ff;border-radius:999px;padding:7px 14px;font-size:13px;font-weight:700;cursor:pointer}
 .quickamts button:hover{background:#e9d5ff}
@@ -369,11 +381,14 @@ body.capturing #paTbl .noprint{ display:none !important; }
 
   <div class="tabpanel" data-tab="pay" style="display:none">
   <section class="panel paypanel noprint">
-    <h2>💰 บันทึกจ่ายเพิ่ม / โปะหนี้ (ระหว่างเดือน)</h2>
+    <h2>💰 จ่ายหนี้ / โปะหนี้</h2>
+
+    <div class="paystep">1️⃣ แตะเลือกหนี้ที่จะจ่าย (เห็นยอดค้างของทุกก้อน)</div>
+    <div id="payPick" class="paypick"></div>
+
+    <div class="paystep" style="margin-top:14px">2️⃣ ใส่จำนวนเงิน แล้วกดจ่าย</div>
     <div class="payrow">
-      <select id="payDebt"></select>
-      <input id="payAmt" type="number" inputmode="numeric" min="1" placeholder="จำนวนเงินที่จ่าย (บาท)">
-      <button id="payAdd" class="btn-pay">＋ บันทึก</button>
+      <input id="payAmt" type="number" inputmode="numeric" min="1" placeholder="จำนวนเงิน (บาท)">
     </div>
     <div class="quickamts">
       <button data-q="500">+500</button>
@@ -381,6 +396,10 @@ body.capturing #paTbl .noprint{ display:none !important; }
       <button data-q="2000">+2,000</button>
       <button data-q="5000">+5,000</button>
     </div>
+    <button id="payAdd" class="btn-pay paybig" disabled>แตะเลือกหนี้ก่อน</button>
+    <div id="payResult" class="payresult" style="display:none"></div>
+
+    <div class="paystep" style="margin-top:16px">📒 ประวัติที่จ่ายไป (กด ✕ เพื่อยกเลิกรายการ)</div>
     <div id="payLogList" class="paylog"></div>
   </section>
   </div><!-- /tab pay -->
@@ -1890,24 +1909,51 @@ buildMoreLoans('moreLoans');
 
 /* ================= สมุดบันทึกโปะหนี้ (จ่ายเพิ่มเอง) ================= */
 const payDebts = [
-  {id:'S',        label:'S (หนี้หลัก)'},
-  {id:'G',        label:'G (หนี้หลัก)'},
-  {id:'YourCash', label:'YourCash (หนี้หลัก)'},
-  {id:'LINE BK',  label:'LINE BK (หนี้หลัก)'},
-  {id:'AEON',     label:'AEON (หนี้หลัก)'},
-  {id:'loan40',   label:'สัญญาผ่อน 40 งวด'},
-  {id:'gold4959', label:'ทองคำ สัญญา 4959'},
-  {id:'gold4341', label:'ทองคำ สัญญา 4341'},
-  {id:'car2',     label:'รถคันสีเทา'},
-  {id:'chayo',    label:'ชโย เจวี'},
+  {id:'S',        name:'S',          tag:'หนี้หลัก'},
+  {id:'G',        name:'G',          tag:'หนี้หลัก'},
+  {id:'YourCash', name:'YourCash',   tag:'หนี้หลัก'},
+  {id:'LINE BK',  name:'LINE BK',    tag:'หนี้หลัก'},
+  {id:'AEON',     name:'AEON',       tag:'หนี้หลัก'},
+  {id:'loan40',   name:'ผ่อน 40 งวด', tag:'สัญญาผ่อน'},
+  {id:'gold4959', name:'ทอง 4959',   tag:'ทองรวมทั้ง 2 สัญญา'},
+  {id:'gold4341', name:'ทอง 4341',   tag:'ทองรวมทั้ง 2 สัญญา'},
+  {id:'car2',     name:'รถคันสีเทา',  tag:'สัญญาผ่อน'},
+  {id:'chayo',    name:'ชโย เจวี',    tag:'สัญญาผ่อน'},
 ];
-const payLabel = id => (payDebts.find(d=>d.id===id)||{label:id}).label;
+const payLabel = id => { const d=payDebts.find(d=>d.id===id); return d ? d.name+(d.tag==='หนี้หลัก'?' (หนี้หลัก)':'') : id; };
+// ยอดค้างของแต่ละก้อน (สำหรับหน้าโปะหนี้)
+function payRemaining(id){
+  if(isMainCreditor(id)) return getMainBal(id);
+  if(id==='loan40') return getPondBal('loan40');
+  if(id==='car2')   return getPondBal('car');
+  if(id==='chayo')  return getPondBal('chayo');
+  if(id==='gold4959'||id==='gold4341') return getPondBal('gold');
+  return 0;
+}
+var paySel=null, payReady=false;
+function buildPayPick(){
+  const host=document.getElementById('payPick'); if(!host) return;
+  if(paySel!==null && payRemaining(paySel)<=0) paySel=null;   // ก้อนที่เลือกหมดแล้ว → ยกเลิกเลือก
+  host.innerHTML = payDebts.map(d=>{
+    const rem=Math.round(payRemaining(d.id));
+    const done=rem<=0;
+    return `<button class="pp-card${paySel===d.id?' sel':''}${done?' done':''}" data-pick="${d.id}">`+
+      `<span class="ppn">${d.name}</span><span class="ppt">${d.tag}</span>`+
+      `<span class="ppb">${done?'เคลียร์แล้ว ✓':'ค้าง '+fmt(rem)+' ฿'}</span></button>`;
+  }).join('');
+  const btn=document.getElementById('payAdd');
+  if(btn){
+    btn.disabled = paySel===null;
+    btn.textContent = paySel===null ? 'แตะเลือกหนี้ก่อน' : '✓ จ่ายให้ '+payLabel(paySel);
+  }
+}
 
 function renderAllExtra(){
   buildTable();        // คำนวณ "ปิดยอดเร็วขึ้น" ในตารางหนี้หลักใหม่
   render(); renderLoan(); renderGoldSystem_v3();
   moreLoanConfigs.forEach(renderMoreLoan);
   renderPayLog();
+  if(payReady) buildPayPick();
 }
 
 function renderPayLog(){
@@ -1952,12 +1998,23 @@ function undoPayment(i){
   renderAllExtra();
 }
 
-document.getElementById('payDebt').innerHTML =
-  payDebts.map(d=>`<option value="${d.id}">${d.label}</option>`).join('');
+document.getElementById('payPick').addEventListener('click', e=>{
+  const c=e.target.closest('[data-pick]'); if(!c) return;
+  paySel = (paySel===c.dataset.pick) ? null : c.dataset.pick;   // แตะซ้ำ = ยกเลิกเลือก
+  buildPayPick();
+});
 document.getElementById('payAdd').addEventListener('click', ()=>{
   const inp=document.getElementById('payAmt');
-  addPayment(document.getElementById('payDebt').value, inp.value);
+  const id=paySel, amt=Math.round(+inp.value);
+  if(!id){ alert('แตะเลือกหนี้ก่อนนะ'); return; }
+  if(!amt || amt<=0){ alert('กรอกจำนวนเงินให้ถูกต้อง'); inp.focus(); return; }
+  addPayment(id, amt);
   inp.value='';
+  const rem=Math.round(payRemaining(id));
+  const res=document.getElementById('payResult');
+  res.style.display='';
+  res.innerHTML = `✅ จ่าย <b>${fmt(amt)}</b> บาท ให้ <b>${payLabel(id)}</b> แล้ว • `+
+    (rem<=0 ? `🎉 ก้อนนี้หมดแล้ว!` : `เหลือค้างอีก <b>${fmt(rem)}</b> บาท`);
 });
 document.getElementById('payAmt').addEventListener('keydown', e=>{
   if(e.key==='Enter') document.getElementById('payAdd').click();
@@ -2142,6 +2199,8 @@ initPondBalInputs();
 pondReady=true;
 renderPondAll();
 render();  // รีเฟรชยอด "หนี้หลักจ่ายเดือนละ" ให้ตรงกับแผนรวม
+payReady=true;
+buildPayPick();  // การ์ดเลือกหนี้ในหน้าโปะหนี้ (ต้องรอยอดตารางรวมพร้อมก่อน)
 
 /* ================= ป๊า: ตารางหนี้ (กรอกเอง แชร์ได้) ================= */
 function escAttr(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
