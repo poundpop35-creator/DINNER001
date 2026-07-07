@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ชุดการ์ดเกมที่ 1 "ใคร-ทำอะไร" — พร้อมพิมพ์</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  font-family:'Segoe UI','Sukhumvit Set','Noto Sans Thai',-apple-system,BlinkMacSystemFont,sans-serif;
+  background:#f1f5f9;color:#0f172a;
+  -webkit-print-color-adjust:exact;print-color-adjust:exact;
+}
+.wrap{max-width:820px;margin:0 auto;padding:20px 16px 60px}
+
+.toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:18px}
+.toolbar button{
+  background:#0891b2;color:#fff;border:none;border-radius:12px;
+  padding:12px 22px;font-size:16px;font-weight:800;cursor:pointer;font-family:inherit;
+}
+.toolbar .hint{font-size:12.5px;color:#64748b}
+
+h1{font-size:22px;font-weight:900;margin-bottom:4px}
+.sub{font-size:13px;color:#475569;margin-bottom:20px;line-height:1.6;
+  background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:12px 14px}
+
+.sect{margin:26px 0 10px}
+.sect h2{font-size:16px;font-weight:900}
+.sect .snote{font-size:12.5px;color:#64748b;margin-top:2px}
+
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:12px}
+@media(max-width:520px){.grid{grid-template-columns:1fr}}
+
+.card{
+  border:2.5px dashed #94a3b8;border-radius:14px;overflow:hidden;
+  display:flex;flex-direction:column;min-height:150px;background:#fff;
+  break-inside:avoid;page-break-inside:avoid;
+}
+.card .head{
+  padding:8px 12px;font-size:12px;font-weight:900;letter-spacing:.5px;
+  text-transform:uppercase;text-align:center;
+}
+.card .body{
+  flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  padding:18px 16px;text-align:center;font-size:16.5px;font-weight:800;line-height:1.55;
+}
+.card .body small{display:block;font-size:12.5px;font-weight:700;color:#64748b;margin-top:6px}
+
+/* การ์ดบทบาท (สีแดง) */
+.card.role{border-color:#dc2626;background:#fef2f2}
+.card.role .head{background:#dc2626;color:#fff}
+.card.role .body{color:#7f1d1d}
+
+/* การ์ดหน้าที่ (สีขาว) */
+.card.duty{border-color:#64748b;background:#fff}
+.card.duty .head{background:#334155;color:#fff}
+.card.duty .body{font-size:15px}
+
+/* การ์ดขั้นตอน (สีฟ้า) */
+.card.step{border-color:#2563eb;background:#eff6ff}
+.card.step .head{background:#2563eb;color:#fff}
+.card.step .body{color:#1e3a8a}
+
+.scissors{font-size:12px;color:#94a3b8;text-align:center;margin-top:6px}
+
+/* เฉลยวิทยากร */
+.answer{
+  margin-top:34px;border:3px solid #d97706;border-radius:16px;background:#fffbeb;
+  padding:16px 18px;break-inside:avoid;page-break-inside:avoid;
+}
+.answer .warn{
+  display:inline-block;background:#d97706;color:#fff;font-size:12px;font-weight:900;
+  border-radius:999px;padding:4px 14px;margin-bottom:10px;
+}
+.answer h2{font-size:15px;font-weight:900;margin-bottom:8px}
+.answer table{width:100%;border-collapse:collapse;font-size:13px;margin-top:6px}
+.answer th,.answer td{border:1px solid #fcd34d;padding:7px 9px;text-align:left;vertical-align:top}
+.answer th{background:#fef3c7;font-weight:800;white-space:nowrap}
+.answer .steps{margin-top:12px;font-size:13.5px;font-weight:700;line-height:1.7}
+.answer .steps b{color:#92400e}
+
+@media print{
+  body{background:#fff}
+  .wrap{max-width:none;padding:0}
+  .noprint{display:none !important}
+  .sub{border:none;padding:0 0 6px}
+  .answer{page-break-before:always}
+  @page{size:A4;margin:12mm}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="toolbar noprint">
+    <button onclick="window.print()">🖨️ พิมพ์ชุดการ์ด</button>
+    <span class="hint">แนะนำ: กระดาษแข็ง 180 แกรม • พิมพ์ 1 ชุดต่อทีม • ตัดตามเส้นประ</span>
+  </div>
+
+  <h1>ชุดการ์ดเกมที่ 1 "ใคร-ทำอะไร" — พร้อมพิมพ์</h1>
+  <div class="sub">
+    พิมพ์ 1 ชุดต่อทีม (แนะนำกระดาษแข็ง 180 แกรม) ตัดตามเส้นประ •
+    <b>รอบแรก</b> ใช้การ์ดบทบาท + การ์ดหน้าที่ •
+    <b>รอบสอง</b> ใช้การ์ดขั้นตอน (สลับลำดับก่อนใส่ซอง)
+  </div>
+
+  <!-- ================= 1) การ์ดบทบาท ================= -->
+  <div class="sect">
+    <h2>1) การ์ดบทบาท 5 ใบ (สีแดง)</h2>
+    <div class="snote">วางเรียงบนโต๊ะเป็นหัวคอลัมน์ ให้ทีมนำการ์ดหน้าที่มาวางจับคู่</div>
+  </div>
+  <div class="grid">
+    <div class="card role"><div class="head">การ์ดบทบาท</div>
+      <div class="body">ผอ.กองแผนงานฯ<small>(ผู้สั่งการหลัก)</small></div></div>
+    <div class="card role"><div class="head">การ์ดบทบาท</div>
+      <div class="body">หัวหน้าชุด รปภ.</div></div>
+    <div class="card role"><div class="head">การ์ดบทบาท</div>
+      <div class="body">เจ้าหน้าที่ศูนย์ติดตามเหตุการณ์</div></div>
+    <div class="card role"><div class="head">การ์ดบทบาท</div>
+      <div class="body">ผู้ดูแลระบบสื่อสารภายใน</div></div>
+    <div class="card role"><div class="head">การ์ดบทบาท</div>
+      <div class="body">เจ้าหน้าที่ทั่วไป</div></div>
+  </div>
+  <div class="scissors">✂️ - - - - - - - - - - ตัดตามเส้นประ - - - - - - - - - - ✂️</div>
+
+  <!-- ================= 2) การ์ดหน้าที่ ================= -->
+  <div class="sect">
+    <h2>2) การ์ดหน้าที่ 10 ใบ (สีขาว)</h2>
+    <div class="snote">คละลำดับก่อนใส่ซอง — ห้ามพิมพ์ชื่อบทบาทกำกับบนการ์ด</div>
+  </div>
+  <div class="grid">
+    <div class="card duty"><div class="head">การ์ดหน้าที่</div>
+      <div class="body">อนุมัติสั่งปิดอาคารชั่วคราว ร่วมกับผู้บริหารที่ได้รับมอบหมาย</div></div>
+    <div class="card duty"><div class="head">การ์ดหน้าที่</div>
+      <div class="body">ตัดสินใจยกระดับ/ลดระดับความปลอดภัยตาม Trigger Points และ De-escalation Criteria</div></div>
+    <div class="card duty"><div class="head">การ์ดหน้าที่</div>
+      <div class="body">ประสานเจ้าหน้าที่ตำรวจในพื้นที่</div></div>
+    <div class="card duty"><div class="head">การ์ดหน้าที่</div>
+      <div class="body">สั่งเข้มงวดการตรวจบุคคลเข้า-ออก และปิดกั้นจุดเข้า-ออกที่ไม่จำเป็น</div></div>
+    <div class="card duty"><div class="head">การ์ดหน้าที่</div>
+      <div class="body">เฝ้าระวังข่าวสารและแจ้งเตือนฝ่ายอื่นเป็นหน่วยแรก</div></div>
+    <div class="card duty"><div class="head">การ์ดหน้าที่</div>
+      <div class="body">จดบันทึกเหตุการณ์ตามลำดับเวลา (Incident Log) และเก็บหลักฐานจาก CCTV</div></div>
+    <div class="card duty"><div class="head">การ์ดหน้าที่</div>
+      <div class="body">กระจายข่าวถึงพนักงานทุกคนผ่าน Line กลุ่ม/เสียงตามสาย</div></div>
+    <div class="card duty"><div class="head">การ์ดหน้าที่</div>
+      <div class="body">ยืนยันว่าพนักงานทุกฝ่ายได้รับข้อความแจ้งเตือนแล้ว</div></div>
+    <div class="card duty"><div class="head">การ์ดหน้าที่</div>
+      <div class="body">อยู่ในที่ปลอดภัย หลีกเลี่ยงพื้นที่เสี่ยงตามประกาศ</div></div>
+    <div class="card duty"><div class="head">การ์ดหน้าที่</div>
+      <div class="body">รายงานสิ่งผิดปกติที่พบเห็นให้ศูนย์ติดตามเหตุการณ์ทราบ</div></div>
+  </div>
+  <div class="scissors">✂️ - - - - - - - - - - ตัดตามเส้นประ - - - - - - - - - - ✂️</div>
+
+  <!-- ================= 3) การ์ดขั้นตอน ================= -->
+  <div class="sect">
+    <h2>3) การ์ดขั้นตอน 5 ใบ (สีฟ้า) — เกมเรียงลำดับ</h2>
+    <div class="snote">สลับลำดับก่อนใส่ซอง — ห้ามใส่หมายเลขบนการ์ด</div>
+  </div>
+  <div class="grid">
+    <div class="card step"><div class="head">การ์ดขั้นตอน (เกมเรียงลำดับ)</div>
+      <div class="body">แจ้งเจ้าหน้าที่ตำรวจ / รปภ. ทันที</div></div>
+    <div class="card step"><div class="head">การ์ดขั้นตอน (เกมเรียงลำดับ)</div>
+      <div class="body">อพยพบุคลากรออกจากพื้นที่เสี่ยง ตามเส้นทางที่กำหนด</div></div>
+    <div class="card step"><div class="head">การ์ดขั้นตอน (เกมเรียงลำดับ)</div>
+      <div class="body">ปิดกั้น / ล็อกจุดเข้า-ออกที่ไม่จำเป็น</div></div>
+    <div class="card step"><div class="head">การ์ดขั้นตอน (เกมเรียงลำดับ)</div>
+      <div class="body">บันทึกหลักฐานผ่าน CCTV / Incident Log</div></div>
+    <div class="card step"><div class="head">การ์ดขั้นตอน (เกมเรียงลำดับ)</div>
+      <div class="body">รายงานตามผังสายการสื่อสาร (Communication Tree)</div></div>
+  </div>
+  <div class="scissors">✂️ - - - - - - - - - - ตัดตามเส้นประ - - - - - - - - - - ✂️</div>
+
+  <!-- ================= เฉลยวิทยากร ================= -->
+  <div class="answer">
+    <span class="warn">⚠️ เฉลยสำหรับวิทยากร — ตัดทิ้งก่อนแจกทีม</span>
+    <h2>จับคู่ บทบาท ↔ หน้าที่</h2>
+    <table>
+      <tr><th>ผอ.กองแผนงานฯ</th><td>อนุมัติปิดอาคาร • ตัดสินใจยกระดับ/ลดระดับ</td></tr>
+      <tr><th>หัวหน้าชุด รปภ.</th><td>ประสานตำรวจ • เข้มงวดการเข้า-ออก</td></tr>
+      <tr><th>ศูนย์ติดตามเหตุการณ์</th><td>แจ้งเตือนหน่วยแรก • Incident Log</td></tr>
+      <tr><th>สื่อสารภายใน</th><td>กระจายข่าว • ยืนยันการรับข้อความ</td></tr>
+      <tr><th>เจ้าหน้าที่ทั่วไป</th><td>อยู่ที่ปลอดภัย • รายงานสิ่งผิดปกติ</td></tr>
+    </table>
+    <div class="steps">
+      ลำดับขั้นตอนที่ถูกต้อง:
+      <b>1.</b> แจ้งตำรวจ → <b>2.</b> อพยพ → <b>3.</b> ปิดจุดเข้า-ออก → <b>4.</b> บันทึกหลักฐาน → <b>5.</b> รายงานตามผังสื่อสาร
+    </div>
+  </div>
+
+</div>
+</body>
+</html>
