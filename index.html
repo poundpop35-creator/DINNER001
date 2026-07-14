@@ -525,61 +525,33 @@ body.capturing #paTbl .noprint{ display:none !important; }
   </section>
   </div><!-- /cap-loan -->
 
-  <div class="divider">🏆 แผนผ่อนสัญญาทองคำ (งบ 5,000 บ./เดือน)</div>
+  <div class="divider">🏆 สัญญาทองคำ</div>
 
   <div class="plan-tools">
-    <span class="pt-label">แผนที่ 3 · สัญญาทองคำ</span>
+    <span class="pt-label">สัญญาทองคำ</span>
     <button class="reset" data-img="cap-gold" data-name="สัญญาทองคำ">📷 รูปภาพ</button>
-    <button class="reset" data-xls="gold">📊 Excel</button>
     <button class="reset" data-print="cap-gold">🖨️ พิมพ์</button>
     <button class="reset" data-pdf="cap-gold" data-name="สัญญาทองคำ">📄 PDF</button>
   </div>
 
   <div id="cap-gold" class="capbox">
-  <section class="cards">
-    <div class="kpi glow-gold"><div class="lab">ต้นทองคำรวม</div><div class="val" id="gKTotal">60,049 <small>บ.</small></div></div>
-    <div class="kpi glow-green"><div class="lab">ตามแผนจ่ายแล้ว</div><div class="val" id="gKPaid">–</div></div>
-    <div class="kpi glow-amber"><div class="lab">ยอดคงเหลือแผน</div><div class="val" id="gKLeft">–</div></div>
-    <div class="kpi"><div class="lab">สถานะแผน</div><div class="val" id="gKMonths">–</div></div>
-  </section>
-
-  <section class="panel gold noprint">
-    <h2>📈 ความคืบหน้าแผนปิดสัญญาทองคำ 14 เดือน</h2>
-    <div class="bar gold-bar"><i id="goldOverallBar" style="width:0%"></i></div>
-    <div class="bar-meta"><span id="goldOverallPct">0%</span><span id="goldOverallAmt"></span></div>
-  </section>
-
-  <section class="panel gold" style="padding:0;overflow:hidden">
-    <div class="tablewrap">
-      <table>
-        <thead>
-          <tr>
-            <th style="text-align:left">รอบจ่าย (ระบุเดือน)</th>
-            <th>สัญญา 4959 (ยอด 45,000)</th>
-            <th>สัญญา 4341 (ยอด 15,049)</th>
-            <th>ยอดรวมจ่าย</th>
-          </tr>
-        </thead>
-        <tbody id="goldTableBody">
-        </tbody>
-        <tfoot>
-          <tr>
-            <td style="text-align:left">รวมตามแผน</td>
-            <td id="gFoot1">50,050.60 บาท</td>
-            <td id="gFoot2">15,480.08 บาท</td>
-            <td id="gFootTotal">65,530.68 บาท</td>
-          </tr>
-        </tfoot>
-      </table>
+  <section class="panel gold">
+    <div class="lhead">
+      <div class="licon">🏆</div>
+      <div>
+        <div class="ltitle">สัญญาทองคำ 2 ใบ (รวมเป็นก้อนเดียว)</div>
+        <div class="lsub">สัญญา 4959 (45,000) • สัญญา 4341 (15,049)</div>
+      </div>
+    </div>
+    <div class="lstats">
+      <div class="lstat accent"><div class="l">เงินต้นคงเหลือ</div><div class="v" id="goldMergeBal">–</div></div>
+      <div class="lstat"><div class="l">ต่อดอกเดือนละ</div><div class="v" id="goldMergeMin">–</div></div>
+    </div>
+    <div class="tgtproj" style="margin-top:12px;background:#ecfdf5;border-color:#a7f3d0;color:#065f46">
+      ✅ ทองรวมอยู่ในแผน <b>หนี้หลัก+ทอง (งบ 15,000/เดือน)</b> แล้ว — <b>ไม่ต้องจ่ายแยกเดือนละ 5,000 อีก</b><br>
+      📋 ดูว่าเดือนไหนจ่ายทองเท่าไหร่ → แท็บ 💳 หนี้หลัก • เวลาจ่ายจริง → แท็บ 💰 โปะหนี้
     </div>
   </section>
-  
-  <div class="foot-note noprint" style="margin-bottom:40px;">
-    💡 <b>คำแนะนำการอ่านตารางทองคำ:</b> <br>
-    • <span class="renewbadge">🔄 ต่อดอก</span> = เดือนนั้นให้จ่ายเฉพาะดอกเบี้ยเพื่อรักษาสัญญาไว้<br>
-    • ยอดอื่นๆ ที่ไม่มีป้าย = ยอดที่คุณต้องกดจ่ายเพื่อ <b>"ลดต้น"</b> <br>
-    • <span class="closebadge-gold">✅ ปิดยอด</span> = เดือนสุดท้ายที่สัญญานั้นจะหมดลงและได้ทองคืน
-  </div>
   </div><!-- /cap-gold -->
 
   <div id="moreLoans"></div>
@@ -1262,6 +1234,7 @@ function saveGoldState_v3() { localStorage.setItem(GOLD_CELL_STORE_v3, JSON.stri
 
 function buildGoldTable_v3() {
   const tbody = document.getElementById('goldTableBody');
+  if (!tbody) return;   // ตารางแผนทองเก่าถูกถอดออกแล้ว (รวมเข้าแผนหนี้หลัก)
   tbody.innerHTML = goldMonths_v3.map(m => {
     const rowCells = goldKeys_v3.map(k => {
       const val = goldData_v3[m][k];
@@ -1321,34 +1294,13 @@ function syncGoldCheckbox_v3(m) {
 }
 
 function renderGoldSystem_v3() {
-  const gGrandTotal = getGoldTotal_v3();
-  let gPaidAmt = 0;
-  
-  goldMonths_v3.forEach(m => {
-    goldKeys_v3.forEach(k => {
-      if (isGoldCellPaid_v3(m, k)) gPaidAmt += goldData_v3[m][k];
-    });
-  });
-  const gExtra = getExtra('gold4959') + getExtra('gold4341');
-  gPaidAmt += gExtra;
-
-  const gLeftAmt = Math.max(0, gGrandTotal - gPaidAmt);
-  const gPaidMonthsCount = goldMonths_v3.filter(goldRowFullyPaid_v3).length;
-  const gPct = gGrandTotal ? Math.min(100, Math.round((gPaidAmt / gGrandTotal) * 100)) : 0;
-
-  document.getElementById('gKPaid').innerHTML = fmtGold(gPaidAmt, 2) + ' <small>บาท</small>';
-  document.getElementById('gKLeft').innerHTML = fmtGold(gLeftAmt, 2) + ' <small>บาท</small>';
-  document.getElementById('gKMonths').innerHTML = gPaidMonthsCount + ' <small>/ 14 เดือน</small>';
-  document.getElementById('goldOverallBar').style.width = gPct + '%';
-  document.getElementById('goldOverallPct').textContent = gPct + '% แผนสำเร็จ';
-  document.getElementById('goldOverallAmt').textContent = 'เหลือตามแผนอีก ' + fmtGold(gLeftAmt, 2) + ' บาท';
-
-  // สรุปท้ายตารางคิดจากตัวเลขในตารางจริง (กันเลขไม่ตรง)
-  const g1 = goldMonths_v3.reduce((s,m)=>s+goldData_v3[m].G1,0);
-  const g2 = goldMonths_v3.reduce((s,m)=>s+goldData_v3[m].G2,0);
-  document.getElementById('gFoot1').textContent = fmtGold(g1,2)+' บาท';
-  document.getElementById('gFoot2').textContent = fmtGold(g2,2)+' บาท';
-  document.getElementById('gFootTotal').textContent = fmtGold(g1+g2,2)+' บาท';
+  // การ์ดสัญญาทอง (รวมเข้าแผนหนี้หลักแล้ว) — โชว์เงินต้นคงเหลือสด ตรงกับหน้าหนี้หลัก
+  const balEl = document.getElementById('goldMergeBal');
+  const minEl = document.getElementById('goldMergeMin');
+  if (!balEl) return;
+  if (!pondReady) { balEl.textContent = '–'; return; }
+  balEl.innerHTML = fmt(Math.round(getPondBal('gold'))) + ' <small>บาท</small>';
+  if (minEl) minEl.innerHTML = fmt(getPondGoldMin()) + ' <small>บาท</small>';
 }
 
 buildGoldTable_v3();
@@ -2234,6 +2186,7 @@ renderPondAll();
 render();  // รีเฟรชยอด "หนี้หลักจ่ายเดือนละ" ให้ตรงกับแผนรวม
 payReady=true;
 buildPayPick();  // การ์ดเลือกหนี้ในหน้าโปะหนี้ (ต้องรอยอดตารางรวมพร้อมก่อน)
+renderGoldSystem_v3();  // การ์ดทองใช้ยอดสดจากแผนรวม
 
 /* ================= ป๊า: ตารางหนี้ (กรอกเอง แชร์ได้) ================= */
 function escAttr(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
