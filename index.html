@@ -926,8 +926,8 @@ function mainPlanGenerate(balGetter){
   const getBal = balGetter || (k=>
     k==='g1' ? (pondReady ? getGoldBal1() : 0) :
     k==='g2' ? (pondReady ? getGoldBal2() : 0) : getMainBal(k));
-  const gMin1 = pondReady ? getGoldMin1() : 1000;
-  const gMin2 = pondReady ? getGoldMin2() : 1000;
+  const gMin1 = pondReady ? getGoldMin1() : 500;
+  const gMin2 = pondReady ? getGoldMin2() : 90;
   const budget=mainMonthlyBudget();
   const rows=[];
   const bal={}; creditors.forEach(c=>{ bal[c.key]=getBal(c.key); });
@@ -1026,7 +1026,7 @@ function buildMainPlan(){
     const maxNeed = Math.max(...rows.map(r=>r.total));
     const over = rows.some(r=> r.total > budget+1);
     note.innerHTML =
-      `<b>G</b> จ่ายงวดฟิก • <b>ทอง 2 เส้นแยกแอปกัน</b>: ต่อดอกขั้นต่ำเส้นละ ${fmt(pondReady?getGoldMin2():1000)} / ${fmt(pondReady?getGoldMin1():1000)} ทุกเดือน • <b>YourCash / LINE BK / AEON</b> จ่ายขั้นต่ำ ${fmt(MAIN_MIN.AEON)} • งบเหลือปิดใบเล็ก → ปิดต้นทอง 4341 → 4959 • <b>S</b> ปิดก้อนเดียวเดือนสุดท้าย (หมุนเอง) • ปิดครบใน <b>${rows.length}</b> เดือน`
+      `<b>G</b> จ่ายงวดฟิก • <b>ทอง 2 เส้นแยกแอปกัน</b>: ต่อดอก 4341 = ${fmt(pondReady?getGoldMin2():90)} / 4959 = ${fmt(pondReady?getGoldMin1():500)} ทุกเดือน • <b>YourCash / LINE BK / AEON</b> จ่ายขั้นต่ำ ${fmt(MAIN_MIN.AEON)} • งบเหลือปิดใบเล็ก → ปิดต้นทอง 4341 → 4959 • <b>S</b> ปิดก้อนเดียวเดือนสุดท้าย (หมุนเอง) • ปิดครบใน <b>${rows.length}</b> เดือน`
       + (over ? `<br>💡 ช่วงแรกต้องจ่ายจริงราว <b>${fmt(Math.round(maxNeed))}</b>/เดือน แล้วค่อยลดลง` : '');
   }
 }
@@ -1322,7 +1322,7 @@ renderGoldSystem_v3();
 // รวมทุก localStorage key ที่แอปใช้ ไว้ในไฟล์เดียว
 const BACKUP_KEYS = ['debtCellsPaid_v1','loanInstall_v1','goldCellsPaid_isolated_v3','loanCar2_v1','loanKsk_v1','loanKsk_v1_bal','loanChayo_v1','loanChayo_v1_bal','extraPaid_v1','payLog_v1','patTarget_v1','patBal_gold','patGoldMin','patTableCells_v1','activeProfile','monthlyTarget_v1',
   'mainBal_S','mainBal_G','mainBal_YourCash','mainBal_LINE BK','mainBal_AEON',
-  'pondBudget','pcb_main','pcb_loan40','pcb_gold','pcb_goldmin','pcb_car','pcb_ksk','pcb_chayo','pondCombCells','paDebts_v1','chayoInit21_v1','mainBudget','ycAdd2000_v1','ycAdd1000_v1','mainBalSet_20260704','mainBudget15k_v1','mainBalSetS_v2','pcb_gold1','pcb_goldmin1','pcb_gold2','pcb_goldmin2','goldMin1000_v1'];
+  'pondBudget','pcb_main','pcb_loan40','pcb_gold','pcb_goldmin','pcb_car','pcb_ksk','pcb_chayo','pondCombCells','paDebts_v1','chayoInit21_v1','mainBudget','ycAdd2000_v1','ycAdd1000_v1','mainBalSet_20260704','mainBudget15k_v1','mainBalSetS_v2','pcb_gold1','pcb_goldmin1','pcb_gold2','pcb_goldmin2','goldMinReal_v2'];
 
 document.getElementById('exportBtn').addEventListener('click',()=>{
   const dump = { app:'debt-plan', version:1, exportedAt:new Date().toISOString(), data:{} };
@@ -2070,13 +2070,13 @@ const getPondBudget  = ()=>{ const v=+localStorage.getItem('pondBudget'); return
 // ทองแยก 2 สัญญา (จ่ายคนละแอป): 4959 เงินต้น 45,000 • 4341 เงินต้น 15,049
 function getGoldP1(){ const raw=localStorage.getItem('pcb_gold1'); const v=+raw; return (raw!==null&&raw!==''&&!isNaN(v)&&v>=0)?v:45000; }
 function getGoldP2(){ const raw=localStorage.getItem('pcb_gold2'); const v=+raw; return (raw!==null&&raw!==''&&!isNaN(v)&&v>=0)?v:15049; }
-function getGoldMin1(){ const v=+localStorage.getItem('pcb_goldmin1'); return v>0?v:1000; }   // ขั้นต่ำต่อดอกเส้นละ 1,000
-function getGoldMin2(){ const v=+localStorage.getItem('pcb_goldmin2'); return v>0?v:1000; }
-// ปรับขั้นต่ำทองเป็นเส้นละ 1,000 (ครั้งเดียว) — ทับค่า 563/188 เดิม
-if(!localStorage.getItem('goldMin1000_v1')){
-  localStorage.setItem('pcb_goldmin1','1000');
-  localStorage.setItem('pcb_goldmin2','1000');
-  localStorage.setItem('goldMin1000_v1','1');
+function getGoldMin1(){ const v=+localStorage.getItem('pcb_goldmin1'); return v>0?v:500; }   // ดอกเส้นใหญ่ 4959
+function getGoldMin2(){ const v=+localStorage.getItem('pcb_goldmin2'); return v>0?v:90; }    // ดอกเส้นเล็ก 4341
+// ตั้งดอกทองตามจริง: 4959 = 500, 4341 = 90 (ครั้งเดียว — ทับค่าเดิม แก้ทีหลังได้)
+if(!localStorage.getItem('goldMinReal_v2')){
+  localStorage.setItem('pcb_goldmin1','500');
+  localStorage.setItem('pcb_goldmin2','90');
+  localStorage.setItem('goldMinReal_v2','1');
 }
 // เงินที่จ่ายทองแต่ละเดือน: ส่วนแรก = ค่าต่อดอก (เงินต้นไม่ลด) ส่วนที่เกินค่อยลดเงินต้น
 function goldPrincipalPaid(id, intDue){
