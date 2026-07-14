@@ -428,7 +428,7 @@ body.capturing #paTbl .noprint{ display:none !important; }
   <div id="cap-main" class="capbox">
 
   <section class="cards">
-    <div class="kpi glow-cyan"><div class="lab">หนี้หลัก+ทอง คงเหลือ</div><div class="val" id="kTotal">–</div></div>
+    <div class="kpi glow-cyan"><div class="lab">หนี้หลัก+ทอง+ชโย คงเหลือ</div><div class="val" id="kTotal">–</div></div>
     <div class="kpi glow-green"><div class="lab">โปะไปแล้ว</div><div class="val" id="kPaid">–</div></div>
     <div class="kpi glow-amber"><div class="lab">จ่ายเดือนละ</div><div class="val" id="kLeft">–</div></div>
     <div class="kpi"><div class="lab">ปิดครบแล้ว</div><div class="val" id="kMonths">–</div></div>
@@ -920,28 +920,37 @@ if(!localStorage.getItem('mainBudget15k_v1')){ localStorage.setItem('mainBudget'
 function mainMonthlyBudget(){ return getMainBudget(); }
 const PLAN_MN=['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
 function planMonthLabel(i){ const d=new Date(); return PLAN_MN[(d.getMonth()+i)%12]; }
+const CHAYO_PER = 4000;   // ชโย เจวี งวดฟิก/เดือน (รวมอยู่ในงบหนี้หลักแล้ว — แบ่งจากส่วนที่เคยทุ่ม AEON)
 function mainPlanGenerate(balGetter){
-  // รวมทองไว้ในแผนเดียวกับหนี้หลัก แต่แยก 2 สัญญา (จ่ายคนละแอป):
-  // g1 = ทอง 4959 • g2 = ทอง 4341 • ต่อดอกทุกเดือนทั้งคู่ • งบเหลือปิดใบเล็ก → เงินต้น 4341 → เงินต้น 4959 • S ปิดท้ายสุด
+  // แผนเดียว: หนี้หลัก + ทอง 2 เส้น + ชโย
+  // g1 = ทอง 4959 • g2 = ทอง 4341 • ต่อดอกทุกเดือน • ชโยจ่ายฟิก 4,000 ทุกเดือน
+  // งบเหลือปิดใบเล็ก → เงินต้น 4341 → 4959 • S ปิดท้ายสุด (ไม่รอชโย)
   const getBal = balGetter || (k=>
     k==='g1' ? (pondReady ? getGoldBal1() : 0) :
-    k==='g2' ? (pondReady ? getGoldBal2() : 0) : getMainBal(k));
+    k==='g2' ? (pondReady ? getGoldBal2() : 0) :
+    k==='chayo' ? (pondReady ? getPondBal('chayo') : 0) : getMainBal(k));
   const gMin1 = pondReady ? getGoldMin1() : 500;
   const gMin2 = pondReady ? getGoldMin2() : 90;
   const budget=mainMonthlyBudget();
   const rows=[];
   const bal={}; creditors.forEach(c=>{ bal[c.key]=getBal(c.key); });
-  bal.g1 = getBal('g1'); bal.g2 = getBal('g2');
-  if(!creditors.some(c=>bal[c.key]>0) && bal.g1<=0 && bal.g2<=0) return rows;
+  bal.g1 = getBal('g1'); bal.g2 = getBal('g2'); bal.chayo = getBal('chayo');
+  if(!creditors.some(c=>bal[c.key]>0) && bal.g1<=0 && bal.g2<=0 && bal.chayo<=0) return rows;
   const fixedKeys = creditors.map(c=>c.key).filter(k=>MAIN_FIXED[k]);
   const lastKeys  = creditors.map(c=>c.key).filter(k=>MAIN_PAYLAST.includes(k));
   const minKeys   = creditors.map(c=>c.key).filter(k=>!MAIN_FIXED[k] && !MAIN_PAYLAST.includes(k));
   const fixIdx={}; fixedKeys.forEach(k=>fixIdx[k]=0);
   let guard=0;
-  while((creditors.some(c=>bal[c.key]>0) || bal.g1>0 || bal.g2>0) && guard<400){
+  while((creditors.some(c=>bal[c.key]>0) || bal.g1>0 || bal.g2>0 || bal.chayo>0) && guard<400){
     guard++;
     const pay={}, closed={};
-    creditors.forEach(c=>{ pay[c.key]=0; }); pay.g1=0; pay.g2=0;
+    creditors.forEach(c=>{ pay[c.key]=0; }); pay.g1=0; pay.g2=0; pay.chayo=0;
+    // 0) ชโยจ่ายงวดฟิกทุกเดือน (ไม่เร่งปิด)
+    if(bal.chayo>0){
+      const amt=Math.min(CHAYO_PER, bal.chayo);
+      pay.chayo+=amt; bal.chayo-=amt;
+      if(bal.chayo<=0) closed.chayo=true;
+    }
     const othersLeft = fixedKeys.concat(minKeys).some(k=>bal[k]>0) || bal.g1>0 || bal.g2>0;
     if(othersLeft){
       // 1) G จ่ายงวดฟิก
@@ -964,7 +973,7 @@ function mainPlanGenerate(balGetter){
         if(bal[k]<=0) closed[k]=true;
       });
       // 4) งบส่วนเกิน → ปิดใบเล็กก่อน → เงินต้นทอง 4341 (เส้นเล็ก) → เงินต้นทอง 4959 (เว้น S ไว้)
-      let spent=creditors.reduce((s,c)=>s+pay[c.key],0)+pay.g1+pay.g2;
+      let spent=creditors.reduce((s,c)=>s+pay[c.key],0)+pay.g1+pay.g2+pay.chayo;
       let pool=Math.max(0, budget-spent);
       const order=minKeys.map(k=>({key:k,bal:bal[k]})).filter(x=>x.bal>0).sort((a,b)=>a.bal-b.bal);
       for(const x of order){
@@ -981,8 +990,8 @@ function mainPlanGenerate(balGetter){
         if(bal[gk]<=0) closed[gk]=true;
       }
     } else {
-      // เหลือแต่ S → ปิดก้อนเดียวด้วยงบเต็ม (เดือนสุดท้าย)
-      let pool=budget;
+      // เหลือแต่ S (+ชโยที่ยังผ่อนฟิกต่อ) → ปิด S ก้อนเดียวด้วยงบที่เหลือ
+      let pool=Math.max(0, budget - pay.chayo);
       lastKeys.forEach(k=>{
         if(bal[k]<=0 || pool<=0) return;
         const amt=Math.min(bal[k], pool);
@@ -990,7 +999,7 @@ function mainPlanGenerate(balGetter){
         if(bal[k]<=0) closed[k]=true;
       });
     }
-    const total=creditors.reduce((s,c)=>s+pay[c.key],0)+pay.g1+pay.g2;
+    const total=creditors.reduce((s,c)=>s+pay[c.key],0)+pay.g1+pay.g2+pay.chayo;
     rows.push({pay, closed, total});
     if(total<=0) break;
   }
@@ -1001,7 +1010,7 @@ function buildMainPlan(){
   const body=document.getElementById('mainPlanBody');
   const foot=document.getElementById('mainPlanFoot');
   const note=document.getElementById('mainPlanNote');
-  const planCols = creditors.map(c=>({key:c.key,name:c.name})).concat([{key:'g2',name:'🏆 ทอง 4341'},{key:'g1',name:'🏆 ทอง 4959'}]);
+  const planCols = creditors.map(c=>({key:c.key,name:c.name})).concat([{key:'g2',name:'🏆 ทอง 4341'},{key:'g1',name:'🏆 ทอง 4959'},{key:'chayo',name:'📄 ชโย'}]);
   head.innerHTML='<th style="text-align:left">เดือน</th>'+planCols.map(c=>`<th>${c.name}</th>`).join('')+'<th>รวมจ่าย</th>';
   const budget=mainMonthlyBudget();
   const rows=mainPlanGenerate();
@@ -1026,14 +1035,15 @@ function buildMainPlan(){
     const maxNeed = Math.max(...rows.map(r=>r.total));
     const over = rows.some(r=> r.total > budget+1);
     note.innerHTML =
-      `<b>G</b> จ่ายงวดฟิก • <b>ทอง 2 เส้นแยกแอปกัน</b>: ต่อดอก 4341 = ${fmt(pondReady?getGoldMin2():90)} / 4959 = ${fmt(pondReady?getGoldMin1():500)} ทุกเดือน • <b>YourCash / LINE BK / AEON</b> จ่ายขั้นต่ำ ${fmt(MAIN_MIN.AEON)} • งบเหลือปิดใบเล็ก → ปิดต้นทอง 4341 → 4959 • <b>S</b> ปิดก้อนเดียวเดือนสุดท้าย (หมุนเอง) • ปิดครบใน <b>${rows.length}</b> เดือน`
+      `<b>G</b> จ่ายงวดฟิก • <b>ชโย</b> ฟิก ${fmt(CHAYO_PER)} ทุกเดือน (แบ่งจากงบ) • <b>ทอง 2 เส้นแยกแอปกัน</b>: ต่อดอก 4341 = ${fmt(pondReady?getGoldMin2():90)} / 4959 = ${fmt(pondReady?getGoldMin1():500)} ทุกเดือน • <b>YourCash / LINE BK / AEON</b> จ่ายขั้นต่ำ ${fmt(MAIN_MIN.AEON)} • งบเหลือปิดใบเล็ก → ปิดต้นทอง 4341 → 4959 • <b>S</b> ปิดก้อนเดียว (ไม่รอชโย) • ปิดครบใน <b>${rows.length}</b> เดือน`
       + (over ? `<br>💡 ช่วงแรกต้องจ่ายจริงราว <b>${fmt(Math.round(maxNeed))}</b>/เดือน แล้วค่อยลดลง` : '');
   }
 }
 
 function render(){
   const goldLeft = pondReady ? Math.round(getPondBal('gold')) : 0;
-  const leftAmt = grandTotal() + goldLeft;               // หนี้หลัก + เงินต้นทอง
+  const chayoLeft = pondReady ? Math.round(getPondBal('chayo')) : 0;
+  const leftAmt = grandTotal() + goldLeft + chayoLeft;   // หนี้หลัก + เงินต้นทอง + ชโย
   const paidAmt = 0;
   const pct = 0;
   const mainPaid = payLog.filter(e=>isMainCreditor(e.id)).reduce((s,e)=>s+e.amt,0);
@@ -1080,8 +1090,8 @@ function render(){
     const rows = mainPlanGenerate();
     const monthsLeft = rows.length;
     projEl.innerHTML = leftAmt<=0
-      ? '🎉 ปิดหนี้หลัก+ทองครบแล้ว!'
-      : `ทุ่มงบหนี้หลัก+ทอง เดือนละ <b>${fmt(monthly)}</b> บาท<br>คงเหลือ <b>${fmt(leftAmt)}</b> → ปิดครบในอีกประมาณ <b>${monthsLeft||'—'}</b> เดือน`;
+      ? '🎉 ปิดหนี้หลัก+ทอง+ชโยครบแล้ว!'
+      : `ทุ่มงบหนี้หลัก+ทอง+ชโย เดือนละ <b>${fmt(monthly)}</b> บาท<br>คงเหลือ <b>${fmt(leftAmt)}</b> → ปิดครบในอีกประมาณ <b>${monthsLeft||'—'}</b> เดือน`;
   }
   const mbEl=document.getElementById('mainBudget'); if(mbEl && document.activeElement!==mbEl) mbEl.value=getMainBudget();
   buildMainPlan();  // อัปเดตแผนจ่ายหนี้หลักรายเดือน
@@ -1906,8 +1916,8 @@ function payRemaining(id){
 }
 // กลุ่มสัญญาในหน้าโปะหนี้ (จ่ายตรงที่แถวของสัญญานั้นเลย)
 const payGroupDefs = [
-  {title:'💳 หนี้หลัก + ทอง',  ids:['S','G','YourCash','LINE BK','AEON','gold4341','gold4959']},
-  {title:'🚗 สัญญารถ / ผ่อน',  ids:['loan40','car2','chayo']},
+  {title:'💳 หนี้หลัก + ทอง + ชโย',  ids:['S','G','YourCash','LINE BK','AEON','gold4341','gold4959','chayo']},
+  {title:'🚗 สัญญารถ / ผ่อน',  ids:['loan40','car2']},
 ];
 // จ่ายไปแล้วเดือนนี้ (จากประวัติ) — แยกตามสัญญา
 function paidThisMonth(id){
@@ -1925,17 +1935,20 @@ function buildPayPick(){
   const plan=mainPlanGenerate(k=>
     k==='g1' ? (pondReady ? getGoldBal1() : 0) + paidThisMonth('gold4959') :
     k==='g2' ? (pondReady ? getGoldBal2() : 0) + paidThisMonth('gold4341') :
+    k==='chayo' ? (pondReady ? getPondBal('chayo') : 0) + paidThisMonth('chayo') :
     getMainBal(k)+paidThisMonth(k));
   if(plan.length){
     creditors.forEach(c=>{ mainDue[c.key]=Math.round(plan[0].pay[c.key]||0); });
     mainDue.gold4959=Math.round(plan[0].pay.g1||0);
     mainDue.gold4341=Math.round(plan[0].pay.g2||0);
+    mainDue.chayo=Math.round(plan[0].pay.chayo||0);
   }
   const dueOf = id =>
     isMainCreditor(id) ? (mainDue[id]||0) :
     id==='gold4959' ? (mainDue.gold4959||0) :
     id==='gold4341' ? (mainDue.gold4341||0) :
-    id==='loan40' ? 4875 : id==='car2' ? 7000 : id==='chayo' ? 4000 : 0;
+    id==='chayo' ? (mainDue.chayo||0) :
+    id==='loan40' ? 4875 : id==='car2' ? 7000 : 0;
   const msgFor = id => (payLastMsg && payLastMsg.id===id) ? `<div class="payresult">${payLastMsg.msg}</div>` : '';
   host.innerHTML = payGroupDefs.map(g=>{
     const rows=g.ids.map(id=>{
@@ -2061,10 +2074,9 @@ renderPatAll();
 
 /* ================= ปอนด์: ตารางรวมทุกสัญญา ================= */
 const pondCombDebts = [
-  {key:'main',   name:'💳 หนี้หลัก+ทอง', fixed:false},
+  {key:'main',   name:'💳 หนี้หลัก+ทอง+ชโย', fixed:false},
   {key:'loan40', name:'🚗 ผ่อน40งวด',  fixed:true, per:4875},
   {key:'car',    name:'🚙 รถคันสีเทา',  fixed:true, per:7000},
-  {key:'chayo',  name:'📄 ชโย เจวี',     fixed:true, per:4000},
 ];
 const getPondBudget  = ()=>{ const v=+localStorage.getItem('pondBudget'); return v>0?v:25000; };
 // ทองแยก 2 สัญญา (จ่ายคนละแอป): 4959 เงินต้น 45,000 • 4341 เงินต้น 15,049
@@ -2091,7 +2103,7 @@ function getPondBal(k){
   if(k==='main'){
     let paid=0;
     creditors.forEach(c=>{ paid+=Math.min(creditorTotal(c.key), getExtra(c.key)); });
-    return Math.max(0, creditors.reduce((s,c)=>s+getMainBal(c.key),0)-paid) + getPondBal('gold');  // รวมเงินต้นทอง
+    return Math.max(0, creditors.reduce((s,c)=>s+getMainBal(c.key),0)-paid) + getPondBal('gold') + getPondBal('chayo');  // รวมเงินต้นทอง + ชโย
   }
   if(k==='loan40') return Math.max(0, 4875*LOAN.total - (4875*loanPaid + getExtra('loan40')));
   if(k==='car'){ const c=cfgById('car2'); const cnt=moreLoanState['car2']||0; return Math.max(0, c.balance - (c.per*cnt + getExtra('car2'))); }
