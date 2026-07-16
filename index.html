@@ -444,6 +444,11 @@ body.capturing #paTbl .noprint{ display:none !important; }
     <div id="targetProj" class="tgtproj" style="margin-top:10px"></div>
   </section>
 
+  <section class="panel paypanel noprint">
+    <h2>💰 จ่ายหนี้ (บันทึกตรงนี้ได้เลย)</h2>
+    <div id="payGroupsMain"></div>
+  </section>
+
   <div class="plan-tools">
     <span class="pt-label">แผนที่ 1 · หนี้หลัก</span>
     <button class="reset" data-img="cap-main" data-name="หนี้หลัก">📷 รูปภาพ</button>
@@ -1956,28 +1961,30 @@ function paidThisMonth(id){
 }
 var payLastMsg=null, payReady=false;
 function buildPayPick(){
-  const host=document.getElementById('payGroups'); if(!host) return;
-  // งวดเดือนนี้ของหนี้หลัก+ทอง = แผนเดือนแรก คิดจากยอด "ต้นเดือน" (ยอดตอนนี้ + ที่จ่ายไปแล้วเดือนนี้)
-  const mainDue={};
+  const hostAll=document.getElementById('payGroups');
+  const hostMain=document.getElementById('payGroupsMain');
+  if(!hostAll && !hostMain) return;
+  // งวดเดือนนี้ = แผนเดือนแรก คิดจากยอด "ต้นเดือน" (ยอดตอนนี้ + ส่วนที่จ่ายแล้วลดยอดจริงเดือนนี้)
+  // ทอง: ค่าต่อดอกไม่ลดเงินต้น → บวกกลับเฉพาะส่วนที่เกินดอก
+  const mainDue={}, nextDue={};
   const plan=mainPlanGenerate(k=>
-    k==='g1' ? (pondReady ? getGoldBal1() : 0) + paidThisMonth('gold4959') :
-    k==='g2' ? (pondReady ? getGoldBal2() : 0) + paidThisMonth('gold4341') :
+    k==='g1' ? (pondReady ? getGoldBal1() : 0) + Math.max(0, paidThisMonth('gold4959')-(pondReady?getGoldMin1():500)) :
+    k==='g2' ? (pondReady ? getGoldBal2() : 0) + Math.max(0, paidThisMonth('gold4341')-(pondReady?getGoldMin2():90)) :
     k==='chayo' ? (pondReady ? getPondBal('chayo') : 0) + paidThisMonth('chayo') :
     getMainBal(k)+paidThisMonth(k));
+  const pick=(row,key)=> row ? Math.round(row.pay[key]||0) : 0;
   if(plan.length){
-    creditors.forEach(c=>{ mainDue[c.key]=Math.round(plan[0].pay[c.key]||0); });
-    mainDue.gold4959=Math.round(plan[0].pay.g1||0);
-    mainDue.gold4341=Math.round(plan[0].pay.g2||0);
-    mainDue.chayo=Math.round(plan[0].pay.chayo||0);
+    creditors.forEach(c=>{ mainDue[c.key]=pick(plan[0],c.key); nextDue[c.key]=pick(plan[1],c.key); });
+    mainDue.gold4959=pick(plan[0],'g1'); nextDue.gold4959=pick(plan[1],'g1');
+    mainDue.gold4341=pick(plan[0],'g2'); nextDue.gold4341=pick(plan[1],'g2');
+    mainDue.chayo=pick(plan[0],'chayo'); nextDue.chayo=pick(plan[1],'chayo');
   }
   const dueOf = id =>
-    isMainCreditor(id) ? (mainDue[id]||0) :
-    id==='gold4959' ? (mainDue.gold4959||0) :
-    id==='gold4341' ? (mainDue.gold4341||0) :
-    id==='chayo' ? (mainDue.chayo||0) :
-    id==='loan40' ? 4875 : id==='car2' ? 7000 : 0;
+    id==='loan40' ? 4875 : id==='car2' ? 7000 : (mainDue[id]||0);
+  const nextOf = id =>
+    id==='loan40' ? 4875 : id==='car2' ? 7000 : (nextDue[id]||0);
   const msgFor = id => (payLastMsg && payLastMsg.id===id) ? `<div class="payresult">${payLastMsg.msg}</div>` : '';
-  host.innerHTML = payGroupDefs.map(g=>{
+  const groupsHtml = payGroupDefs.map(g=>{
     const rows=g.ids.map(id=>{
       const d=payDebts.find(x=>x.id===id);
       const rem=Math.round(payRemaining(id));
@@ -1987,7 +1994,11 @@ function buildPayPick(){
       const leftM=Math.max(0, due-paidM);
       let mline;
       if(due<=0)       mline=`<span class="mnote">เดือนนี้ยังไม่ถึงคิวตามแผน (โปะเพิ่มได้)</span>`;
-      else if(leftM<=0) mline=`<span class="mok">✅ งวดเดือนนี้จ่ายครบแล้ว (${fmt(paidM)} บาท)</span>`;
+      else if(leftM<=0){
+        const nx=Math.min(nextOf(id), rem);
+        mline=`<span class="mok">✅ งวดเดือนนี้จ่ายครบแล้ว (${fmt(paidM)} บาท)</span>`+
+          (nx>0?`<br><span class="mnote">⏭️ งวดหน้า ~${fmt(nx)} บาท — ปุ่มจ่ายเต็มงวดจะกลับมาเองวันที่ 1 เดือนหน้า</span>`:'');
+      }
       else mline=`<span class="mdue">งวดเดือนนี้เหลือ <b>${fmt(leftM)}</b> บาท${paidM>0?` (จ่ายแล้ว ${fmt(paidM)} จาก ${fmt(due)})`:''}</span>`;
       return `<div class="payline">`+
         `<div class="pl-head"><b>${d.name}</b><span class="due">ค้างรวม ${fmt(rem)} ฿</span></div>`+
@@ -2000,7 +2011,9 @@ function buildPayPick(){
       `</div>`+msgFor(id);
     }).join('');
     return `<div class="paygroup"><div class="pg-title">${g.title}</div>${rows}</div>`;
-  }).join('');
+  });
+  if(hostAll)  hostAll.innerHTML = groupsHtml.join('');
+  if(hostMain) hostMain.innerHTML = groupsHtml[0];   // หน้าหนี้หลักโชว์เฉพาะกลุ่มหนี้หลัก+ทอง+ชโย
 }
 
 function renderAllExtra(){
@@ -2060,21 +2073,27 @@ function doPay(id, amt){
   payLastMsg={id, msg:`✅ จ่าย <b>${fmt(amt)}</b> บาทแล้ว • `+(rem<=0?'🎉 ก้อนนี้หมดแล้ว!':`เหลือค้าง <b>${fmt(rem)}</b> บาท`)};
   buildPayPick();
 }
-function payFromRow(id){
-  const inp=document.querySelector(`input[data-payin="${CSS.escape(id)}"]`);
+function payFromRow(id, scope){
+  const root=scope||document;
+  const inp=root.querySelector(`input[data-payin="${CSS.escape(id)}"]`);
   const amt=Math.round(+(inp?inp.value:0));
   if(!amt || amt<=0){ alert('กรอกจำนวนเงินก่อนนะ'); if(inp) inp.focus(); return; }
   doPay(id, amt);
 }
-document.getElementById('payGroups').addEventListener('click', e=>{
-  const f=e.target.closest('[data-payfull]');
-  if(f){ const amt=Math.round(+f.dataset.amt); if(amt>0) doPay(f.dataset.payfull, amt); return; }
-  const b=e.target.closest('[data-payfor]'); if(!b) return;
-  payFromRow(b.dataset.payfor);
-});
-document.getElementById('payGroups').addEventListener('keydown', e=>{
-  if(e.key==='Enter' && e.target.dataset && e.target.dataset.payin) payFromRow(e.target.dataset.payin);
-});
+function attachPayHandlers(el){
+  if(!el) return;
+  el.addEventListener('click', e=>{
+    const f=e.target.closest('[data-payfull]');
+    if(f){ const amt=Math.round(+f.dataset.amt); if(amt>0) doPay(f.dataset.payfull, amt); return; }
+    const b=e.target.closest('[data-payfor]'); if(!b) return;
+    payFromRow(b.dataset.payfor, el);
+  });
+  el.addEventListener('keydown', e=>{
+    if(e.key==='Enter' && e.target.dataset && e.target.dataset.payin) payFromRow(e.target.dataset.payin, el);
+  });
+}
+attachPayHandlers(document.getElementById('payGroups'));
+attachPayHandlers(document.getElementById('payGroupsMain'));
 
 /* ================= ⚡ ปิดไวตามเป้า (คำนวณงบที่ต้องใช้) ================= */
 const RUSH_WATCH=['S','YourCash','LINE BK','AEON','g1','g2'];   // ก้อนไม่ฟิกที่ต้องปิดให้ทันเป้า
