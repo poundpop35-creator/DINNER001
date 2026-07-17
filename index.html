@@ -948,6 +948,7 @@ function buildCreditors(){
 const MAIN_FIXED = { G:[4046,4046,4046,1483] };
 const MAIN_MIN   = { YourCash:1000, 'LINE BK':1000, AEON:1000 };
 const MAIN_PAYLAST = ['S'];   // แยกไว้ปิดก้อนเดียวเดือนสุดท้าย
+const MAIN_ATTACK_ORDER = ['YourCash','AEON','LINE BK'];   // เร่งปิดใครก่อน (ดอกเยอะก่อน)
 // งบหนี้หลักตั้งเองได้ (แยกจากงบรวม) — เริ่มต้น 10,000
 function getMainBudget(){ const raw=localStorage.getItem('mainBudget'); const v=+raw; return (raw!==null&&raw!==''&&!isNaN(v)&&v>0)?v:15000; }
 // ตั้งงบหนี้หลักเป็น 15,000 (ครั้งเดียว) — override ค่าที่ตั้งไว้เดิม
@@ -1013,7 +1014,8 @@ function mainPlanGenerate(balGetter, budgetOverride, firstPaid){
       // 4) งบส่วนเกิน → ปิดใบเล็กก่อน → เงินต้นทอง 4341 (เส้นเล็ก) → เงินต้นทอง 4959 (เว้น S ไว้)
       let spent=creditors.reduce((s,c)=>s+pay[c.key],0)+pay.g1+pay.g2+pay.chayo;
       let pool=Math.max(0, budget-spent);
-      const order=minKeys.map(k=>({key:k,bal:bal[k]})).filter(x=>x.bal>0).sort((a,b)=>a.bal-b.bal);
+      const order=minKeys.map(k=>({key:k,bal:bal[k]})).filter(x=>x.bal>0)
+        .sort((a,b)=> MAIN_ATTACK_ORDER.indexOf(a.key) - MAIN_ATTACK_ORDER.indexOf(b.key));
       for(const x of order){
         if(pool<=0) break;
         const p=Math.min(pool, bal[x.key]);
@@ -1078,7 +1080,7 @@ function buildMainPlan(){
     const maxNeed = Math.max(...rows.map(r=>r.total));
     const over = rows.some(r=> r.total > budget+1);
     note.innerHTML =
-      `<b>G</b> จ่ายงวดฟิก • <b>ชโย</b> ฟิก ${fmt(CHAYO_PER)} ทุกเดือน (แบ่งจากงบ) • <b>ทอง 2 เส้นแยกแอปกัน</b>: ต่อดอก 4341 = ${fmt(pondReady?getGoldMin2():90)} / 4959 = ${fmt(pondReady?getGoldMin1():500)} ทุกเดือน • <b>YourCash / LINE BK / AEON</b> จ่ายขั้นต่ำ ${fmt(MAIN_MIN.AEON)} • งบเหลือปิดใบเล็ก → ปิดต้นทอง 4341 → 4959 • <b>S</b> ปิดก้อนเดียว (ไม่รอชโย) • ปิดครบใน <b>${rows.length}</b> เดือน`
+      `<b>G</b> จ่ายงวดฟิก • <b>ชโย</b> ฟิก ${fmt(CHAYO_PER)} ทุกเดือน (แบ่งจากงบ) • <b>ทอง 2 เส้นแยกแอปกัน</b>: ต่อดอก 4341 = ${fmt(pondReady?getGoldMin2():90)} / 4959 = ${fmt(pondReady?getGoldMin1():500)} ทุกเดือน • <b>YourCash / LINE BK / AEON</b> จ่ายขั้นต่ำ ${fmt(MAIN_MIN.AEON)} • งบเหลือเร่งปิด <b>YourCash → AEON → LINE BK</b> (ดอกเยอะก่อน) → ปิดต้นทอง 4341 → 4959 • <b>S</b> ปิดก้อนเดียว (ไม่รอชโย) • ปิดครบใน <b>${rows.length}</b> เดือน`
       + (over ? `<br>💡 ช่วงแรกต้องจ่ายจริงราว <b>${fmt(Math.round(maxNeed))}</b>/เดือน แล้วค่อยลดลง` : '');
   }
 }
