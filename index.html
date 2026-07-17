@@ -70,6 +70,9 @@ h1{font-size:22px;margin:0;color:var(--text2);letter-spacing:.2px}
 .cred .amt{width:150px;text-align:right;font-size:13px;color:var(--muted);flex:none}
 .cred .amt b{color:var(--text2)}
 .done-tag{font-size:11px;color:var(--green);font-weight:700;margin-left:6px}
+#mainPlanTbl td.paidcell{color:#059669;font-weight:800;font-size:12px;background:rgba(16,185,129,.10)}
+#mainPlanTbl tr.planrow-now{background:rgba(124,58,237,.05)}
+#mainPlanTbl .thismonth{font-size:10px;color:#7c3aed;font-weight:800}
 .extra-tag{display:inline-block;font-size:11px;color:#7c3aed;background:#f3e8ff;border:1px solid #e9d5ff;border-radius:999px;padding:0 7px;font-weight:700;margin-left:4px}
 
 /* ---- สมุดบันทึกโปะหนี้ ---- */
@@ -1045,9 +1048,19 @@ function buildMainPlan(){
   const planCols = creditors.map(c=>({key:c.key,name:c.name})).concat([{key:'g2',name:'🏆 ทอง 4341'},{key:'g1',name:'🏆 ทอง 4959'},{key:'chayo',name:'📄 ชโย'}]);
   head.innerHTML='<th style="text-align:left">เดือน</th>'+planCols.map(c=>`<th>${c.name}</th>`).join('')+'<th>รวมจ่าย</th>';
   const budget=mainMonthlyBudget();
-  const rows=mainPlanGenerate();
-  if(!rows.length){
-    body.innerHTML=`<tr><td colspan="${planCols.length+2}" style="padding:16px;color:#64748b">🎉 ปิดหนี้หลัก+ทองครบแล้ว!</td></tr>`;
+  // สร้างแผนจากยอด "ต้นเดือน" (เพื่อให้เดือนแรกเป็นงวดเต็ม) แล้วค่อยหักที่จ่ายไปแล้วเดือนนี้ออก
+  const rows=pondReady ? mainPlanGenerate(startOfMonthBal) : mainPlanGenerate();
+  const row0orig={};
+  if(rows[0]) planCols.forEach(c=> row0orig[c.key]=rows[0].pay[c.key]||0);
+  if(pondReady){
+    planCols.forEach(c=>{
+      let remain=paidThisMonth(PLANKEY_TO_PAYID[c.key]||c.key);
+      for(const r of rows){ if(remain<=0.5) break; const a=r.pay[c.key]||0; if(a<=0) continue; const cut=Math.min(a,remain); r.pay[c.key]=a-cut; remain-=cut; }
+    });
+    rows.forEach(r=>{ r.total=planCols.reduce((s,c)=>s+(r.pay[c.key]||0),0); });
+  }
+  if(!rows.length || rows.every(r=>r.total<=0.5)){
+    body.innerHTML=`<tr><td colspan="${planCols.length+2}" style="padding:16px;color:#64748b">🎉 ปิดหนี้หลัก+ทอง+ชโยครบแล้ว!</td></tr>`;
     foot.innerHTML='';
     if(note) note.textContent='';
     return;
@@ -1056,11 +1069,13 @@ function buildMainPlan(){
   body.innerHTML=rows.map((r,i)=>{
     const tds=planCols.map(c=>{
       const p=r.pay[c.key]||0; colSum[c.key]+=p;
-      if(p<=0) return '<td style="color:#cbd5e1">–</td>';
-      return `<td>${fmt(Math.round(p))}${r.closed[c.key]?' <span class="done-tag">ปิด✓</span>':''}</td>`;
+      if(i===0 && p<=0.5 && (row0orig[c.key]||0)>0.5) return '<td class="paidcell">จ่ายแล้ว ✓</td>';
+      if(p<=0.5) return '<td style="color:#cbd5e1">–</td>';
+      return `<td>${fmt(Math.round(p))}${(r.closed[c.key] && p>0.5)?' <span class="done-tag">ปิด✓</span>':''}</td>`;
     }).join('');
     grand+=r.total;
-    return `<tr><td style="text-align:left">${planMonthLabel(i)}</td>${tds}<td><b>${fmt(Math.round(r.total))}</b></td></tr>`;
+    const mlab = i===0 ? planMonthLabel(0)+' <span class="thismonth">(เดือนนี้)</span>' : planMonthLabel(i);
+    return `<tr class="${i===0?'planrow-now':''}"><td style="text-align:left">${mlab}</td>${tds}<td><b>${fmt(Math.round(r.total))}</b></td></tr>`;
   }).join('');
   foot.innerHTML='<td style="text-align:left">รวม</td>'+planCols.map(c=>`<td>${fmt(Math.round(colSum[c.key]))}</td>`).join('')+`<td>${fmt(Math.round(grand))}</td>`;
   if(note){
@@ -1959,19 +1974,24 @@ function paidThisMonth(id){
     return s + ((e.id===id && d.getMonth()===m && d.getFullYear()===y) ? e.amt : 0);
   },0);
 }
+// ยอด "ต้นเดือน" ของแต่ละก้อน = ยอดตอนนี้ + ส่วนที่จ่ายแล้วเดือนนี้ที่ไปลดยอดจริง
+// (ทอง: ค่าต่อดอกไม่ลดเงินต้น → บวกกลับเฉพาะส่วนที่จ่ายเกินดอก)
+function startOfMonthBal(k){
+  if(k==='g1') return (pondReady?getGoldBal1():0) + Math.max(0, paidThisMonth('gold4959')-(pondReady?getGoldMin1():500));
+  if(k==='g2') return (pondReady?getGoldBal2():0) + Math.max(0, paidThisMonth('gold4341')-(pondReady?getGoldMin2():90));
+  if(k==='chayo') return (pondReady?getPondBal('chayo'):0) + paidThisMonth('chayo');
+  return getMainBal(k)+paidThisMonth(k);
+}
+// แปลง key ในแผน → id ในสมุดจ่าย (สำหรับดูว่าจ่ายไปแล้วเดือนนี้เท่าไหร่)
+const PLANKEY_TO_PAYID = {S:'S',G:'G',YourCash:'YourCash','LINE BK':'LINE BK',AEON:'AEON',g1:'gold4959',g2:'gold4341',chayo:'chayo'};
 var payLastMsg=null, payReady=false;
 function buildPayPick(){
   const hostAll=document.getElementById('payGroups');
   const hostMain=document.getElementById('payGroupsMain');
   if(!hostAll && !hostMain) return;
-  // งวดเดือนนี้ = แผนเดือนแรก คิดจากยอด "ต้นเดือน" (ยอดตอนนี้ + ส่วนที่จ่ายแล้วลดยอดจริงเดือนนี้)
-  // ทอง: ค่าต่อดอกไม่ลดเงินต้น → บวกกลับเฉพาะส่วนที่เกินดอก
+  // งวดเดือนนี้ = แผนเดือนแรก คิดจากยอด "ต้นเดือน"
   const mainDue={}, nextDue={};
-  const plan=mainPlanGenerate(k=>
-    k==='g1' ? (pondReady ? getGoldBal1() : 0) + Math.max(0, paidThisMonth('gold4959')-(pondReady?getGoldMin1():500)) :
-    k==='g2' ? (pondReady ? getGoldBal2() : 0) + Math.max(0, paidThisMonth('gold4341')-(pondReady?getGoldMin2():90)) :
-    k==='chayo' ? (pondReady ? getPondBal('chayo') : 0) + paidThisMonth('chayo') :
-    getMainBal(k)+paidThisMonth(k));
+  const plan=mainPlanGenerate(startOfMonthBal);
   const pick=(row,key)=> row ? Math.round(row.pay[key]||0) : 0;
   if(plan.length){
     creditors.forEach(c=>{ mainDue[c.key]=pick(plan[0],c.key); nextDue[c.key]=pick(plan[1],c.key); });
