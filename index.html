@@ -1091,14 +1091,18 @@ function render(){
   const leftAmt = grandTotal() + goldLeft + chayoLeft;   // หนี้หลัก + เงินต้นทอง + ชโย
   const paidAmt = 0;
   const pct = 0;
-  const mainPaid = payLog.filter(e=>isMainCreditor(e.id)).reduce((s,e)=>s+e.amt,0);
+  // โปะไปแล้ว = รวมทุกก้อนในกลุ่มหนี้หลัก (5 ใบ + ทอง 2 เส้น + ชโย)
+  const mainGroupIds = ['S','G','YourCash','LINE BK','AEON','gold4959','gold4341','chayo'];
+  const mainPaid = payLog.filter(e=>mainGroupIds.includes(e.id)).reduce((s,e)=>s+e.amt,0);
   const monthly = getMainBudget();
 
   document.getElementById('kTotal').innerHTML = fmt(leftAmt)+' <small>บาท</small>';
   document.getElementById('kPaid').innerHTML  = fmt(mainPaid)+' <small>บาท</small>';
   document.getElementById('kLeft').innerHTML  = (monthly>0?fmt(monthly):'–')+' <small>/เดือน</small>';
-  const clearedCnt = creditors.filter(c=> getMainBal(c.key)<=0).length;
-  document.getElementById('kMonths').innerHTML= clearedCnt+' <small>/ '+creditors.length+' ใบ</small>';
+  const clearedCnt = creditors.filter(c=> getMainBal(c.key)<=0).length
+    + (pondReady && getGoldBal1()<=0 ? 1:0) + (pondReady && getGoldBal2()<=0 ? 1:0)
+    + (pondReady && getPondBal('chayo')<=0 ? 1:0);
+  document.getElementById('kMonths').innerHTML= clearedCnt+' <small>/ '+(creditors.length+3)+' ใบ</small>';
 
   document.getElementById('overallBar').style.width = pct+'%';
   document.getElementById('overallPct').textContent = pct+'% สำเร็จ';
