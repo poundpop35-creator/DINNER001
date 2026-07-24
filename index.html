@@ -1053,8 +1053,28 @@ function buildMainPlan(){
   const planCols = creditors.map(c=>({key:c.key,name:c.name})).concat([{key:'g2',name:'🏆 ทอง 4341'},{key:'g1',name:'🏆 ทอง 4959'},{key:'chayo',name:'📄 ชโย'}]);
   head.innerHTML='<th style="text-align:left">เดือน</th>'+planCols.map(c=>`<th>${c.name}</th>`).join('')+'<th>รวมจ่าย</th>';
   const budget=mainMonthlyBudget();
-  // แผนนิ่งๆ 15,000/เดือน จากยอดคงเหลือปัจจุบัน (ไม่สลับตัวเลขเวลาจ่าย)
-  const rows = mainPlanGenerate();
+  // ยอดตั้งต้นตาราง: ก้อนปกติใช้ยอด "ต้นเดือน" (งวดเต็ม) • ทองใช้เงินต้นปัจจุบัน (จ่ายแล้วหายจริง)
+  const tableBal = k=>
+    k==='g1' ? (pondReady?getGoldBal1():0) :
+    k==='g2' ? (pondReady?getGoldBal2():0) :
+    k==='chayo' ? (pondReady?getPondBal('chayo'):0) + paidThisMonth('chayo') :
+    getMainBal(k)+paidThisMonth(k);
+  const rows = pondReady ? mainPlanGenerate(tableBal) : mainPlanGenerate();
+  const row0orig={};
+  if(rows[0]) planCols.forEach(c=> row0orig[c.key]=rows[0].pay[c.key]||0);
+  const paidMap={};
+  if(pondReady){
+    planCols.forEach(c=>{ paidMap[c.key]=paidThisMonth(PLANKEY_TO_PAYID[c.key]||c.key); });
+    // หักที่จ่ายแล้วออกจากตาราง • ทองหักได้แค่ "ค่าดอกเดือนนี้" (เงินต้นที่จ่ายเกินไปลดยอดในตารางอยู่แล้ว)
+    const consumeAmt = c =>
+      c.key==='g1' ? Math.min(paidMap.g1, getGoldMin1()) :
+      c.key==='g2' ? Math.min(paidMap.g2, getGoldMin2()) : paidMap[c.key];
+    planCols.forEach(c=>{
+      let remain=consumeAmt(c);
+      for(const r of rows){ if(remain<=0.5) break; const a=r.pay[c.key]||0; if(a<=0) continue; const cut=Math.min(a,remain); r.pay[c.key]=a-cut; remain-=cut; }
+    });
+    rows.forEach(r=>{ r.total=planCols.reduce((s,c)=>s+(r.pay[c.key]||0),0); });
+  }
   if(!rows.length){
     body.innerHTML=`<tr><td colspan="${planCols.length+2}" style="padding:16px;color:#64748b">🎉 ปิดหนี้หลัก+ทอง+ชโยครบแล้ว!</td></tr>`;
     foot.innerHTML='';
@@ -1065,25 +1085,20 @@ function buildMainPlan(){
   body.innerHTML=rows.map((r,i)=>{
     const tds=planCols.map(c=>{
       const p=r.pay[c.key]||0; colSum[c.key]+=p;
+      if(i===0 && p<=0.5 && (row0orig[c.key]||0)>0.5 && (paidMap[c.key]||0)>0.5) return '<td class="paidcell">จ่ายแล้ว ✓</td>';
       if(p<=0.5) return '<td style="color:#cbd5e1">–</td>';
       return `<td>${fmt(Math.round(p))}${(r.closed[c.key] && p>0.5)?' <span class="done-tag">ปิด✓</span>':''}</td>`;
     }).join('');
     grand+=r.total;
-    return `<tr><td style="text-align:left">${planMonthLabel(i)}</td>${tds}<td><b>${fmt(Math.round(r.total))}</b></td></tr>`;
+    const mlab = i===0 ? planMonthLabel(0)+' <span class="thismonth">(เดือนนี้)</span>' : planMonthLabel(i);
+    return `<tr class="${i===0?'planrow-now':''}"><td style="text-align:left">${mlab}</td>${tds}<td><b>${fmt(Math.round(r.total))}</b></td></tr>`;
   }).join('');
   foot.innerHTML='<td style="text-align:left">รวม</td>'+planCols.map(c=>`<td>${fmt(Math.round(colSum[c.key]))}</td>`).join('')+`<td>${fmt(Math.round(grand))}</td>`;
   if(note){
-    // สรุปว่าเดือนนี้จ่ายก้อนไหนไปแล้วบ้าง (ไม่ยุ่งกับตัวเลขในตาราง)
-    let paidTxt='';
-    if(pondReady){
-      const items=[];
-      [['G','G'],['YourCash','YourCash'],['LINE BK','LINE BK'],['AEON','AEON'],['S','S'],['gold4959','ทอง 4959'],['gold4341','ทอง 4341'],['chayo','ชโย']]
-        .forEach(([id,nm])=>{ const v=paidThisMonth(id); if(v>0) items.push(`${nm} ${fmt(Math.round(v))}`); });
-      if(items.length) paidTxt=`<br>✅ เดือนนี้จ่ายไปแล้ว: ${items.join(' • ')}`;
-    }
+    const m0 = rows[0] ? Math.round(rows[0].total) : 0;
     note.innerHTML =
       `จ่ายเดือนละ <b>${fmt(budget)}</b> บาท • <b>G</b>/<b>ชโย</b> จ่ายงวดฟิก • <b>ทอง</b> ต่อดอกทุกเดือน • งบเหลือเร่งปิด <b>YourCash → AEON → LINE BK</b> แล้วปิดต้นทอง • <b>S</b> ปิดก้อนสุดท้าย • ปิดครบใน <b>${rows.length}</b> เดือน`
-      + paidTxt;
+      + `<br>🟣 <b>เดือนนี้เหลือต้องจ่ายอีก ${fmt(m0)} บาท</b> (ก้อนที่จ่ายแล้วขึ้น "จ่ายแล้ว ✓")`;
   }
 }
 
