@@ -827,13 +827,13 @@ function savePay(){
   localStorage.setItem('extraPaid_v1', JSON.stringify(extraPaid));
   localStorage.setItem('payLog_v1', JSON.stringify(payLog));
 }
-// อัปเดตยอดตามที่แจ้ง (18 ก.ย.) — YourCash/AEON/S จ่ายหมดแล้ว, LINE BK จ่ายไป 16,000,
+// อัปเดตยอดตามที่แจ้ง (18 ก.ย.) — YourCash/AEON/S จ่ายหมดแล้ว, LINE BK เหลือ 10,000,
 // G ปรับตามใบแจ้งหนี้ "สินเชื่อเงินสดทันใจ" (คงเหลือรวม 3 ยอดย่อย) • ทอง 4341 เหลือ 10,000 / 4959 เหลือ 45,000 — ครั้งเดียว
 if(!localStorage.getItem('mainBalSet_20260918')){
   localStorage.setItem('mainBal_YourCash','0');
   localStorage.setItem('mainBal_AEON','0');
   localStorage.setItem('mainBal_S','0');
-  localStorage.setItem('mainBal_LINE BK','13492');
+  localStorage.setItem('mainBal_LINE BK','10000');
   localStorage.setItem('mainBal_G','32134');
   localStorage.setItem('pcb_gold1','45000');
   localStorage.setItem('pcb_gold2','10000');
@@ -841,6 +841,14 @@ if(!localStorage.getItem('mainBalSet_20260918')){
   payLog = payLog.filter(e=> !['YourCash','AEON','S','LINE BK','G','gold4959','gold4341'].includes(e.id));
   savePay();
   localStorage.setItem('mainBalSet_20260918','1');
+}
+// แก้ไข LINE BK ให้ตรง = 10,000 (เผื่อเครื่องที่รันมิเกรชันด้านบนไปแล้วด้วยค่าเก่า 13,492) — ครั้งเดียว
+if(!localStorage.getItem('lineBk10k_v1')){
+  localStorage.setItem('mainBal_LINE BK','10000');
+  delete extraPaid['LINE BK'];
+  payLog = payLog.filter(e=> e.id!=='LINE BK');
+  savePay();
+  localStorage.setItem('lineBk10k_v1','1');
 }
 
 /* ===== "ปิดยอดเร็วขึ้น": เงินโปะไปตัดงวดท้ายๆ ของเจ้าหนี้ในตารางหนี้หลัก ===== */
@@ -1414,7 +1422,7 @@ renderGoldSystem_v3();
 // รวมทุก localStorage key ที่แอปใช้ ไว้ในไฟล์เดียว
 const BACKUP_KEYS = ['debtCellsPaid_v1','loanInstall_v1','goldCellsPaid_isolated_v3','loanCar2_v1','loanKsk_v1','loanKsk_v1_bal','loanChayo_v1','loanChayo_v1_bal','extraPaid_v1','payLog_v1','patTarget_v1','patBal_gold','patGoldMin','patTableCells_v1','activeProfile','monthlyTarget_v1',
   'mainBal_S','mainBal_G','mainBal_YourCash','mainBal_LINE BK','mainBal_AEON',
-  'pondBudget','pcb_main','pcb_loan40','pcb_gold','pcb_goldmin','pcb_car','pcb_ksk','pcb_chayo','pondCombCells','paDebts_v1','chayoInit21_v1','mainBudget','ycAdd2000_v1','ycAdd1000_v1','mainBalSet_20260704','mainBudget15k_v1','mainBalSetS_v2','pcb_gold1','pcb_goldmin1','pcb_gold2','pcb_goldmin2','goldMinReal_v2','rushTarget_v1','mainBudget15046_v1','chayoInit24_v1','mainBalSet_20260918','chayoInit20k_v1'];
+  'pondBudget','pcb_main','pcb_loan40','pcb_gold','pcb_goldmin','pcb_car','pcb_ksk','pcb_chayo','pondCombCells','paDebts_v1','chayoInit21_v1','mainBudget','ycAdd2000_v1','ycAdd1000_v1','mainBalSet_20260704','mainBudget15k_v1','mainBalSetS_v2','pcb_gold1','pcb_goldmin1','pcb_gold2','pcb_goldmin2','goldMinReal_v2','rushTarget_v1','mainBudget15046_v1','chayoInit24_v1','mainBalSet_20260918','chayoInit20k_v1','lineBk10k_v1'];
 
 document.getElementById('exportBtn').addEventListener('click',()=>{
   const dump = { app:'debt-plan', version:1, exportedAt:new Date().toISOString(), data:{} };
