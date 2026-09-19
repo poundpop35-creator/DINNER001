@@ -311,7 +311,7 @@ body.capturing #paTbl .noprint{ display:none !important; }
     <div class="homecards">
       <button class="homecard" data-profile="pond">
         <span class="hi">🧑</span><span class="hn">ปอนด์</span>
-        <span class="hd">หนี้หลัก • สัญญาผ่อน 40 งวด • ทองคำ • รถคันสีเทา • ชโย เจวี</span>
+        <span class="hd" id="pondHomeDesc">หนี้หลัก • รถคันสีขาว • ทองคำ • ชโย เจวี</span>
       </button>
       <button class="homecard" data-profile="pat">
         <span class="hi">👩</span><span class="hn">ปัท</span>
@@ -535,10 +535,12 @@ body.capturing #paTbl .noprint{ display:none !important; }
     <div class="lhead">
       <div class="licon">🚗</div>
       <div>
-        <div class="ltitle">สัญญาผ่อน 40 งวด</div>
-        <div class="lsub">งวดละ 4,875 บาท • แยกจากชุดหนี้ด้านบน</div>
+        <div class="ltitle">รถคันสีขาว · ผ่อน 40 งวด</div>
+        <div class="lsub">สินเชื่อทะเบียนรถยนต์ <b>กย1064สฎ</b> • งวดละ 4,875 บาท • แยกจากชุดหนี้ด้านบน</div>
       </div>
     </div>
+
+    <div class="lsub" id="loanBankInfo" style="margin:2px 0 10px"></div>
 
     <div class="lstats">
       <div class="lstat"><div class="l">ยอดต่องวด</div><div class="v">4,875 <small>บาท</small></div></div>
@@ -577,7 +579,7 @@ body.capturing #paTbl .noprint{ display:none !important; }
       <div class="licon">🏆</div>
       <div>
         <div class="ltitle">สัญญาทองคำ 2 ใบ (รวมเป็นก้อนเดียว)</div>
-        <div class="lsub">สัญญา 4959 (45,000) • สัญญา 4341 (15,049)</div>
+        <div class="lsub" id="goldSubTxt">สัญญา 4959 • สัญญา 4341</div>
       </div>
     </div>
     <div class="lstats">
@@ -594,6 +596,10 @@ body.capturing #paTbl .noprint{ display:none !important; }
   </div><!-- /cap-gold -->
 
   <div id="moreLoans"></div>
+
+  <div class="noprint" style="text-align:center;margin:18px 0 6px">
+    <button class="reset" id="car2Toggle" style="font-size:12px;padding:6px 12px">🔒 แสดงรถคันสีเทา</button>
+  </div>
   </div><!-- /tab others -->
 
   </div><!-- /app-pond -->
@@ -889,6 +895,13 @@ if(!localStorage.getItem('gPrepaid8556_v1')){
   payLog = payLog.filter(e=> e.id!=='G');
   savePay();
   localStorage.setItem('gPrepaid8556_v1','1');
+}
+// แก้ไข ทอง 4341 ให้ตรง = 6,000 (จากเดิม 8,000) — ครั้งเดียว
+if(!localStorage.getItem('gold4341_6k_v1')){
+  localStorage.setItem('pcb_gold2','6000');
+  payLog = payLog.filter(e=> e.id!=='gold4341');
+  savePay();
+  localStorage.setItem('gold4341_6k_v1','1');
 }
 
 /* ===== "ปิดยอดเร็วขึ้น": เงินโปะไปตัดงวดท้ายๆ ของเจ้าหนี้ในตารางหนี้หลัก ===== */
@@ -1290,7 +1303,16 @@ document.querySelectorAll('[data-mbq]').forEach(b=> b.addEventListener('click',(
 document.getElementById('mainBudget').value = getMainBudget();
 
 /* ================= สัญญาผ่อนแยกต่างหาก (40 งวด) ================= */
-const LOAN = { per:4875, total:40, store:'loanInstall_v1', def:12 };
+// รถคันสีขาว = สินเชื่อทะเบียนรถยนต์ ทะเบียน กย1064สฎ
+//   มูลค่าตามสัญญา 195,000 = 40 งวด × 4,875 • งวดที่ 14/40 (จ่ายแล้ว 68,250 เมื่อ 26 ส.ค. 69)
+//   เหลือ 26 งวด • งวดถัดไป 4,875 ครบกำหนด 24 ก.ย. 69 • ยอดปิดบัญชีวันนี้ 109,101
+const LOAN = { per:4875, total:40, store:'loanInstall_v1', def:14, closeAmt:109101, plate:'กย1064สฎ', dueDate:'24 ก.ย. 2569' };
+// อัปเดตรถคันสีขาว = จ่ายแล้ว 14 งวด (68,250 บาท เหลือ 26 งวด) ครั้งเดียว
+if(!localStorage.getItem('whiteCar14_v1')){
+  const cur=parseInt(localStorage.getItem(LOAN.store)||'0',10);
+  if(isNaN(cur)||cur<14) localStorage.setItem(LOAN.store,'14');
+  localStorage.setItem('whiteCar14_v1','1');
+}
 let loanPaid = parseInt(localStorage.getItem(LOAN.store) ?? LOAN.def, 10);
 if(isNaN(loanPaid)) loanPaid = LOAN.def;
 
@@ -1333,6 +1355,10 @@ function renderLoan(){
   document.getElementById('loanPct').textContent = pct+'% สำเร็จ';
   document.getElementById('loanRemainCnt').innerHTML = 'เหลืออีก '+fmt(leftAmt)+' บาท';
   document.getElementById('loanCntTxt').textContent = loanPaid;
+  const bi=document.getElementById('loanBankInfo');
+  if(bi) bi.innerHTML =
+    `🏦 เหลืออีก <b>${LOAN.total-loanPaid}</b> งวด • งวดถัดไป <b>${fmt(LOAN.per)}</b> บาท ครบกำหนด <b>${LOAN.dueDate}</b>`
+    + `<br>💰 ยอดปิดบัญชี (ปิดทีเดียวตอนนี้) <b>${fmt(LOAN.closeAmt)}</b> บาท — ถูกกว่าผ่อนจนจบ ${fmt(LOAN.per*(LOAN.total-loanPaid)-LOAN.closeAmt)} บาท`;
 
   document.querySelectorAll('#loanChips .chip').forEach(ch=>{
     ch.classList.toggle('paid', +ch.dataset.n <= loanPaid);
@@ -1469,6 +1495,8 @@ function renderGoldSystem_v3() {
   document.getElementById('goldMin1').innerHTML = fmt(getGoldMin1()) + ' <small>บาท</small>';
   document.getElementById('goldBal2').innerHTML = fmt(Math.round(getGoldBal2())) + ' <small>บาท</small>';
   document.getElementById('goldMin2').innerHTML = fmt(getGoldMin2()) + ' <small>บาท</small>';
+  const gs = document.getElementById('goldSubTxt');
+  if (gs) gs.textContent = `สัญญา 4959 (${fmt(Math.round(getGoldBal1()))}) • สัญญา 4341 (${fmt(Math.round(getGoldBal2()))})`;
 }
 
 buildGoldTable_v3();
@@ -1478,7 +1506,7 @@ renderGoldSystem_v3();
 // รวมทุก localStorage key ที่แอปใช้ ไว้ในไฟล์เดียว
 const BACKUP_KEYS = ['debtCellsPaid_v1','loanInstall_v1','goldCellsPaid_isolated_v3','loanCar2_v1','loanKsk_v1','loanKsk_v1_bal','loanChayo_v1','loanChayo_v1_bal','extraPaid_v1','payLog_v1','patTarget_v1','patBal_gold','patGoldMin','patTableCells_v1','activeProfile','monthlyTarget_v1',
   'mainBal_S','mainBal_G','mainBal_YourCash','mainBal_LINE BK','mainBal_AEON',
-  'pondBudget','pcb_main','pcb_loan40','pcb_gold','pcb_goldmin','pcb_car','pcb_ksk','pcb_chayo','pondCombCells','paDebts_v1','chayoInit21_v1','mainBudget','ycAdd2000_v1','ycAdd1000_v1','mainBalSet_20260704','mainBudget15k_v1','mainBalSetS_v2','pcb_gold1','pcb_goldmin1','pcb_gold2','pcb_goldmin2','goldMinReal_v2','rushTarget_v1','mainBudget15046_v1','chayoInit24_v1','mainBalSet_20260918','chayoInit20k_v1','lineBk10k_v1','gold4341_8k_v1','lineBk11k_v1','lineBk16k_v1','lineBk20k_v1','gPrepaid8556_v1'];
+  'pondBudget','pcb_main','pcb_loan40','pcb_gold','pcb_goldmin','pcb_car','pcb_ksk','pcb_chayo','pondCombCells','paDebts_v1','chayoInit21_v1','mainBudget','ycAdd2000_v1','ycAdd1000_v1','mainBalSet_20260704','mainBudget15k_v1','mainBalSetS_v2','pcb_gold1','pcb_goldmin1','pcb_gold2','pcb_goldmin2','goldMinReal_v2','rushTarget_v1','mainBudget15046_v1','chayoInit24_v1','mainBalSet_20260918','chayoInit20k_v1','lineBk10k_v1','gold4341_8k_v1','lineBk11k_v1','lineBk16k_v1','lineBk20k_v1','gPrepaid8556_v1','gold4341_6k_v1','whiteCar14_v1','showCar2_v1'];
 
 document.getElementById('exportBtn').addEventListener('click',()=>{
   const dump = { app:'debt-plan', version:1, exportedAt:new Date().toISOString(), data:{} };
@@ -1713,6 +1741,31 @@ document.getElementById('sharePdfBtn').addEventListener('click', async e=>{
   finally { restorePondTabs(); }
 });
 
+/* ===== รถคันสีเทา: ซ่อนไว้ก่อน (ยังไม่อยากยุ่งกับมัน) =====
+   ซ่อนแล้วจะหายไปจาก: การ์ดสัญญา • ตารางรวมทุกสัญญา • หน้าโปะหนี้
+   กดปุ่มเล็กๆ ท้ายแท็บสัญญาเพื่อเปิดดูได้ตลอด (ข้อมูลไม่ได้ถูกลบ แค่ซ่อน) */
+const car2Hidden = ()=> localStorage.getItem('showCar2_v1')!=='1';
+function toggleCar2(){
+  localStorage.setItem('showCar2_v1', car2Hidden()?'1':'0');
+  pondCombDebts = POND_ALL_DEBTS.filter(d=> d.key!=='car' || !car2Hidden());
+  buildMoreLoans('moreLoans');
+  renderCar2Toggle();
+  try{ buildPondTable(); }catch(e){}
+  try{ buildPayPick(); }catch(e){}
+  try{ render(); }catch(e){}
+}
+function renderCar2Toggle(){
+  const b=document.getElementById('car2Toggle');
+  if(!b) return;
+  const hid=car2Hidden();
+  b.textContent = hid ? '🔒 แสดงรถคันสีเทา' : '🙈 ซ่อนรถคันสีเทา';
+  b.style.opacity = hid ? '.45' : '1';
+  const w=document.getElementById('mlwrap-car2');
+  if(w) w.style.display = hid ? 'none' : '';
+  const d=document.getElementById('pondHomeDesc');
+  if(d) d.textContent = 'หนี้หลัก • รถคันสีขาว • ทองคำ • ชโย เจวี' + (hid?'':' • รถคันสีเทา');
+}
+
 /* ================= สัญญาผ่อนเพิ่มเติม (สร้างแบบ generic) ================= */
 const moreLoanConfigs = [
   { id:'car2', host:'moreLoans', n:4, icon:'🚗', title:'รถคันสีเทา', per:7000, balance:511000, store:'loanCar2_v1', def:0 },
@@ -1756,7 +1809,9 @@ function buildMoreLoans(hostId){
     const totTxt = total==null ? '—' : total;
     const balTxt = cfg.balance==null ? 'รอยอด' : fmt(cfg.balance);
     const per = perOf(cfg);
+    const hid = (cfg.id==='car2' && car2Hidden());
     return `
+    <div id="mlwrap-${cfg.id}"${hid?' style="display:none"':''}>
     <div class="divider">${cfg.icon} แผนที่ ${cfg.n} · ${cfg.title}</div>
     <div class="plan-tools">
       <span class="pt-label">แผนที่ ${cfg.n} · ${cfg.title}</span>
@@ -1794,6 +1849,7 @@ function buildMoreLoans(hostId){
       ${cfg.note?`<div class="lsub" style="margin-top:8px">ℹ️ ${cfg.note}</div>`:''}
       ${total==null?`<div class="lsub" style="margin-top:8px">⏳ ยังไม่มียอดรวม — กรอกยอดด้านบนแล้วระบบจะคำนวณจำนวนงวด/ยอดคงเหลือให้</div>`:''}
     </section>
+    </div>
     </div>`;
   }).join('');
 
@@ -2042,6 +2098,8 @@ document.addEventListener('click', e=>{
 });
 
 buildMoreLoans('moreLoans');
+document.getElementById('car2Toggle')?.addEventListener('click', toggleCar2);
+renderCar2Toggle();
 
 /* ================= สมุดบันทึกโปะหนี้ (จ่ายเพิ่มเอง) ================= */
 const payDebts = [
@@ -2050,9 +2108,9 @@ const payDebts = [
   {id:'YourCash', name:'YourCash',   tag:'หนี้หลัก'},
   {id:'LINE BK',  name:'LINE BK',    tag:'หนี้หลัก'},
   {id:'AEON',     name:'AEON',       tag:'หนี้หลัก'},
-  {id:'loan40',   name:'ผ่อน 40 งวด', tag:'สัญญาผ่อน'},
+  {id:'loan40',   name:'รถคันสีขาว (ผ่อน 40 งวด)', tag:'สัญญาผ่อน'},
   {id:'gold4959', name:'ทอง 4959',   tag:'แอปทอง เส้นใหญ่ (45,000)'},
-  {id:'gold4341', name:'ทอง 4341',   tag:'แอปทอง เส้นเล็ก (15,049)'},
+  {id:'gold4341', name:'ทอง 4341',   tag:'แอปทอง เส้นเล็ก (6,000)'},
   {id:'car2',     name:'รถคันสีเทา',  tag:'สัญญาผ่อน'},
   {id:'chayo',    name:'ชโย เจวี',    tag:'สัญญาผ่อน'},
 ];
@@ -2111,7 +2169,8 @@ function buildPayPick(){
     id==='loan40' ? 4875 : id==='car2' ? 7000 : (nextDue[id]||0);
   const msgFor = id => (payLastMsg && payLastMsg.id===id) ? `<div class="payresult">${payLastMsg.msg}</div>` : '';
   const groupsHtml = payGroupDefs.map(g=>{
-    const rows=g.ids.map(id=>{
+    // รถคันสีเทาซ่อนอยู่ → ไม่ต้องขึ้นในหน้าโปะหนี้
+    const rows=g.ids.filter(id=> id!=='car2' || !car2Hidden()).map(id=>{
       const d=payDebts.find(x=>x.id===id);
       const rem=Math.round(payRemaining(id));
       if(rem<=0) return `<div class="payline done"><div class="pl-head"><b>${d.name}</b><span class="ok">เคลียร์แล้ว ✓</span></div></div>`+msgFor(id);
@@ -2313,15 +2372,17 @@ initPatBalInputs();
 renderPatAll();
 
 /* ================= ปอนด์: ตารางรวมทุกสัญญา ================= */
-const pondCombDebts = [
+const POND_ALL_DEBTS = [
   {key:'main',   name:'💳 หนี้หลัก+ทอง+ชโย', fixed:false},
-  {key:'loan40', name:'🚗 ผ่อน40งวด',  fixed:true, per:4875},
+  {key:'loan40', name:'🚗 รถคันสีขาว',  fixed:true, per:4875},
   {key:'car',    name:'🚙 รถคันสีเทา',  fixed:true, per:7000},
 ];
+// รถคันสีเทาซ่อนอยู่ → ไม่เข้าตารางรวม (กดปุ่มท้ายแท็บสัญญาเพื่อเอากลับมา)
+let pondCombDebts = POND_ALL_DEBTS.filter(d=> d.key!=='car' || !car2Hidden());
 const getPondBudget  = ()=>{ const v=+localStorage.getItem('pondBudget'); return v>0?v:25000; };
-// ทองแยก 2 สัญญา (จ่ายคนละแอป): 4959 เงินต้น 45,000 • 4341 เงินต้น 15,049
+// ทองแยก 2 สัญญา (จ่ายคนละแอป): 4959 เงินต้น 45,000 • 4341 เงินต้น 6,000
 function getGoldP1(){ const raw=localStorage.getItem('pcb_gold1'); const v=+raw; return (raw!==null&&raw!==''&&!isNaN(v)&&v>=0)?v:45000; }
-function getGoldP2(){ const raw=localStorage.getItem('pcb_gold2'); const v=+raw; return (raw!==null&&raw!==''&&!isNaN(v)&&v>=0)?v:8000; }
+function getGoldP2(){ const raw=localStorage.getItem('pcb_gold2'); const v=+raw; return (raw!==null&&raw!==''&&!isNaN(v)&&v>=0)?v:6000; }
 function getGoldMin1(){ const v=+localStorage.getItem('pcb_goldmin1'); return v>0?v:500; }   // ดอกเส้นใหญ่ 4959
 function getGoldMin2(){ const v=+localStorage.getItem('pcb_goldmin2'); return v>0?v:90; }    // ดอกเส้นเล็ก 4341
 // ตั้งดอกทองตามจริง: 4959 = 500, 4341 = 90 (ครั้งเดียว — ทับค่าเดิม แก้ทีหลังได้)
