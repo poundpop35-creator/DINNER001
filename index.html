@@ -412,7 +412,7 @@ body.capturing #paTbl .noprint{ display:none !important; }
     <h2>⚡ อัดปิดให้ทันเป้า — ต้องใช้งบเดือนละเท่าไหร่</h2>
     <div class="tgtproj" style="background:#fff7ed;border-color:#fed7aa;color:#9a3412">
       เป้า = ปิด <b>การ์ดทุกใบ + ทอง 2 เส้น + S</b> (พวกที่ปิดเร็วได้ ไม่ฟิกเดือน)<br>
-      ส่วน <b>G</b> จ่ายตามงวดฟิก และ <b>ชโย</b> ผ่อนฟิก 4,000 ต่อไปตามงวด — ไม่นับในเป้า
+      ส่วน <b>G</b> จ่ายตามงวดฟิก (แก้ไม่ได้) และ <b>ชโย</b> ไม่นับในเป้านี้ — แต่ยังโปะเร็วขึ้นได้ถ้ามีงบเหลือ
     </div>
     <div class="paystep" style="margin-top:12px">เลือกเดือนเป้าหมาย:</div>
     <div class="quickamts" id="rushTargets"></div>
@@ -965,9 +965,9 @@ function buildCreditors(){
 }
 
 // ===== แผนจ่ายหนี้หลักรายเดือน =====
-// G = ฟิก จ่ายตามงวดเต็มทุกเดือน
+// G = ฟิกจริง (สินเชื่อธนาคาร แก้ไม่ได้) — จ่ายตามงวดที่ธนาคารหักเท่านั้น
+// ทุกอย่างที่เหลือ (YourCash/LINE BK/AEON/ทอง/ชโย) จ่ายขั้นต่ำก่อน แล้วงบที่เหลือ "อัด" ได้เต็มที่
 // S = ดอกถูกสุด (หมุนเอง) → แยกไว้ ไม่แตะระหว่างทาง ปิดก้อนเดียวเดือนสุดท้าย
-// YourCash / LINE BK / AEON = จ่ายขั้นต่ำ แล้วทุ่มงบที่เหลือปิดก่อน (ใบเล็กก่อน)
 const MAIN_FIXED = { G:[8555,8558,6000,4509,4512] };
 // G = "สินเชื่อเงินสดทันใจ" รวม 3 ยอดย่อย ปิดคนละเดือน (ตามใบแจ้งหนี้):
 //   งวด 1-2: ทั้ง 3 ยอดยังจ่ายอยู่ (~8,555-8,558) → ยอดย่อยเล็กสุดปิด ต.ค. 2026
@@ -1012,15 +1012,9 @@ function mainPlanGenerate(balGetter, budgetOverride, firstPaid){
     const owe = (k, base)=> fp ? Math.max(0, base-(fp[k]||0)) : base;
     const pay={}, closed={};
     creditors.forEach(c=>{ pay[c.key]=0; }); pay.g1=0; pay.g2=0; pay.chayo=0;
-    // 0) ชโยจ่ายงวดฟิกทุกเดือน (ไม่เร่งปิด) — เดือนแรกหักที่จ่ายไปแล้ว
-    if(bal.chayo>0){
-      const amt=Math.min(owe('chayo', CHAYO_PER), bal.chayo);
-      pay.chayo+=amt; bal.chayo-=amt;
-      if(bal.chayo<=0) closed.chayo=true;
-    }
-    const othersLeft = fixedKeys.concat(minKeys).some(k=>bal[k]>0) || bal.g1>0 || bal.g2>0;
+    const othersLeft = fixedKeys.concat(minKeys).some(k=>bal[k]>0) || bal.g1>0 || bal.g2>0 || bal.chayo>0;
     if(othersLeft){
-      // 1) G จ่ายงวดฟิก
+      // 1) G จ่ายงวดฟิก (ตัวเดียวที่ฟิกจริง แก้ไม่ได้)
       fixedKeys.forEach(k=>{
         if(bal[k]<=0) return;
         const sched=MAIN_FIXED[k];
@@ -1032,14 +1026,19 @@ function mainPlanGenerate(balGetter, budgetOverride, firstPaid){
       // 2) ทองต่อดอกทุกเดือน แยกตามสัญญา (ดอกอย่างเดียว เงินต้นไม่ลด)
       if(bal.g1>0) pay.g1 += owe('g1', gMin1);
       if(bal.g2>0) pay.g2 += owe('g2', gMin2);
-      // 3) YourCash/LINE BK/AEON จ่ายขั้นต่ำ (ยังไม่แตะ S)
+      // 3) YourCash/LINE BK/AEON จ่ายขั้นต่ำ + ชโยจ่ายขั้นต่ำงวด (ยังไม่แตะ S)
       minKeys.forEach(k=>{
         if(bal[k]<=0) return;
         const amt = Math.min(owe(k, MAIN_MIN[k]||0), bal[k]);
         pay[k]+=amt; bal[k]-=amt;
         if(bal[k]<=0) closed[k]=true;
       });
-      // 4) งบส่วนเกิน → ปิดใบเล็กก่อน → เงินต้นทอง 4341 (เส้นเล็ก) → เงินต้นทอง 4959 (เว้น S ไว้)
+      if(bal.chayo>0){
+        const amt=Math.min(owe('chayo', CHAYO_PER), bal.chayo);
+        pay.chayo+=amt; bal.chayo-=amt;
+        if(bal.chayo<=0) closed.chayo=true;
+      }
+      // 4) งบส่วนเกิน → ที่เหลือทั้งหมด (นอกจาก G) อัดได้เลย: ปิดใบเล็กก่อน → เงินต้นทอง 4341 → 4959 → ชโย (เว้น S ไว้)
       let spent=creditors.reduce((s,c)=>s+pay[c.key],0)+pay.g1+pay.g2+pay.chayo;
       let pool=Math.max(0, budget-spent);
       const order=minKeys.map(k=>({key:k,bal:bal[k]})).filter(x=>x.bal>0)
@@ -1057,9 +1056,14 @@ function mainPlanGenerate(balGetter, budgetOverride, firstPaid){
         pay[gk]+=p; bal[gk]-=p; pool-=p;
         if(bal[gk]<=0) closed[gk]=true;
       }
+      if(pool>0 && bal.chayo>0){
+        const p=Math.min(pool, bal.chayo);
+        pay.chayo+=p; bal.chayo-=p; pool-=p;
+        if(bal.chayo<=0) closed.chayo=true;
+      }
     } else {
-      // เหลือแต่ S (+ชโยที่ยังผ่อนฟิกต่อ) → ปิด S ก้อนเดียวด้วยงบที่เหลือ
-      let pool=Math.max(0, budget - pay.chayo);
+      // เหลือแต่ S → ปิดก้อนเดียวด้วยงบที่เหลือทั้งหมด
+      let pool=budget;
       lastKeys.forEach(k=>{
         if(bal[k]<=0 || pool<=0) return;
         const amt=Math.min(bal[k], pool);
@@ -1125,7 +1129,7 @@ function buildMainPlan(){
   if(note){
     const m0 = rows[0] ? Math.round(rows[0].total) : 0;
     note.innerHTML =
-      `จ่ายเดือนละ <b>${fmt(budget)}</b> บาท • <b>G</b>/<b>ชโย</b> จ่ายงวดฟิก • <b>ทอง</b> ต่อดอกทุกเดือน • งบเหลือเร่งปิด <b>YourCash → AEON → LINE BK</b> แล้วปิดต้นทอง • <b>S</b> ปิดก้อนสุดท้าย • ปิดครบใน <b>${rows.length}</b> เดือน`
+      `จ่ายเดือนละ <b>${fmt(budget)}</b> บาท • <b>G</b> ฟิกตามธนาคาร (แก้ไม่ได้) • ที่เหลือ (LINE BK/ทอง/ชโย) จ่ายขั้นต่ำก่อนแล้วอัดเต็มที่: งบเหลือเร่งปิด <b>LINE BK → ทอง 4341 → ทอง 4959 → ชโย</b> • <b>S</b> ปิดก้อนสุดท้าย • ปิดครบใน <b>${rows.length}</b> เดือน`
       + `<br>🟣 <b>เดือนนี้เหลือต้องจ่ายอีก ${fmt(m0)} บาท</b> (ก้อนที่จ่ายแล้วขึ้น "จ่ายแล้ว ✓")`;
   }
 }
