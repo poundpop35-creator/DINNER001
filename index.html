@@ -903,6 +903,22 @@ if(!localStorage.getItem('gold4341_6k_v1')){
   savePay();
   localStorage.setItem('gold4341_6k_v1','1');
 }
+// แก้ไข LINE BK ให้ตรง = 14,000 (จากเดิม 20,000) — ครั้งเดียว
+if(!localStorage.getItem('lineBk14k_v1')){
+  localStorage.setItem('mainBal_LINE BK','14000');
+  delete extraPaid['LINE BK'];
+  payLog = payLog.filter(e=> e.id!=='LINE BK');
+  savePay();
+  localStorage.setItem('lineBk14k_v1','1');
+}
+// ทอง 4341 ปิดหมดแล้ว (เงินต้น 0) • ทอง 4959 ยอดใหม่ 57,500 — ครั้งเดียว
+if(!localStorage.getItem('goldSet_20260921_v1')){
+  localStorage.setItem('pcb_gold2','0');
+  localStorage.setItem('pcb_gold1','57500');
+  payLog = payLog.filter(e=> e.id!=='gold4341' && e.id!=='gold4959');
+  savePay();
+  localStorage.setItem('goldSet_20260921_v1','1');
+}
 
 /* ===== "ปิดยอดเร็วขึ้น": เงินโปะไปตัดงวดท้ายๆ ของเจ้าหนี้ในตารางหนี้หลัก ===== */
 let coverageMap = {};
@@ -1188,8 +1204,15 @@ function buildMainPlan(){
   foot.innerHTML='<td style="text-align:left">รวม</td>'+planCols.map(c=>`<td>${fmt(Math.round(colSum[c.key]))}</td>`).join('')+`<td>${fmt(Math.round(grand))}</td>`;
   if(note){
     const m0 = rows[0] ? Math.round(rows[0].total) : 0;
+    // ลำดับเร่งปิด — เอาเฉพาะก้อนที่ยังเหลืออยู่จริง
+    const attackChain = MAIN_ATTACK_ORDER.filter(k=> getMainBal(k)>0)
+      .concat(pondReady && getGoldBal2()>0 ? ['ทอง 4341'] : [])
+      .concat(pondReady && getGoldBal1()>0 ? ['ทอง 4959'] : [])
+      .concat(pondReady && getPondBal('chayo')>0 ? ['ชโย'] : []);
     note.innerHTML =
-      `จ่ายเดือนละ <b>${fmt(budget)}</b> บาท • <b>G</b> ฟิกตามธนาคาร (แก้ไม่ได้) • ที่เหลือ (LINE BK/ทอง/ชโย) จ่ายขั้นต่ำก่อนแล้วอัดเต็มที่: งบเหลือเร่งปิด <b>LINE BK → ทอง 4341 → ทอง 4959 → ชโย</b> • <b>S</b> ปิดก้อนสุดท้าย • ปิดครบใน <b>${rows.length}</b> เดือน`
+      `จ่ายเดือนละ <b>${fmt(budget)}</b> บาท • <b>G</b> ฟิกตามธนาคาร (แก้ไม่ได้) • ที่เหลือจ่ายขั้นต่ำก่อนแล้วอัดเต็มที่: งบเหลือเร่งปิด <b>${attackChain.join(' → ')||'—'}</b>`
+      + (getMainBal('S')>0?' • <b>S</b> ปิดก้อนสุดท้าย':'')
+      + ` • ปิดครบใน <b>${rows.length}</b> เดือน`
       + `<br>🏦 <b>G เตรียมเงินไว้แล้ว 8,556 บาท</b> สำหรับงวด <b>27 ก.ย.</b> (4,046) + <b>10 ต.ค.</b> (4,509) — ธนาคารตัดเอง ไม่ต้องกันจากงบ 15,046 (ตารางเลยขึ้น "–" ที่ช่อง G เดือนนี้)`
       + `<br>🟣 <b>เดือนนี้เหลือต้องจ่ายอีก ${fmt(m0)} บาท</b> (ก้อนที่จ่ายแล้วขึ้น "จ่ายแล้ว ✓")`;
   }
@@ -1493,10 +1516,16 @@ function renderGoldSystem_v3() {
   if (!pondReady) { b1.textContent = '–'; return; }
   b1.innerHTML = fmt(Math.round(getGoldBal1())) + ' <small>บาท</small>';
   document.getElementById('goldMin1').innerHTML = fmt(getGoldMin1()) + ' <small>บาท</small>';
-  document.getElementById('goldBal2').innerHTML = fmt(Math.round(getGoldBal2())) + ' <small>บาท</small>';
-  document.getElementById('goldMin2').innerHTML = fmt(getGoldMin2()) + ' <small>บาท</small>';
+  const b2 = Math.round(getGoldBal2());
+  document.getElementById('goldBal2').innerHTML = b2>0
+    ? fmt(b2) + ' <small>บาท</small>'
+    : '<span style="color:#16a34a">ปิดแล้ว ✓</span>';
+  document.getElementById('goldMin2').innerHTML = b2>0
+    ? fmt(getGoldMin2()) + ' <small>บาท</small>'
+    : '<small>ไม่ต้องต่อดอกแล้ว</small>';
   const gs = document.getElementById('goldSubTxt');
-  if (gs) gs.textContent = `สัญญา 4959 (${fmt(Math.round(getGoldBal1()))}) • สัญญา 4341 (${fmt(Math.round(getGoldBal2()))})`;
+  if (gs) gs.textContent = `สัญญา 4959 (${fmt(Math.round(getGoldBal1()))})`
+    + (b2>0 ? ` • สัญญา 4341 (${fmt(b2)})` : ' • สัญญา 4341 ปิดแล้ว ✓');
 }
 
 buildGoldTable_v3();
@@ -1506,7 +1535,7 @@ renderGoldSystem_v3();
 // รวมทุก localStorage key ที่แอปใช้ ไว้ในไฟล์เดียว
 const BACKUP_KEYS = ['debtCellsPaid_v1','loanInstall_v1','goldCellsPaid_isolated_v3','loanCar2_v1','loanKsk_v1','loanKsk_v1_bal','loanChayo_v1','loanChayo_v1_bal','extraPaid_v1','payLog_v1','patTarget_v1','patBal_gold','patGoldMin','patTableCells_v1','activeProfile','monthlyTarget_v1',
   'mainBal_S','mainBal_G','mainBal_YourCash','mainBal_LINE BK','mainBal_AEON',
-  'pondBudget','pcb_main','pcb_loan40','pcb_gold','pcb_goldmin','pcb_car','pcb_ksk','pcb_chayo','pondCombCells','paDebts_v1','chayoInit21_v1','mainBudget','ycAdd2000_v1','ycAdd1000_v1','mainBalSet_20260704','mainBudget15k_v1','mainBalSetS_v2','pcb_gold1','pcb_goldmin1','pcb_gold2','pcb_goldmin2','goldMinReal_v2','rushTarget_v1','mainBudget15046_v1','chayoInit24_v1','mainBalSet_20260918','chayoInit20k_v1','lineBk10k_v1','gold4341_8k_v1','lineBk11k_v1','lineBk16k_v1','lineBk20k_v1','gPrepaid8556_v1','gold4341_6k_v1','whiteCar14_v1','showCar2_v1'];
+  'pondBudget','pcb_main','pcb_loan40','pcb_gold','pcb_goldmin','pcb_car','pcb_ksk','pcb_chayo','pondCombCells','paDebts_v1','chayoInit21_v1','mainBudget','ycAdd2000_v1','ycAdd1000_v1','mainBalSet_20260704','mainBudget15k_v1','mainBalSetS_v2','pcb_gold1','pcb_goldmin1','pcb_gold2','pcb_goldmin2','goldMinReal_v2','rushTarget_v1','mainBudget15046_v1','chayoInit24_v1','mainBalSet_20260918','chayoInit20k_v1','lineBk10k_v1','gold4341_8k_v1','lineBk11k_v1','lineBk16k_v1','lineBk20k_v1','gPrepaid8556_v1','gold4341_6k_v1','whiteCar14_v1','showCar2_v1','lineBk14k_v1','goldSet_20260921_v1'];
 
 document.getElementById('exportBtn').addEventListener('click',()=>{
   const dump = { app:'debt-plan', version:1, exportedAt:new Date().toISOString(), data:{} };
@@ -2109,8 +2138,8 @@ const payDebts = [
   {id:'LINE BK',  name:'LINE BK',    tag:'หนี้หลัก'},
   {id:'AEON',     name:'AEON',       tag:'หนี้หลัก'},
   {id:'loan40',   name:'รถคันสีขาว (ผ่อน 40 งวด)', tag:'สัญญาผ่อน'},
-  {id:'gold4959', name:'ทอง 4959',   tag:'แอปทอง เส้นใหญ่ (45,000)'},
-  {id:'gold4341', name:'ทอง 4341',   tag:'แอปทอง เส้นเล็ก (6,000)'},
+  {id:'gold4959', name:'ทอง 4959',   tag:'แอปทอง เส้นใหญ่'},
+  {id:'gold4341', name:'ทอง 4341',   tag:'แอปทอง เส้นเล็ก'},
   {id:'car2',     name:'รถคันสีเทา',  tag:'สัญญาผ่อน'},
   {id:'chayo',    name:'ชโย เจวี',    tag:'สัญญาผ่อน'},
 ];
@@ -2380,9 +2409,9 @@ const POND_ALL_DEBTS = [
 // รถคันสีเทาซ่อนอยู่ → ไม่เข้าตารางรวม (กดปุ่มท้ายแท็บสัญญาเพื่อเอากลับมา)
 let pondCombDebts = POND_ALL_DEBTS.filter(d=> d.key!=='car' || !car2Hidden());
 const getPondBudget  = ()=>{ const v=+localStorage.getItem('pondBudget'); return v>0?v:25000; };
-// ทองแยก 2 สัญญา (จ่ายคนละแอป): 4959 เงินต้น 45,000 • 4341 เงินต้น 6,000
-function getGoldP1(){ const raw=localStorage.getItem('pcb_gold1'); const v=+raw; return (raw!==null&&raw!==''&&!isNaN(v)&&v>=0)?v:45000; }
-function getGoldP2(){ const raw=localStorage.getItem('pcb_gold2'); const v=+raw; return (raw!==null&&raw!==''&&!isNaN(v)&&v>=0)?v:6000; }
+// ทองแยก 2 สัญญา (จ่ายคนละแอป): 4959 เงินต้น 57,500 • 4341 ปิดหมดแล้ว (0)
+function getGoldP1(){ const raw=localStorage.getItem('pcb_gold1'); const v=+raw; return (raw!==null&&raw!==''&&!isNaN(v)&&v>=0)?v:57500; }
+function getGoldP2(){ const raw=localStorage.getItem('pcb_gold2'); const v=+raw; return (raw!==null&&raw!==''&&!isNaN(v)&&v>=0)?v:0; }
 function getGoldMin1(){ const v=+localStorage.getItem('pcb_goldmin1'); return v>0?v:500; }   // ดอกเส้นใหญ่ 4959
 function getGoldMin2(){ const v=+localStorage.getItem('pcb_goldmin2'); return v>0?v:90; }    // ดอกเส้นเล็ก 4341
 // ตั้งดอกทองตามจริง: 4959 = 500, 4341 = 90 (ครั้งเดียว — ทับค่าเดิม แก้ทีหลังได้)
