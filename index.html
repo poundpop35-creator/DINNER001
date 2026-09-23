@@ -1044,6 +1044,8 @@ function buildCreditors(){
 }
 
 // ===== แผนจ่ายหนี้หลักรายเดือน =====
+// ทุกก้อน "ยกเว้น G" ต้องเป็นเลขกลมหลักร้อย ไม่มีเศษ (G ฟิกตามธนาคาร แก้ไม่ได้)
+const roundDown100 = v => Math.floor(v/100)*100;
 // G = ฟิกจริง (สินเชื่อธนาคาร แก้ไม่ได้) — จ่ายตามงวดที่ธนาคารหักเท่านั้น
 // ทุกอย่างที่เหลือ (YourCash/LINE BK/AEON/ทอง/ชโย) จ่ายขั้นต่ำก่อน แล้วงบที่เหลือ "อัด" ได้เต็มที่
 // S = ดอกถูกสุด (หมุนเอง) → แยกไว้ ไม่แตะระหว่างทาง ปิดก้อนเดียวเดือนสุดท้าย
@@ -1119,7 +1121,11 @@ function mainPlanGenerate(balGetter, budgetOverride, firstPaid){
       }
       // 4) งบส่วนเกิน → ที่เหลือทั้งหมด (นอกจาก G) อัดได้เลย: ปิดใบเล็กก่อน → เงินต้นทอง 4341 → 4959 → ชโย (เว้น S ไว้)
       let spent=creditors.reduce((s,c)=>s+pay[c.key],0)+pay.g1+pay.g2+pay.chayo;
-      let pool=Math.max(0, budget-spent);
+      // งบที่เหลือหลังหัก G → ปัดลงเป็นหลักร้อย เพื่อให้ทุกก้อน (ยกเว้น G) เป็นเลขกลมๆ ไม่มีเศษ
+      // ยอดคงเหลือทุกก้อนเป็นหลักร้อยอยู่แล้ว → ทั้งค่างวดปกติและงวดปิดจึงออกมากลมเสมอ
+      const gPaid = fixedKeys.reduce((s,k)=>s+pay[k],0);
+      const roundBudget = gPaid + roundDown100(Math.max(0, budget-gPaid));
+      let pool=Math.max(0, roundBudget-spent);
       const order=minKeys.map(k=>({key:k,bal:bal[k]})).filter(x=>x.bal>0)
         .sort((a,b)=> MAIN_ATTACK_ORDER.indexOf(a.key) - MAIN_ATTACK_ORDER.indexOf(b.key));
       for(const x of order){
@@ -1141,8 +1147,8 @@ function mainPlanGenerate(balGetter, budgetOverride, firstPaid){
         if(bal.chayo<=0) closed.chayo=true;
       }
     } else {
-      // เหลือแต่ S → ปิดก้อนเดียวด้วยงบที่เหลือทั้งหมด
-      let pool=budget;
+      // เหลือแต่ S → ปิดก้อนเดียวด้วยงบที่เหลือทั้งหมด (ปัดเป็นหลักร้อย)
+      let pool=roundDown100(budget);
       lastKeys.forEach(k=>{
         if(bal[k]<=0 || pool<=0) return;
         const amt=Math.min(bal[k], pool);
@@ -1213,7 +1219,7 @@ function buildMainPlan(){
       .concat(pondReady && getGoldBal1()>0 ? ['ทอง 4959'] : [])
       .concat(pondReady && getPondBal('chayo')>0 ? ['ชโย'] : []);
     note.innerHTML =
-      `จ่ายเดือนละ <b>${fmt(budget)}</b> บาท • <b>G</b> ฟิกตามธนาคาร (แก้ไม่ได้) • ที่เหลือจ่ายขั้นต่ำก่อนแล้วอัดเต็มที่: งบเหลือเร่งปิด <b>${attackChain.join(' → ')||'—'}</b>`
+      `งบไม่เกินเดือนละ <b>${fmt(budget)}</b> บาท • <b>G</b> ฟิกตามธนาคาร (แก้ไม่ได้) • ก้อนอื่นปัดเป็น<b>เลขกลมหลักร้อย</b> ไม่มีเศษ • งบเหลือเร่งปิด <b>${attackChain.join(' → ')||'—'}</b>`
       + (getMainBal('S')>0?' • <b>S</b> ปิดก้อนสุดท้าย':'')
       + ` • ปิดครบใน <b>${rows.length}</b> เดือน`
       + `<br>🏦 <b>G งวด 27 ก.ย. เตรียมเงินไว้แล้ว</b> — ธนาคารตัดเอง ไม่ต้องกันจากงบ ${fmt(budget)} (ตารางเลยขึ้น "–" ที่ช่อง G เดือนนี้) • งวด ต.ค. 8,560 คือยอดเต็มทั้งเดือน (10 ต.ค. + 27 ต.ค.)`
