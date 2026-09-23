@@ -1047,17 +1047,21 @@ function buildCreditors(){
 // ===== แผนจ่ายหนี้หลักรายเดือน =====
 // ทุกก้อน "ยกเว้น G" ต้องเป็นเลขกลมหลักร้อย ไม่มีเศษ (G ฟิกตามธนาคาร แก้ไม่ได้)
 const roundDown100 = v => Math.floor(v/100)*100;
-// G = ฟิกจริง (สินเชื่อธนาคาร แก้ไม่ได้) — จ่ายตามงวดที่ธนาคารหักเท่านั้น
-// ทุกอย่างที่เหลือ (YourCash/LINE BK/AEON/ทอง/ชโย) จ่ายขั้นต่ำก่อน แล้วงบที่เหลือ "อัด" ได้เต็มที่
+// G + LINE BK = ฟิก จ่ายตามนี้ทุกเดือน ไม่ยืดหยุ่น
+// ที่เหลือ (ทอง/ชโย) จ่ายขั้นต่ำก่อน แล้วงบที่เหลือ "อัด" ลดเงินต้นได้เต็มที่
 // S = ดอกถูกสุด (หมุนเอง) → แยกไว้ ไม่แตะระหว่างทาง ปิดก้อนเดียวเดือนสุดท้าย
-const MAIN_FIXED = { G:[0,8560,5993,4510,4510,4510] };
+const MAIN_FIXED = {
+  G:[0,8560,5993,4510,4510,4510],
+  'LINE BK':[7000],        // ฟิกเดือนละ 7,000 ทุกเดือนจนหมด (งวดสุดท้ายจ่ายเท่าที่เหลือ)
+};
 // G = "สินเชื่อเงินสดทันใจ" — งวดตามที่ธนาคารตัดจริง (โน้ต 24 ก.ย. 69):
 //   ก.ย. 0      = งวด 27 ก.ย. จ่ายจากเงินที่เตรียมไว้แล้ว → งบทั้งก้อนเอาไปอัดตัวอื่นได้
 //   ต.ค. 8,560 • พ.ย. 5,993 • ธ.ค. 4,510 • ม.ค. 4,510 • ก.พ. 4,510 (ปิด 10 ก.พ. 2027)
 //   รวม 28,083 = ยอดคงเหลือ G
-const MAIN_MIN   = { YourCash:1000, 'LINE BK':1000, AEON:1000 };
+// LINE BK 26,000 ÷ 7,000 → ก.ย./ต.ค./พ.ย. เดือนละ 7,000 แล้ว ธ.ค. 5,000 ปิด
+const MAIN_MIN   = { YourCash:1000, AEON:1000 };
 const MAIN_PAYLAST = ['S'];   // แยกไว้ปิดก้อนเดียวเดือนสุดท้าย
-const MAIN_ATTACK_ORDER = ['YourCash','AEON','LINE BK'];   // เร่งปิดใครก่อน (ดอกเยอะก่อน)
+const MAIN_ATTACK_ORDER = ['YourCash','AEON'];   // เร่งปิดใครก่อน (ดอกเยอะก่อน)
 // งบหนี้หลักตั้งเองได้ (แยกจากงบรวม) — เริ่มต้น 10,000
 function getMainBudget(){ const raw=localStorage.getItem('mainBudget'); const v=+raw; return (raw!==null&&raw!==''&&!isNaN(v)&&v>0)?v:15046; }
 // ตั้งงบหนี้หลักเป็น 15,046 (เผื่อเศษ 46 จาก G → YourCash กลม) — ครั้งเดียว override ค่าเดิม
@@ -1205,20 +1209,31 @@ function buildMainPlan(){
     }).join('');
     grand+=r.total;
     const mlab = i===0 ? planMonthLabel(0)+' <span class="thismonth">(เดือนนี้)</span>' : planMonthLabel(i);
-    return `<tr class="${i===0?'planrow-now':''}"><td style="text-align:left">${mlab}</td>${tds}<td><b>${fmt(Math.round(r.total))}</b></td></tr>`;
+    const over = Math.round(r.total) - budget;
+    const totCell = over>0
+      ? `<td><b style="color:#dc2626">${fmt(Math.round(r.total))}</b><br><small style="color:#dc2626">เกินงบ ${fmt(over)}</small></td>`
+      : `<td><b>${fmt(Math.round(r.total))}</b></td>`;
+    return `<tr class="${i===0?'planrow-now':''}"><td style="text-align:left">${mlab}</td>${tds}${totCell}</tr>`;
   }).join('');
   foot.innerHTML='<td style="text-align:left">รวม</td>'+planCols.map(c=>`<td>${fmt(Math.round(colSum[c.key]))}</td>`).join('')+`<td>${fmt(Math.round(grand))}</td>`;
   if(note){
     const m0 = rows[0] ? Math.round(rows[0].total) : 0;
     // ลำดับเร่งปิด — เอาเฉพาะก้อนที่ยังเหลืออยู่จริง
+    const overMonths = rows.map((r,i)=>({m:planMonthLabel(i), over:Math.round(r.total)-budget}))
+      .filter(o=>o.over>0);
     const attackChain = MAIN_ATTACK_ORDER.filter(k=> getMainBal(k)>0)
       .concat(pondReady && getGoldBal2()>0 ? ['ทอง 4341'] : [])
       .concat(pondReady && getGoldBal1()>0 ? ['ทอง 4959'] : [])
       .concat(pondReady && getPondBal('chayo')>0 ? ['ชโย'] : []);
     note.innerHTML =
-      `งบไม่เกินเดือนละ <b>${fmt(budget)}</b> บาท • <b>G</b> ฟิกตามธนาคาร (แก้ไม่ได้) • ก้อนอื่นปัดเป็น<b>เลขกลมหลักร้อย</b> ไม่มีเศษ • งบเหลือเร่งปิด <b>${attackChain.join(' → ')||'—'}</b>`
+      `งบตั้งไว้เดือนละ <b>${fmt(budget)}</b> บาท • ฟิก: <b>G</b> (ตามธนาคาร) + <b>LINE BK 7,000</b> • ก้อนอื่นปัดเป็น<b>เลขกลมหลักร้อย</b> ไม่มีเศษ • งบเหลือเร่งปิด <b>${attackChain.join(' → ')||'—'}</b>`
       + (getMainBal('S')>0?' • <b>S</b> ปิดก้อนสุดท้าย':'')
       + ` • ปิดครบใน <b>${rows.length}</b> เดือน`
+      + (overMonths.length
+          ? `<br>⚠️ <b>เดือนที่ต้องหาเพิ่มจากงบ ${fmt(budget)}:</b> `
+            + overMonths.map(o=>`${o.m} <b>+${fmt(o.over)}</b>`).join(' • ')
+            + ` (เพราะ LINE BK ฟิก 7,000 ชนกับงวด G ที่สูง)`
+          : '')
       + `<br>🔄 <b>ค่าต่อดอกทองจ่ายแยกนอกงบ</b> — เงินในตารางนี้ลด<b>เงินต้น</b>เต็มจำนวนทุกบาท`
       + `<br>🏦 <b>G งวด 27 ก.ย. เตรียมเงินไว้แล้ว</b> — ธนาคารตัดเอง ไม่ต้องกันจากงบ ${fmt(budget)} (ตารางเลยขึ้น "–" ที่ช่อง G เดือนนี้) • งวด ต.ค. 8,560 คือยอดเต็มทั้งเดือน (10 ต.ค. + 27 ต.ค.)`
       + `<br>🟣 <b>เดือนนี้เหลือต้องจ่ายอีก ${fmt(m0)} บาท</b> (ก้อนที่จ่ายแล้วขึ้น "จ่ายแล้ว ✓")`;
