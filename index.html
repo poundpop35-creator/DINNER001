@@ -387,7 +387,7 @@ body.capturing #paTbl .noprint{ display:none !important; }
     </section>
     <div id="pondPager" class="pager noprint"></div>
     <div class="foot-note noprint">
-      แผน = จ่ายค่างวดครบทุกสัญญา + ทองต่อดอกทุกเดือน + เงินที่เหลือทุ่มปิด <b>หนี้หลัก → ชโย เจวี → ทอง</b> (หนี้รถจ่ายตามค่างวด)<br>
+      แผน = จ่ายค่างวดครบทุกสัญญา + เงินที่เหลือทุ่มลดเงินต้น <b>หนี้หลัก → ทอง → ชโย เจวี</b> (หนี้รถจ่ายตามค่างวด • ค่าต่อดอกทองจ่ายแยกนอกงบ)<br>
       ✅ ปิด = เดือนที่ก้อนนั้นหมด • ตารางนี้อัปเดตเองตามที่คุณจ่าย/โปะจริงในแท็บอื่น
     </div>
   </div>
@@ -584,12 +584,13 @@ body.capturing #paTbl .noprint{ display:none !important; }
     </div>
     <div class="lstats">
       <div class="lstat accent"><div class="l">4959 คงเหลือ</div><div class="v" id="goldBal1">–</div></div>
-      <div class="lstat"><div class="l">4959 ต่อดอก/เดือน</div><div class="v" id="goldMin1">–</div></div>
+      <div class="lstat"><div class="l">4959 ต่อดอก/เดือน <small>(จ่ายแยก)</small></div><div class="v" id="goldMin1">–</div></div>
       <div class="lstat accent"><div class="l">4341 คงเหลือ</div><div class="v" id="goldBal2">–</div></div>
-      <div class="lstat"><div class="l">4341 ต่อดอก/เดือน</div><div class="v" id="goldMin2">–</div></div>
+      <div class="lstat"><div class="l">4341 ต่อดอก/เดือน <small>(จ่ายแยก)</small></div><div class="v" id="goldMin2">–</div></div>
     </div>
     <div class="tgtproj" style="margin-top:12px;background:#ecfdf5;border-color:#a7f3d0;color:#065f46">
-      ✅ ทองรวมอยู่ในแผน <b>หนี้หลัก+ทอง (งบ 15,000/เดือน)</b> แล้ว — <b>ไม่ต้องจ่ายแยกเดือนละ 5,000 อีก</b><br>
+      ✅ ทองรวมอยู่ในแผน <b>หนี้หลัก (งบเดือนละ 15,046)</b> แล้ว — ไม่ต้องจ่ายแยกเดือนละ 5,000 อีก<br>
+      🔄 <b>ค่าต่อดอกจ่ายแยกนอกงบ</b> (หาโปะเอง) — เงินทุกบาทที่ลงในแผน/หน้าโปะหนี้ <b>ลดเงินต้นเต็มจำนวน</b><br>
       📋 ดูว่าเดือนไหนจ่ายทองเท่าไหร่ → แท็บ 💳 หนี้หลัก • เวลาจ่ายจริง → แท็บ 💰 โปะหนี้
     </div>
   </section>
@@ -1068,15 +1069,15 @@ function planMonthLabel(i){ const d=new Date(); return PLAN_MN[(d.getMonth()+i)%
 const CHAYO_PER = 4000;   // ชโย เจวี งวดฟิก/เดือน (รวมอยู่ในงบหนี้หลักแล้ว — แบ่งจากส่วนที่เคยทุ่ม AEON)
 function mainPlanGenerate(balGetter, budgetOverride, firstPaid){
   // แผนเดียว: หนี้หลัก + ทอง 2 เส้น + ชโย
-  // g1 = ทอง 4959 • g2 = ทอง 4341 • ต่อดอกทุกเดือน • ชโยจ่ายฟิก 4,000 ทุกเดือน
+  // g1 = ทอง 4959 • g2 = ทอง 4341 • ชโยจ่ายฟิก 4,000 ทุกเดือน
+  // *** ไม่กันค่าต่อดอกทองไว้ในงบ — ผู้ใช้จ่ายดอกแยกเองนอกงบ
+  //     เงินทุกบาทในแผนนี้จึงลด "เงินต้น" ล้วนๆ (เงินต้นลดไวที่สุด) ***
   // งบเหลือปิดใบเล็ก → เงินต้น 4341 → 4959 • S ปิดท้ายสุด (ไม่รอชโย)
   // firstPaid = ยอดที่จ่ายไปแล้วเดือนนี้ต่อก้อน → เดือนแรกไม่ต้องจ่ายซ้ำ แต่งบยังเต็ม (เททุ่มก้อนอื่นแทน)
   const getBal = balGetter || (k=>
     k==='g1' ? (pondReady ? getGoldBal1() : 0) :
     k==='g2' ? (pondReady ? getGoldBal2() : 0) :
     k==='chayo' ? (pondReady ? getPondBal('chayo') : 0) : getMainBal(k));
-  const gMin1 = pondReady ? getGoldMin1() : 500;
-  const gMin2 = pondReady ? getGoldMin2() : 90;
   const budget = (budgetOverride>0) ? budgetOverride : mainMonthlyBudget();
   const rows=[];
   const bal={}; creditors.forEach(c=>{ bal[c.key]=getBal(c.key); });
@@ -1104,9 +1105,6 @@ function mainPlanGenerate(balGetter, budgetOverride, firstPaid){
         pay[k]+=amt; bal[k]-=amt; fixIdx[k]++;
         if(bal[k]<=0) closed[k]=true;
       });
-      // 2) ทองต่อดอกทุกเดือน แยกตามสัญญา (ดอกอย่างเดียว เงินต้นไม่ลด)
-      if(bal.g1>0) pay.g1 += owe('g1', gMin1);
-      if(bal.g2>0) pay.g2 += owe('g2', gMin2);
       // 3) YourCash/LINE BK/AEON จ่ายขั้นต่ำ + ชโยจ่ายขั้นต่ำงวด (ยังไม่แตะ S)
       minKeys.forEach(k=>{
         if(bal[k]<=0) return;
@@ -1184,8 +1182,7 @@ function buildMainPlan(){
     planCols.forEach(c=>{ paidMap[c.key]=paidThisMonth(PLANKEY_TO_PAYID[c.key]||c.key); });
     // หักที่จ่ายแล้วออกจากตาราง • ทองหักได้แค่ "ค่าดอกเดือนนี้" (เงินต้นที่จ่ายเกินไปลดยอดในตารางอยู่แล้ว)
     const consumeAmt = c =>
-      c.key==='g1' ? Math.min(paidMap.g1, getGoldMin1()) :
-      c.key==='g2' ? Math.min(paidMap.g2, getGoldMin2()) : paidMap[c.key];
+      paidMap[c.key];
     planCols.forEach(c=>{
       let remain=consumeAmt(c);
       for(const r of rows){ if(remain<=0.5) break; const a=r.pay[c.key]||0; if(a<=0) continue; const cut=Math.min(a,remain); r.pay[c.key]=a-cut; remain-=cut; }
@@ -1222,6 +1219,7 @@ function buildMainPlan(){
       `งบไม่เกินเดือนละ <b>${fmt(budget)}</b> บาท • <b>G</b> ฟิกตามธนาคาร (แก้ไม่ได้) • ก้อนอื่นปัดเป็น<b>เลขกลมหลักร้อย</b> ไม่มีเศษ • งบเหลือเร่งปิด <b>${attackChain.join(' → ')||'—'}</b>`
       + (getMainBal('S')>0?' • <b>S</b> ปิดก้อนสุดท้าย':'')
       + ` • ปิดครบใน <b>${rows.length}</b> เดือน`
+      + `<br>🔄 <b>ค่าต่อดอกทองจ่ายแยกนอกงบ</b> — เงินในตารางนี้ลด<b>เงินต้น</b>เต็มจำนวนทุกบาท`
       + `<br>🏦 <b>G งวด 27 ก.ย. เตรียมเงินไว้แล้ว</b> — ธนาคารตัดเอง ไม่ต้องกันจากงบ ${fmt(budget)} (ตารางเลยขึ้น "–" ที่ช่อง G เดือนนี้) • งวด ต.ค. 8,560 คือยอดเต็มทั้งเดือน (10 ต.ค. + 27 ต.ค.)`
       + `<br>🟣 <b>เดือนนี้เหลือต้องจ่ายอีก ${fmt(m0)} บาท</b> (ก้อนที่จ่ายแล้วขึ้น "จ่ายแล้ว ✓")`;
   }
@@ -2177,10 +2175,10 @@ function paidThisMonth(id){
   },0);
 }
 // ยอด "ต้นเดือน" ของแต่ละก้อน = ยอดตอนนี้ + ส่วนที่จ่ายแล้วเดือนนี้ที่ไปลดยอดจริง
-// (ทอง: ค่าต่อดอกไม่ลดเงินต้น → บวกกลับเฉพาะส่วนที่จ่ายเกินดอก)
+// (ทอง: จ่ายดอกแยกนอกงบแล้ว → เงินที่บันทึกในแอปลดเงินต้นเต็มจำนวน)
 function startOfMonthBal(k){
-  if(k==='g1') return (pondReady?getGoldBal1():0) + Math.max(0, paidThisMonth('gold4959')-(pondReady?getGoldMin1():500));
-  if(k==='g2') return (pondReady?getGoldBal2():0) + Math.max(0, paidThisMonth('gold4341')-(pondReady?getGoldMin2():90));
+  if(k==='g1') return (pondReady?getGoldBal1():0) + paidThisMonth('gold4959');
+  if(k==='g2') return (pondReady?getGoldBal2():0) + paidThisMonth('gold4341');
   if(k==='chayo') return (pondReady?getPondBal('chayo'):0) + paidThisMonth('chayo');
   return getMainBal(k)+paidThisMonth(k);
 }
@@ -2429,14 +2427,12 @@ if(!localStorage.getItem('goldMinReal_v2')){
   localStorage.setItem('pcb_goldmin2','90');
   localStorage.setItem('goldMinReal_v2','1');
 }
-// เงินที่จ่ายทองแต่ละเดือน: ส่วนแรก = ค่าต่อดอก (เงินต้นไม่ลด) ส่วนที่เกินค่อยลดเงินต้น
-function goldPrincipalPaid(id, intDue){
-  const byMonth={};
-  payLog.forEach(e=>{ if(e.id!==id) return; const d=new Date(e.t); const k=d.getFullYear()+'-'+d.getMonth(); byMonth[k]=(byMonth[k]||0)+e.amt; });
-  return Object.values(byMonth).reduce((s,v)=> s+Math.max(0, v-intDue), 0);
+// ค่าต่อดอกจ่ายแยกนอกงบ → เงินที่บันทึกโปะทองในแอปนับเป็น "เงินต้น" เต็มจำนวน
+function goldPrincipalPaid(id){
+  return payLog.reduce((s,e)=> s + (e.id===id ? e.amt : 0), 0);
 }
-function getGoldBal1(){ return Math.max(0, getGoldP1() - goldPrincipalPaid('gold4959', getGoldMin1())); }
-function getGoldBal2(){ return Math.max(0, getGoldP2() - goldPrincipalPaid('gold4341', getGoldMin2())); }
+function getGoldBal1(){ return Math.max(0, getGoldP1() - goldPrincipalPaid('gold4959')); }
+function getGoldBal2(){ return Math.max(0, getGoldP2() - goldPrincipalPaid('gold4341')); }
 // ยอดคงเหลือ "สด" ดึงจากการจ่าย/โปะจริงในทุกส่วน → ตารางรวมลดตามอัตโนมัติ
 function getPondBal(k){
   if(k==='main'){
