@@ -578,15 +578,15 @@ body.capturing #paTbl .noprint{ display:none !important; }
     <div class="lhead">
       <div class="licon">🏆</div>
       <div>
-        <div class="ltitle">สัญญาทองคำ 2 ใบ (รวมเป็นก้อนเดียว)</div>
+        <div class="ltitle" id="goldTitleTxt">สัญญาทองคำ</div>
         <div class="lsub" id="goldSubTxt">สัญญา 4959 • สัญญา 4341</div>
       </div>
     </div>
     <div class="lstats">
-      <div class="lstat accent"><div class="l">4959 คงเหลือ</div><div class="v" id="goldBal1">–</div></div>
-      <div class="lstat"><div class="l">4959 ต่อดอก/เดือน <small>(จ่ายแยก)</small></div><div class="v" id="goldMin1">–</div></div>
-      <div class="lstat accent"><div class="l">4341 คงเหลือ</div><div class="v" id="goldBal2">–</div></div>
-      <div class="lstat"><div class="l">4341 ต่อดอก/เดือน <small>(จ่ายแยก)</small></div><div class="v" id="goldMin2">–</div></div>
+      <div class="lstat accent"><div class="l" id="goldLab1">คงเหลือ</div><div class="v" id="goldBal1">–</div></div>
+      <div class="lstat"><div class="l">ต่อดอก/เดือน <small>(จ่ายแยก)</small></div><div class="v" id="goldMin1">–</div></div>
+      <div class="lstat accent" id="goldBox2a"><div class="l">4341 คงเหลือ</div><div class="v" id="goldBal2">–</div></div>
+      <div class="lstat" id="goldBox2b"><div class="l">4341 ต่อดอก/เดือน <small>(จ่ายแยก)</small></div><div class="v" id="goldMin2">–</div></div>
     </div>
     <div class="tgtproj" style="margin-top:12px;background:#ecfdf5;border-color:#a7f3d0;color:#065f46">
       ✅ ทองรวมอยู่ในแผน <b>หนี้หลัก (งบเดือนละ 15,046)</b> แล้ว — ไม่ต้องจ่ายแยกเดือนละ 5,000 อีก<br>
@@ -1047,6 +1047,8 @@ function buildCreditors(){
 // ===== แผนจ่ายหนี้หลักรายเดือน =====
 // ทุกก้อน "ยกเว้น G" ต้องเป็นเลขกลมหลักร้อย ไม่มีเศษ (G ฟิกตามธนาคาร แก้ไม่ได้)
 const roundDown100 = v => Math.floor(v/100)*100;
+// ทอง 4341 ปิดแล้ว (เหลือสัญญาเดียวคือ 4959) → ซ่อนคอลัมน์/ช่อง/แถวของ 4341 ทั้งหมด
+const gold2Gone = ()=> !pondReady || getGoldBal2()<=0;
 // G + LINE BK = ฟิก จ่ายตามนี้ทุกเดือน ไม่ยืดหยุ่น
 // ที่เหลือ (ทอง/ชโย) จ่ายขั้นต่ำก่อน แล้วงบที่เหลือ "อัด" ลดเงินต้นได้เต็มที่
 // S = ดอกถูกสุด (หมุนเอง) → แยกไว้ ไม่แตะระหว่างทาง ปิดก้อนเดียวเดือนสุดท้าย
@@ -1169,8 +1171,9 @@ function buildMainPlan(){
   const body=document.getElementById('mainPlanBody');
   const foot=document.getElementById('mainPlanFoot');
   const note=document.getElementById('mainPlanNote');
-  const planCols = creditors.map(c=>({key:c.key,name:c.name})).concat([{key:'g2',name:'🏆 ทอง 4341'},{key:'g1',name:'🏆 ทอง 4959'},{key:'chayo',name:'📄 ชโย'}]);
-  head.innerHTML='<th style="text-align:left">เดือน</th>'+planCols.map(c=>`<th>${c.name}</th>`).join('')+'<th>รวมจ่าย</th>';
+  let planCols = creditors.map(c=>({key:c.key,name:c.name}))
+    .concat(gold2Gone()?[]:[{key:'g2',name:'🏆 ทอง 4341'}])
+    .concat([{key:'g1',name:'🏆 ทอง 4959'},{key:'chayo',name:'📄 ชโย'}]);
   const budget=mainMonthlyBudget();
   // ยอดตั้งต้นตาราง: ก้อนปกติใช้ยอด "ต้นเดือน" (งวดเต็ม) • ทองใช้เงินต้นปัจจุบัน (จ่ายแล้วหายจริง)
   const tableBal = k=>
@@ -1199,6 +1202,9 @@ function buildMainPlan(){
     if(note) note.textContent='';
     return;
   }
+  // ตัดคอลัมน์ของก้อนที่ปิดไปแล้ว (ไม่มียอดต้องจ่ายสักเดือน และไม่ได้จ่ายเดือนนี้) ออกจากตาราง
+  planCols = planCols.filter(c=> rows.some(r=>(r.pay[c.key]||0)>0.5) || (paidMap[c.key]||0)>0.5);
+  head.innerHTML='<th style="text-align:left">เดือน</th>'+planCols.map(c=>`<th>${c.name}</th>`).join('')+'<th>รวมจ่าย</th>';
   const colSum={}; planCols.forEach(c=>{ colSum[c.key]=0; }); let grand=0;
   body.innerHTML=rows.map((r,i)=>{
     const tds=planCols.map(c=>{
@@ -1223,7 +1229,7 @@ function buildMainPlan(){
       .filter(o=>o.over>0);
     const attackChain = MAIN_ATTACK_ORDER.filter(k=> getMainBal(k)>0)
       .concat(pondReady && getGoldBal2()>0 ? ['ทอง 4341'] : [])
-      .concat(pondReady && getGoldBal1()>0 ? ['ทอง 4959'] : [])
+      .concat(pondReady && getGoldBal1()>0 ? [gold2Gone()?'ทอง':'ทอง 4959'] : [])
       .concat(pondReady && getPondBal('chayo')>0 ? ['ชโย'] : []);
     note.innerHTML =
       `งบตั้งไว้เดือนละ <b>${fmt(budget)}</b> บาท • ฟิก: <b>G</b> (ตามธนาคาร) + <b>LINE BK 7,000</b> • ก้อนอื่นปัดเป็น<b>เลขกลมหลักร้อย</b> ไม่มีเศษ • งบเหลือเร่งปิด <b>${attackChain.join(' → ')||'—'}</b>`
@@ -1539,15 +1545,22 @@ function renderGoldSystem_v3() {
   b1.innerHTML = fmt(Math.round(getGoldBal1())) + ' <small>บาท</small>';
   document.getElementById('goldMin1').innerHTML = fmt(getGoldMin1()) + ' <small>บาท</small>';
   const b2 = Math.round(getGoldBal2());
-  document.getElementById('goldBal2').innerHTML = b2>0
-    ? fmt(b2) + ' <small>บาท</small>'
-    : '<span style="color:#16a34a">ปิดแล้ว ✓</span>';
-  document.getElementById('goldMin2').innerHTML = b2>0
-    ? fmt(getGoldMin2()) + ' <small>บาท</small>'
-    : '<small>ไม่ต้องต่อดอกแล้ว</small>';
+  // 4341 ปิดแล้ว → ซ่อนสองช่องนั้นไปเลย เหลือสัญญาเดียว
+  ['goldBox2a','goldBox2b'].forEach(id=>{
+    const el=document.getElementById(id); if(el) el.style.display = b2>0 ? '' : 'none';
+  });
+  if (b2>0) {
+    document.getElementById('goldBal2').innerHTML = fmt(b2) + ' <small>บาท</small>';
+    document.getElementById('goldMin2').innerHTML = fmt(getGoldMin2()) + ' <small>บาท</small>';
+  }
+  const lab1 = document.getElementById('goldLab1');
+  if (lab1) lab1.textContent = b2>0 ? '4959 คงเหลือ' : 'คงเหลือ';
+  const gt = document.getElementById('goldTitleTxt');
+  if (gt) gt.textContent = b2>0 ? 'สัญญาทองคำ 2 ใบ (รวมเป็นก้อนเดียว)' : 'สัญญาทองคำ (สัญญา 4959)';
   const gs = document.getElementById('goldSubTxt');
-  if (gs) gs.textContent = `สัญญา 4959 (${fmt(Math.round(getGoldBal1()))})`
-    + (b2>0 ? ` • สัญญา 4341 (${fmt(b2)})` : ' • สัญญา 4341 ปิดแล้ว ✓');
+  if (gs) gs.textContent = b2>0
+    ? `สัญญา 4959 (${fmt(Math.round(getGoldBal1()))}) • สัญญา 4341 (${fmt(b2)})`
+    : `เหลือสัญญาเดียว 4959 — ${fmt(Math.round(getGoldBal1()))} บาท`;
 }
 
 buildGoldTable_v3();
@@ -2221,7 +2234,9 @@ function buildPayPick(){
   const msgFor = id => (payLastMsg && payLastMsg.id===id) ? `<div class="payresult">${payLastMsg.msg}</div>` : '';
   const groupsHtml = payGroupDefs.map(g=>{
     // รถคันสีเทาซ่อนอยู่ → ไม่ต้องขึ้นในหน้าโปะหนี้
-    const rows=g.ids.filter(id=> id!=='car2' || !car2Hidden()).map(id=>{
+    const rows=g.ids
+      .filter(id=> id!=='car2' || !car2Hidden())
+      .filter(id=> id!=='gold4341' || !gold2Gone()).map(id=>{
       const d=payDebts.find(x=>x.id===id);
       const rem=Math.round(payRemaining(id));
       if(rem<=0) return `<div class="payline done"><div class="pl-head"><b>${d.name}</b><span class="ok">เคลียร์แล้ว ✓</span></div></div>`+msgFor(id);
@@ -2378,7 +2393,9 @@ function buildRushPlan(){
       ? `ตอนนี้ตั้งไว้ ${fmt(curBud)} → ต้อง<b>เพิ่มอีกเดือนละ ${fmt(diff)}</b>`
       : `ตอนนี้ตั้งไว้ ${fmt(curBud)} ก็<b>ทันอยู่แล้ว ✅</b>`);
   const rows=mainPlanGenerate(null, req).slice(0,N);
-  const planCols = creditors.map(c=>({key:c.key,name:c.name})).concat([{key:'g2',name:'🏆 ทอง 4341'},{key:'g1',name:'🏆 ทอง 4959'},{key:'chayo',name:'📄 ชโย'}]);
+  const planCols = creditors.map(c=>({key:c.key,name:c.name}))
+    .concat(gold2Gone()?[]:[{key:'g2',name:'🏆 ทอง 4341'}])
+    .concat([{key:'g1',name:'🏆 ทอง 4959'},{key:'chayo',name:'📄 ชโย'}]);
   head.innerHTML='<th style="text-align:left">เดือน</th>'+planCols.map(c=>`<th>${c.name}</th>`).join('')+'<th>รวมจ่าย</th>';
   const colSum={}; planCols.forEach(c=>colSum[c.key]=0); let grand=0;
   body.innerHTML=rows.map((r,i)=>{
