@@ -1079,6 +1079,20 @@ const MAIN_MIN   = { YourCash:1000, 'LINE BK':1000, AEON:1000 };
 const MAIN_PAYLAST = ['S'];   // แยกไว้ปิดก้อนเดียวเดือนสุดท้าย
 // ลำดับทุ่มงบส่วนเกิน (g1/g2 = ทอง 4959/4341) — เรียงตามที่เจ้าของหนี้จัดไว้
 const MAIN_PRIORITY = ['g2','g1','LINE BK','YourCash','AEON','chayo'];
+// ทองเริ่มจ่าย 1 ต.ค. 2569 (เดือน ก.ย. ข้ามไปก่อน) — งบเดือน ก.ย. ไหลลงก้อนถัดไปในลำดับแทน
+// เช็คจากปฏิทินจริง → พอพ้นเดือน ก.ย. เงื่อนไขนี้หมดผลเอง ไม่ต้องมาแก้โค้ดทีหลัง
+const GOLD_START = new Date(2026, 9, 1);
+function goldStarted(rowIdx){
+  const now = new Date();
+  return new Date(now.getFullYear(), now.getMonth()+rowIdx, 1) >= GOLD_START;
+}
+// ตาราง MAIN_FIXED.G ผูกกับปฏิทิน: index 0 = ก.ย. 2569 (งวดที่เตรียมเงินไว้แล้ว = 0)
+// พอถึง ต.ค. แถวแรกจะเริ่มที่ index 1 (8,560) เองโดยไม่ต้องมาแก้ตาราง
+const G_SCHED_ANCHOR = { y:2026, m:8 };
+function gSchedOffset(){
+  const now = new Date();
+  return Math.max(0, (now.getFullYear()-G_SCHED_ANCHOR.y)*12 + (now.getMonth()-G_SCHED_ANCHOR.m));
+}
 const MAIN_ATTACK_ORDER = MAIN_PRIORITY.filter(k=>k!=='g1'&&k!=='g2'&&k!=='chayo');
 // งบหนี้หลักตั้งเองได้ (แยกจากงบรวม) — เริ่มต้น 10,000
 function getMainBudget(){ const raw=localStorage.getItem('mainBudget'); const v=+raw; return (raw!==null&&raw!==''&&!isNaN(v)&&v>0)?v:15000; }
@@ -1112,7 +1126,7 @@ function mainPlanGenerate(balGetter, budgetOverride, firstPaid){
   const fixedKeys = creditors.map(c=>c.key).filter(k=>MAIN_FIXED[k]);
   const lastKeys  = creditors.map(c=>c.key).filter(k=>MAIN_PAYLAST.includes(k));
   const minKeys   = creditors.map(c=>c.key).filter(k=>!MAIN_FIXED[k] && !MAIN_PAYLAST.includes(k));
-  const fixIdx={}; fixedKeys.forEach(k=>fixIdx[k]=0);
+  const fixIdx={}; fixedKeys.forEach(k=> fixIdx[k] = (k==='G') ? gSchedOffset() : 0);
   let guard=0;
   while((creditors.some(c=>bal[c.key]>0) || bal.g1>0 || bal.g2>0 || bal.chayo>0) && guard<400){
     guard++;
@@ -1153,6 +1167,7 @@ function mainPlanGenerate(balGetter, budgetOverride, firstPaid){
       for(const k of MAIN_PRIORITY){
         if(pool<=0) break;
         if(!(bal[k]>0)) continue;
+        if((k==='g1'||k==='g2') && !goldStarted(rows.length)) continue;   // ทองยังไม่เริ่ม → ข้ามไปก้อนถัดไป
         const p=Math.min(pool, bal[k]);
         pay[k]+=p; bal[k]-=p; pool-=p;
         if(bal[k]<=0) closed[k]=true;
@@ -1253,6 +1268,7 @@ function buildMainPlan(){
             + overMonths.map(o=>`${o.m} <b>+${fmt(o.over)}</b>`).join(' • ')
             + ` (เพราะ LINE BK ฟิก 7,000 ชนกับงวด G ที่สูง)`
           : '')
+      + (goldStarted(0) ? '' : `<br>🏆 <b>เดือนนี้ยังไม่จ่ายทอง</b> — เริ่มจ่ายเดือนหน้า งบเดือนนี้เลยไหลไปก้อนถัดไปในลำดับแทน`)
       + `<br>🔄 <b>ค่าต่อดอกทองจ่ายแยกนอกงบ</b> — เงินในตารางนี้ลด<b>เงินต้น</b>เต็มจำนวนทุกบาท`
       + `<br>🏦 <b>G งวด 27 ก.ย. เตรียมเงินไว้แล้ว</b> — ธนาคารตัดเอง ไม่ต้องกันจากงบ ${fmt(budget)} (ตารางเลยขึ้น "–" ที่ช่อง G เดือนนี้) • งวด ต.ค. 8,560 คือยอดเต็มทั้งเดือน (10 ต.ค. + 27 ต.ค.)`
       + `<br>🟣 <b>เดือนนี้เหลือต้องจ่ายอีก ${fmt(m0)} บาท</b> (ก้อนที่จ่ายแล้วขึ้น "จ่ายแล้ว ✓")`;
