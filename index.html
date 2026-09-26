@@ -288,7 +288,7 @@ body.capturing #paTbl .noprint{ display:none !important; }
       <div class="logo">💸</div>
       <div>
         <h1>แผนจัดการหนี้</h1>
-        <div class="sub">ตารางผ่อนชำระ 8 เดือน • ติ๊กเดือนที่จ่ายแล้วเพื่อบันทึกความคืบหน้า</div>
+        <div class="sub">แผนจ่ายหนี้รายเดือน • บันทึกที่จ่ายแล้ว แผนอัปเดตให้อัตโนมัติ</div>
       </div>
     </div>
     <div class="topbtns" id="globalTools">
@@ -326,15 +326,184 @@ body.capturing #paTbl .noprint{ display:none !important; }
 
   <div id="app-pond" style="display:none">
 
-  <div class="tabbar noprint" id="pondTabs">
-    <button data-ptab="overview" class="active">📊 ภาพรวม</button>
-    <button data-ptab="main">💳 หนี้หลัก</button>
-    <button data-ptab="others">📄 สัญญาอื่นๆ</button>
-    <button data-ptab="pay">💰 โปะหนี้</button>
-    <button data-ptab="rush">⚡ ปิดไว</button>
+
+
+
+
+
+
+
+
+
+
+
+  <div class="tabpanel" data-tab="main">
+  <section class="panel tgtpanel">
+    <h2>🎯 งบจ่ายหนี้หลักต่อเดือน</h2>
+    <div class="payrow">
+      <input id="mainBudget" type="number" inputmode="numeric" min="1" placeholder="เช่น 10,000">
+      <button id="mainBudgetSave" class="btn-pay" style="background:#0891b2">💾 ตั้งงบ</button>
+    </div>
+    <div class="quickamts">
+      <button data-mbq="10000">10,000</button>
+      <button data-mbq="12000">12,000</button>
+      <button data-mbq="15046">15,046</button>
+    </div>
+    <div id="targetProj" class="tgtproj" style="margin-top:10px"></div>
+  </section>
+
+  <div class="plan-tools">
+    <span class="pt-label">แผนที่ 1 · หนี้หลัก</span>
+    <button class="reset" data-img="cap-main" data-name="หนี้หลัก">📷 รูปภาพ</button>
+    <button class="reset" data-xls="main">📊 Excel</button>
+    <button class="reset" data-print="cap-main">🖨️ พิมพ์</button>
+    <button class="reset" data-pdf="cap-main" data-name="หนี้หลัก">📄 PDF</button>
   </div>
 
-  <div class="tabpanel" data-tab="overview">
+  <div id="cap-main" class="capbox">
+
+  <section class="cards">
+    <div class="kpi glow-cyan"><div class="lab">หนี้หลัก+ทอง+ชโย คงเหลือ</div><div class="val" id="kTotal">–</div></div>
+    <div class="kpi glow-green"><div class="lab">โปะไปแล้ว</div><div class="val" id="kPaid">–</div></div>
+    <div class="kpi glow-amber"><div class="lab">จ่ายเดือนละ</div><div class="val" id="kLeft">–</div></div>
+    <div class="kpi"><div class="lab">ปิดครบแล้ว</div><div class="val" id="kMonths">–</div></div>
+  </section>
+
+  <section class="panel noprint" style="display:none">
+    <h2>📊 ความคืบหน้าโดยรวม</h2>
+    <div class="bar"><i id="overallBar" style="width:0%"></i></div>
+    <div class="bar-meta"><span id="overallPct">0%</span><span id="overallAmt"></span></div>
+  </section>
+
+  <section class="panel">
+    <h2>✏️ ยอดคงเหลือรายใบ (แก้ได้)</h2>
+    <div id="mainBalForm" class="patbals" style="grid-template-columns:1fr"></div>
+    <button id="mainBalSave" class="btn-pay" style="background:#0891b2;margin-top:10px">💾 บันทึกยอด</button>
+    <div class="tgtproj" style="margin-top:10px;background:#ecfeff;border-color:#a5f3fc;color:#155e75">
+      ℹ️ ใส่ยอดคงเหลือจริงของแต่ละใบ • เวลาจ่าย/โปะ บันทึกที่หัวข้อ 💰 บันทึกการจ่าย ด้านล่าง แล้วยอดจะลดให้เอง
+    </div>
+  </section>
+
+  <section class="panel" style="padding:0;overflow:hidden">
+    <h2 style="padding:14px 16px 0">🗓️ แผนจ่ายหนี้หลักรายเดือน</h2>
+    <div id="mainPlanNote" class="tgtproj" style="margin:8px 16px 12px;background:#f0fdf4;border-color:#bbf7d0;color:#166534"></div>
+    <div class="tablewrap">
+      <table id="mainPlanTbl">
+        <thead><tr id="mainPlanHead"></tr></thead>
+        <tbody id="mainPlanBody"></tbody>
+        <tfoot><tr id="mainPlanFoot"></tr></tfoot>
+      </table>
+    </div>
+  </section>
+
+  <section class="panel noprint" style="display:none">
+    <h2>🏦 ความคืบหน้าแยกตามเจ้าหนี้</h2>
+    <div id="credList"></div>
+    <div class="legend" id="legend"></div>
+  </section>
+
+  <section class="panel" style="padding:0;overflow:hidden;display:none">
+    <div class="tablewrap">
+      <table id="tbl">
+        <thead><tr id="head"></tr></thead>
+        <tbody id="body"></tbody>
+        <tfoot><tr id="foot"></tr><tr id="footRem"></tr></tfoot>
+      </table>
+    </div>
+  </section>
+
+  <div class="foot-note noprint">
+    💡 ใส่ยอดคงเหลือจริงของแต่ละใบในช่อง "ยอดคงเหลือรายใบ" • เวลาจ่าย/โปะ บันทึกที่หัวข้อ 💰 บันทึกการจ่าย ด้านล่าง แล้วยอดจะลดให้เอง
+  </div>
+
+  </div><!-- /cap-main -->
+  </div><!-- /tab main -->
+
+  <div class="tabpanel" data-tab="pay">
+  <section class="panel paypanel noprint">
+    <h2>💰 จ่ายหนี้ / โปะหนี้</h2>
+    <div class="tgtproj" style="margin-bottom:4px">
+      ใส่จำนวนเงินที่ช่องของสัญญานั้น แล้วกด <b>จ่าย</b> — ยอดค้างลดให้ทันที
+    </div>
+    <div id="payGroups"></div>
+
+    <div class="paystep" style="margin-top:16px">📒 ประวัติที่จ่ายไป (กด ✕ เพื่อยกเลิกรายการ)</div>
+    <div id="payLogList" class="paylog"></div>
+  </section>
+  </div><!-- /tab pay -->
+
+  <div class="tabpanel" data-tab="others">
+  <div class="divider">🏆 สัญญาทองคำ</div>
+
+  <div class="plan-tools">
+    <span class="pt-label">สัญญาทองคำ</span>
+    <button class="reset" data-img="cap-gold" data-name="สัญญาทองคำ">📷 รูปภาพ</button>
+    <button class="reset" data-print="cap-gold">🖨️ พิมพ์</button>
+    <button class="reset" data-pdf="cap-gold" data-name="สัญญาทองคำ">📄 PDF</button>
+  </div>
+
+  <div id="cap-gold" class="capbox">
+  <section class="panel gold">
+    <div class="lhead">
+      <div class="licon">🏆</div>
+      <div>
+        <div class="ltitle" id="goldTitleTxt">สัญญาทองคำ</div>
+        <div class="lsub" id="goldSubTxt">สัญญา 4959 • สัญญา 4341</div>
+      </div>
+    </div>
+    <div class="lstats">
+      <div class="lstat accent"><div class="l" id="goldLab1">คงเหลือ</div><div class="v" id="goldBal1">–</div></div>
+      <div class="lstat"><div class="l">ต่อดอก/เดือน <small>(จ่ายแยก)</small></div><div class="v" id="goldMin1">–</div></div>
+      <div class="lstat accent" id="goldBox2a"><div class="l">4341 คงเหลือ</div><div class="v" id="goldBal2">–</div></div>
+      <div class="lstat" id="goldBox2b"><div class="l">4341 ต่อดอก/เดือน <small>(จ่ายแยก)</small></div><div class="v" id="goldMin2">–</div></div>
+    </div>
+    <div class="noprint" style="margin-top:12px">
+      <div class="paystep">✏️ แก้ยอดทองเอง (เงินต้น / ค่าต่อดอก)</div>
+    <div class="patbals" style="margin-top:12px">
+      <label>🏆 ทอง 4959 (เงินต้น)<input id="pcb-gold1" type="number" inputmode="numeric"></label>
+      <label>🔄 ต่อดอก 4959/เดือน<input id="pcb-goldmin1" type="number" inputmode="numeric"></label>
+      <label id="pcbBox2a">🏆 ทอง 4341 (เงินต้น)<input id="pcb-gold2" type="number" inputmode="numeric"></label>
+      <label id="pcbBox2b">🔄 ต่อดอก 4341/เดือน<input id="pcb-goldmin2" type="number" inputmode="numeric"></label>
+    </div>
+    <button id="pondBalSave" class="btn-pay" style="background:#0891b2;margin-top:10px">💾 บันทึกยอดทอง</button>
+    </div>
+    <div class="tgtproj" style="margin-top:12px;background:#ecfdf5;border-color:#a7f3d0;color:#065f46">
+      ✅ ทองรวมอยู่ในแผน <b>หนี้หลัก (งบเดือนละ 15,046)</b> แล้ว — ไม่ต้องจ่ายแยกเดือนละ 5,000 อีก<br>
+      🔄 <b>ค่าต่อดอกจ่ายแยกนอกงบ</b> (หาโปะเอง) — เงินทุกบาทที่ลงในแผน/หน้าโปะหนี้ <b>ลดเงินต้นเต็มจำนวน</b><br>
+      📋 ดูว่าเดือนไหนจ่ายทองเท่าไหร่ → ตารางแผนจ่ายด้านบน • เวลาจ่ายจริง → หัวข้อ 💰 บันทึกการจ่าย
+    </div>
+  </section>
+  </div><!-- /cap-gold -->
+
+  <div id="moreLoans"></div>
+  </div><!-- /tab others -->
+
+  <div class="tabpanel" data-tab="rush">
+  <section class="panel tgtpanel noprint">
+    <h2>⚡ อัดปิดให้ทันเป้า — ต้องใช้งบเดือนละเท่าไหร่</h2>
+    <div class="tgtproj" style="background:#fff7ed;border-color:#fed7aa;color:#9a3412">
+      เป้า = ปิด <b>การ์ดทุกใบ + ทอง 2 เส้น + S</b> (พวกที่ปิดเร็วได้ ไม่ฟิกเดือน)<br>
+      ส่วน <b>G</b> จ่ายตามงวดฟิก (แก้ไม่ได้) และ <b>ชโย</b> ไม่นับในเป้านี้ — แต่ยังโปะเร็วขึ้นได้ถ้ามีงบเหลือ
+    </div>
+    <div class="paystep" style="margin-top:12px">เลือกเดือนเป้าหมาย:</div>
+    <div class="quickamts" id="rushTargets"></div>
+    <div id="rushResult" class="tgtproj" style="margin-top:12px"></div>
+  </section>
+  <section class="panel" style="padding:0;overflow:hidden">
+    <div class="tablewrap">
+      <table>
+        <thead><tr id="rushHead"></tr></thead>
+        <tbody id="rushBody"></tbody>
+        <tfoot><tr id="rushFoot"></tr></tfoot>
+      </table>
+    </div>
+  </section>
+  <div class="foot-note noprint">
+    💡 ตารางนี้เป็นแค่ "ลองดู" ไม่กระทบแผนจริง — ถ้าอยากใช้แผนนี้ ให้เลื่อนขึ้นไปตั้งงบใหม่ที่ช่อง 🎯 งบจ่ายหนี้หลักต่อเดือน ด้านบนสุด
+  </div>
+  </div><!-- /tab rush -->
+
+  <div class="tabpanel" data-tab="overview" style="display:none" hidden>
   <div class="divider">📊 ภาพรวม — ตารางรวมทุกสัญญา</div>
 
   <section class="panel tgtpanel noprint">
@@ -348,13 +517,6 @@ body.capturing #paTbl .noprint{ display:none !important; }
       <button data-pbq="22000">22,000</button>
       <button data-pbq="25000">25,000</button>
     </div>
-    <div class="patbals" style="margin-top:12px">
-      <label>🏆 ทอง 4959 (เงินต้น)<input id="pcb-gold1" type="number" inputmode="numeric"></label>
-      <label>🔄 ต่อดอก 4959/เดือน<input id="pcb-goldmin1" type="number" inputmode="numeric"></label>
-      <label>🏆 ทอง 4341 (เงินต้น)<input id="pcb-gold2" type="number" inputmode="numeric"></label>
-      <label>🔄 ต่อดอก 4341/เดือน<input id="pcb-goldmin2" type="number" inputmode="numeric"></label>
-    </div>
-    <button id="pondBalSave" class="btn-pay" style="background:#0891b2;margin-top:10px">💾 บันทึกยอดทอง</button>
     <div id="pondProj" class="tgtproj" style="margin-top:12px"></div>
     <div class="tgtproj" style="margin-top:10px;background:#ecfeff;border-color:#a5f3fc;color:#155e75">
       ℹ️ ยอดคงเหลือดึงจากที่คุณจ่าย/โปะจริง — จ่ายหรือโปะที่ไหน ตารางนี้ลดให้อัตโนมัติ
@@ -388,173 +550,11 @@ body.capturing #paTbl .noprint{ display:none !important; }
     <div id="pondPager" class="pager noprint"></div>
     <div class="foot-note noprint">
       แผน = จ่ายค่างวดครบทุกสัญญา + เงินที่เหลือทุ่มลดเงินต้นตามลำดับ <b>G → ทอง → LINE BK → ชโย → S</b> (ค่าต่อดอกทองจ่ายแยกนอกงบ • หนี้รถย้ายไปพักที่หน้าป๊าแล้ว)<br>
-      ✅ ปิด = เดือนที่ก้อนนั้นหมด • ตารางนี้อัปเดตเองตามที่คุณจ่าย/โปะจริงในแท็บอื่น
+      ✅ ปิด = เดือนที่ก้อนนั้นหมด • ตารางนี้อัปเดตเองตามที่คุณจ่าย/โปะจริง
     </div>
   </div>
 
   </div><!-- /tab overview -->
-
-  <div class="tabpanel" data-tab="pay" style="display:none">
-  <section class="panel paypanel noprint">
-    <h2>💰 จ่ายหนี้ / โปะหนี้</h2>
-    <div class="tgtproj" style="margin-bottom:4px">
-      ใส่จำนวนเงินที่ช่องของสัญญานั้น แล้วกด <b>จ่าย</b> — ยอดค้างลดให้ทันที
-    </div>
-    <div id="payGroups"></div>
-
-    <div class="paystep" style="margin-top:16px">📒 ประวัติที่จ่ายไป (กด ✕ เพื่อยกเลิกรายการ)</div>
-    <div id="payLogList" class="paylog"></div>
-  </section>
-  </div><!-- /tab pay -->
-
-  <div class="tabpanel" data-tab="rush" style="display:none">
-  <section class="panel tgtpanel noprint">
-    <h2>⚡ อัดปิดให้ทันเป้า — ต้องใช้งบเดือนละเท่าไหร่</h2>
-    <div class="tgtproj" style="background:#fff7ed;border-color:#fed7aa;color:#9a3412">
-      เป้า = ปิด <b>การ์ดทุกใบ + ทอง 2 เส้น + S</b> (พวกที่ปิดเร็วได้ ไม่ฟิกเดือน)<br>
-      ส่วน <b>G</b> จ่ายตามงวดฟิก (แก้ไม่ได้) และ <b>ชโย</b> ไม่นับในเป้านี้ — แต่ยังโปะเร็วขึ้นได้ถ้ามีงบเหลือ
-    </div>
-    <div class="paystep" style="margin-top:12px">เลือกเดือนเป้าหมาย:</div>
-    <div class="quickamts" id="rushTargets"></div>
-    <div id="rushResult" class="tgtproj" style="margin-top:12px"></div>
-  </section>
-  <section class="panel" style="padding:0;overflow:hidden">
-    <div class="tablewrap">
-      <table>
-        <thead><tr id="rushHead"></tr></thead>
-        <tbody id="rushBody"></tbody>
-        <tfoot><tr id="rushFoot"></tr></tfoot>
-      </table>
-    </div>
-  </section>
-  <div class="foot-note noprint">
-    💡 ตารางนี้เป็นแค่ "ลองดู" — งบจริงยังเป็นค่าที่ตั้งในแท็บหนี้หลัก ถ้าอยากใช้แผนนี้จริง ไปตั้งงบใหม่ที่แท็บ 💳 หนี้หลัก
-  </div>
-  </div><!-- /tab rush -->
-
-  <div class="tabpanel" data-tab="main" style="display:none">
-  <section class="panel tgtpanel">
-    <h2>🎯 งบจ่ายหนี้หลักต่อเดือน</h2>
-    <div class="payrow">
-      <input id="mainBudget" type="number" inputmode="numeric" min="1" placeholder="เช่น 10,000">
-      <button id="mainBudgetSave" class="btn-pay" style="background:#0891b2">💾 ตั้งงบ</button>
-    </div>
-    <div class="quickamts">
-      <button data-mbq="10000">10,000</button>
-      <button data-mbq="12000">12,000</button>
-      <button data-mbq="15046">15,046</button>
-    </div>
-    <div id="targetProj" class="tgtproj" style="margin-top:10px"></div>
-  </section>
-
-  <section class="panel paypanel noprint">
-    <h2>💰 จ่ายหนี้ (บันทึกตรงนี้ได้เลย)</h2>
-    <div id="payGroupsMain"></div>
-  </section>
-
-  <div class="plan-tools">
-    <span class="pt-label">แผนที่ 1 · หนี้หลัก</span>
-    <button class="reset" data-img="cap-main" data-name="หนี้หลัก">📷 รูปภาพ</button>
-    <button class="reset" data-xls="main">📊 Excel</button>
-    <button class="reset" data-print="cap-main">🖨️ พิมพ์</button>
-    <button class="reset" data-pdf="cap-main" data-name="หนี้หลัก">📄 PDF</button>
-  </div>
-
-  <div id="cap-main" class="capbox">
-
-  <section class="cards">
-    <div class="kpi glow-cyan"><div class="lab">หนี้หลัก+ทอง+ชโย คงเหลือ</div><div class="val" id="kTotal">–</div></div>
-    <div class="kpi glow-green"><div class="lab">โปะไปแล้ว</div><div class="val" id="kPaid">–</div></div>
-    <div class="kpi glow-amber"><div class="lab">จ่ายเดือนละ</div><div class="val" id="kLeft">–</div></div>
-    <div class="kpi"><div class="lab">ปิดครบแล้ว</div><div class="val" id="kMonths">–</div></div>
-  </section>
-
-  <section class="panel noprint" style="display:none">
-    <h2>📊 ความคืบหน้าโดยรวม</h2>
-    <div class="bar"><i id="overallBar" style="width:0%"></i></div>
-    <div class="bar-meta"><span id="overallPct">0%</span><span id="overallAmt"></span></div>
-  </section>
-
-  <section class="panel">
-    <h2>✏️ ยอดคงเหลือรายใบ (แก้ได้)</h2>
-    <div id="mainBalForm" class="patbals" style="grid-template-columns:1fr"></div>
-    <button id="mainBalSave" class="btn-pay" style="background:#0891b2;margin-top:10px">💾 บันทึกยอด</button>
-    <div class="tgtproj" style="margin-top:10px;background:#ecfeff;border-color:#a5f3fc;color:#155e75">
-      ℹ️ ใส่ยอดคงเหลือจริงของแต่ละใบ • เวลาจ่าย/โปะ บันทึกที่แท็บ 💰 โปะหนี้ แล้วยอดจะลดให้เอง
-    </div>
-  </section>
-
-  <section class="panel" style="padding:0;overflow:hidden">
-    <h2 style="padding:14px 16px 0">🗓️ แผนจ่ายหนี้หลักรายเดือน</h2>
-    <div id="mainPlanNote" class="tgtproj" style="margin:8px 16px 12px;background:#f0fdf4;border-color:#bbf7d0;color:#166534"></div>
-    <div class="tablewrap">
-      <table id="mainPlanTbl">
-        <thead><tr id="mainPlanHead"></tr></thead>
-        <tbody id="mainPlanBody"></tbody>
-        <tfoot><tr id="mainPlanFoot"></tr></tfoot>
-      </table>
-    </div>
-  </section>
-
-  <section class="panel noprint" style="display:none">
-    <h2>🏦 ความคืบหน้าแยกตามเจ้าหนี้</h2>
-    <div id="credList"></div>
-    <div class="legend" id="legend"></div>
-  </section>
-
-  <section class="panel" style="padding:0;overflow:hidden;display:none">
-    <div class="tablewrap">
-      <table id="tbl">
-        <thead><tr id="head"></tr></thead>
-        <tbody id="body"></tbody>
-        <tfoot><tr id="foot"></tr><tr id="footRem"></tr></tfoot>
-      </table>
-    </div>
-  </section>
-
-  <div class="foot-note noprint">
-    💡 ใส่ยอดคงเหลือจริงของแต่ละใบในช่อง "ยอดคงเหลือรายใบ" • เวลาจ่าย/โปะ บันทึกที่แท็บ 💰 โปะหนี้ แล้วยอดจะลดให้เอง
-  </div>
-
-  </div><!-- /cap-main -->
-  </div><!-- /tab main -->
-
-  <div class="tabpanel" data-tab="others" style="display:none">
-  <div class="divider">🏆 สัญญาทองคำ</div>
-
-  <div class="plan-tools">
-    <span class="pt-label">สัญญาทองคำ</span>
-    <button class="reset" data-img="cap-gold" data-name="สัญญาทองคำ">📷 รูปภาพ</button>
-    <button class="reset" data-print="cap-gold">🖨️ พิมพ์</button>
-    <button class="reset" data-pdf="cap-gold" data-name="สัญญาทองคำ">📄 PDF</button>
-  </div>
-
-  <div id="cap-gold" class="capbox">
-  <section class="panel gold">
-    <div class="lhead">
-      <div class="licon">🏆</div>
-      <div>
-        <div class="ltitle" id="goldTitleTxt">สัญญาทองคำ</div>
-        <div class="lsub" id="goldSubTxt">สัญญา 4959 • สัญญา 4341</div>
-      </div>
-    </div>
-    <div class="lstats">
-      <div class="lstat accent"><div class="l" id="goldLab1">คงเหลือ</div><div class="v" id="goldBal1">–</div></div>
-      <div class="lstat"><div class="l">ต่อดอก/เดือน <small>(จ่ายแยก)</small></div><div class="v" id="goldMin1">–</div></div>
-      <div class="lstat accent" id="goldBox2a"><div class="l">4341 คงเหลือ</div><div class="v" id="goldBal2">–</div></div>
-      <div class="lstat" id="goldBox2b"><div class="l">4341 ต่อดอก/เดือน <small>(จ่ายแยก)</small></div><div class="v" id="goldMin2">–</div></div>
-    </div>
-    <div class="tgtproj" style="margin-top:12px;background:#ecfdf5;border-color:#a7f3d0;color:#065f46">
-      ✅ ทองรวมอยู่ในแผน <b>หนี้หลัก (งบเดือนละ 15,046)</b> แล้ว — ไม่ต้องจ่ายแยกเดือนละ 5,000 อีก<br>
-      🔄 <b>ค่าต่อดอกจ่ายแยกนอกงบ</b> (หาโปะเอง) — เงินทุกบาทที่ลงในแผน/หน้าโปะหนี้ <b>ลดเงินต้นเต็มจำนวน</b><br>
-      📋 ดูว่าเดือนไหนจ่ายทองเท่าไหร่ → แท็บ 💳 หนี้หลัก • เวลาจ่ายจริง → แท็บ 💰 โปะหนี้
-    </div>
-  </section>
-  </div><!-- /cap-gold -->
-
-  <div id="moreLoans"></div>
-  </div><!-- /tab others -->
-
   </div><!-- /app-pond -->
 
   <div id="app-pat" style="display:none">
@@ -1289,10 +1289,14 @@ function render(){
   document.getElementById('kTotal').innerHTML = fmt(leftAmt)+' <small>บาท</small>';
   document.getElementById('kPaid').innerHTML  = fmt(mainPaid)+' <small>บาท</small>';
   document.getElementById('kLeft').innerHTML  = (monthly>0?fmt(monthly):'–')+' <small>/เดือน</small>';
-  const clearedCnt = creditors.filter(c=> getMainBal(c.key)<=0).length
-    + (pondReady && getGoldBal1()<=0 ? 1:0) + (pondReady && getGoldBal2()<=0 ? 1:0)
-    + (pondReady && getPondBal('chayo')<=0 ? 1:0);
-  document.getElementById('kMonths').innerHTML= clearedCnt+' <small>/ '+(creditors.length+3)+' ใบ</small>';
+  // นับเฉพาะใบที่ยังอยู่ในแผน — ใบที่ปิดไปนานแล้ว (YourCash / ทอง 4341) ไม่นับเป็นตัวหาร
+  const tracked = creditors.map(c=>({k:c.key, left:getMainBal(c.key), ever:getMainBal(c.key)>0 || payLog.some(e=>e.id===c.key)}))
+    .filter(x=> x.ever)
+    .concat(pondReady && (getGoldBal1()>0 || payLog.some(e=>e.id==='gold4959')) ? [{k:'g1',left:getGoldBal1()}] : [])
+    .concat(pondReady && (getGoldBal2()>0 || payLog.some(e=>e.id==='gold4341')) ? [{k:'g2',left:getGoldBal2()}] : [])
+    .concat(pondReady && (getPondBal('chayo')>0 || payLog.some(e=>e.id==='chayo')) ? [{k:'chayo',left:getPondBal('chayo')}] : []);
+  const clearedCnt = tracked.filter(x=> x.left<=0).length;
+  document.getElementById('kMonths').innerHTML= clearedCnt+' <small>/ '+tracked.length+' ใบ</small>';
 
   document.getElementById('overallBar').style.width = pct+'%';
   document.getElementById('overallPct').textContent = pct+'% สำเร็จ';
@@ -1575,7 +1579,7 @@ function renderGoldSystem_v3() {
   document.getElementById('goldMin1').innerHTML = fmt(getGoldMin1()) + ' <small>บาท</small>';
   const b2 = Math.round(getGoldBal2());
   // 4341 ปิดแล้ว → ซ่อนสองช่องนั้นไปเลย เหลือสัญญาเดียว
-  ['goldBox2a','goldBox2b'].forEach(id=>{
+  ['goldBox2a','goldBox2b','pcbBox2a','pcbBox2b'].forEach(id=>{
     const el=document.getElementById(id); if(el) el.style.display = b2>0 ? '' : 'none';
   });
   if (b2>0) {
@@ -1835,8 +1839,7 @@ document.getElementById('sharePdfBtn').addEventListener('click', async e=>{
 });
 
 /* ===== รถคันสีเทา: ซ่อนไว้ก่อน (ยังไม่อยากยุ่งกับมัน) =====
-   ซ่อนแล้วจะหายไปจาก: การ์ดสัญญา • ตารางรวมทุกสัญญา • หน้าโปะหนี้
-   กดปุ่มเล็กๆ ท้ายแท็บสัญญาเพื่อเปิดดูได้ตลอด (ข้อมูลไม่ได้ถูกลบ แค่ซ่อน) */
+   กดปุ่มเล็กๆ ท้ายหน้าป๊าเพื่อเปิดดูได้ตลอด (ข้อมูลไม่ได้ถูกลบ แค่ซ่อน) */
 const car2Hidden = ()=> localStorage.getItem('showCar2_v1')!=='1';
 function toggleCar2(){
   localStorage.setItem('showCar2_v1', car2Hidden()?'1':'0');
@@ -1862,7 +1865,7 @@ function renderCar2Toggle(){
 /* ================= สัญญาผ่อนเพิ่มเติม (สร้างแบบ generic) ================= */
 const moreLoanConfigs = [
   { id:'car2', host:'paLoans', n:0, icon:'🚗', title:'รถคันสีเทา', per:7000, balance:511000, store:'loanCar2_v1', def:0 },
-  { id:'chayo', host:'moreLoans', n:5, icon:'📄', title:'ชโย เจวี', per:4000, balance:96000, store:'loanChayo_v1', def:5, editBal:true, note:'เดิมคือกสิกร (ขายหนี้ให้ ชโย เจวี) • สัญญา 4417704017460276 • 24 งวด × 4,000 • เหลือ 19 งวด' },
+  { id:'chayo', host:'moreLoans', n:0, icon:'📄', title:'ชโย เจวี', per:4000, balance:96000, store:'loanChayo_v1', def:5, editBal:true, note:'เดิมคือกสิกร (ขายหนี้ให้ ชโย เจวี) • สัญญา 4417704017460276 • 24 งวด × 4,000 • เหลือ 19 งวด' },
 ];
 // ปรับ ชโย เจวี = จ่ายแล้ว 4 งวด (16,000 บาท เหลือ 20 งวด / 24 งวดรวม) ครั้งเดียว — ไม่ลดถ้าจ่ายมากกว่านี้ไปแล้ว
 if(!localStorage.getItem('chayoInit24_v1')){
@@ -2265,7 +2268,8 @@ function buildPayPick(){
   const groupsHtml = payGroupDefs.map(g=>{
     // รถคันสีเทาซ่อนอยู่ → ไม่ต้องขึ้นในหน้าโปะหนี้
     const rows=g.ids
-      .filter(id=> id!=='gold4341' || !gold2Gone()).map(id=>{
+      .filter(id=> id!=='gold4341' || !gold2Gone())
+      .filter(id=> id!=='YourCash' || getMainBal('YourCash')>0).map(id=>{
       const d=payDebts.find(x=>x.id===id);
       const rem=Math.round(payRemaining(id));
       if(rem<=0) return `<div class="payline done"><div class="pl-head"><b>${d.name}</b><span class="ok">เคลียร์แล้ว ✓</span></div></div>`+msgFor(id);
@@ -2373,7 +2377,6 @@ function attachPayHandlers(el){
   });
 }
 attachPayHandlers(document.getElementById('payGroups'));
-attachPayHandlers(document.getElementById('payGroupsMain'));
 
 /* ================= ⚡ ปิดไวตามเป้า (คำนวณงบที่ต้องใช้) ================= */
 const RUSH_WATCH=['S','YourCash','LINE BK','AEON','g1','g2'];   // ก้อนไม่ฟิกที่ต้องปิดให้ทันเป้า
@@ -2739,21 +2742,14 @@ function xlsPaDebt(){
   downloadXls('ป๊าจ่ายคืนเรา','เงินที่ป๊าต้องจ่ายคืนเรา',headers,rows);
 }
 
-/* ================= แท็บของปอนด์ ================= */
-function showAllPondTabs(){ document.querySelectorAll('#app-pond .tabpanel').forEach(p=>p.style.display=''); }
-function restorePondTabs(){
-  const active=document.querySelector('#pondTabs button.active');
-  const t=active?active.dataset.ptab:'overview';
-  document.querySelectorAll('#app-pond .tabpanel').forEach(p=> p.style.display=(p.dataset.tab===t)?'':'none');
+/* ================= หน้าปอนด์: หน้าเดียวรวด (ไม่มีแท็บแล้ว) =================
+   แผง data-tab="overview" ถูกซ่อนถาวรด้วย [hidden] — เก็บไว้ใน DOM เฉยๆ
+   เพื่อให้โค้ดเดิมที่อ้าง id ในนั้น (ตารางรวม/กราฟ) ยังทำงานได้โดยไม่ต้องรื้อ */
+function showAllPondTabs(){
+  document.querySelectorAll('#app-pond .tabpanel').forEach(p=>{ if(!p.hasAttribute('hidden')) p.style.display=''; });
 }
-document.querySelectorAll('#pondTabs button').forEach(btn=>{
-  btn.addEventListener('click',()=>{
-    const t=btn.dataset.ptab;
-    document.querySelectorAll('#pondTabs button').forEach(x=>x.classList.toggle('active', x===btn));
-    document.querySelectorAll('#app-pond .tabpanel').forEach(pnl=> pnl.style.display = (pnl.dataset.tab===t)?'':'none');
-    window.scrollTo(0,0);
-  });
-});
+function restorePondTabs(){ showAllPondTabs(); }
+showAllPondTabs();
 
 /* ================= หน้าแรก: เลือกเจ้าของหนี้ (ปอนด์ / ปัท) ================= */
 function showProfile(pk){
