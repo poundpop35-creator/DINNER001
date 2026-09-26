@@ -311,7 +311,7 @@ body.capturing #paTbl .noprint{ display:none !important; }
     <div class="homecards">
       <button class="homecard" data-profile="pond">
         <span class="hi">🧑</span><span class="hn">ปอนด์</span>
-        <span class="hd" id="pondHomeDesc">หนี้หลัก • รถคันสีขาว • ทองคำ • ชโย เจวี</span>
+        <span class="hd">หนี้หลัก • ทองคำ • ชโย เจวี</span>
       </button>
       <button class="homecard" data-profile="pat">
         <span class="hi">👩</span><span class="hn">ปัท</span>
@@ -319,7 +319,7 @@ body.capturing #paTbl .noprint{ display:none !important; }
       </button>
       <button class="homecard" data-profile="pa">
         <span class="hi">🧔‍♂️</span><span class="hn">ป๊า</span>
-        <span class="hd">เงินที่ป๊าต้องจ่ายคืนเรา • ทำเป็นตารางแชร์ได้</span>
+        <span class="hd" id="paHomeDesc">เงินที่ป๊าต้องจ่ายคืนเรา • หนี้รถที่ฝากไว้</span>
       </button>
     </div>
   </section>
@@ -387,7 +387,7 @@ body.capturing #paTbl .noprint{ display:none !important; }
     </section>
     <div id="pondPager" class="pager noprint"></div>
     <div class="foot-note noprint">
-      แผน = จ่ายค่างวดครบทุกสัญญา + เงินที่เหลือทุ่มลดเงินต้น <b>หนี้หลัก → ทอง → ชโย เจวี</b> (หนี้รถจ่ายตามค่างวด • ค่าต่อดอกทองจ่ายแยกนอกงบ)<br>
+      แผน = จ่ายค่างวดครบทุกสัญญา + เงินที่เหลือทุ่มลดเงินต้นตามลำดับ <b>G → ทอง → LINE BK → ชโย → S</b> (ค่าต่อดอกทองจ่ายแยกนอกงบ • หนี้รถย้ายไปพักที่หน้าป๊าแล้ว)<br>
       ✅ ปิด = เดือนที่ก้อนนั้นหมด • ตารางนี้อัปเดตเองตามที่คุณจ่าย/โปะจริงในแท็บอื่น
     </div>
   </div>
@@ -520,50 +520,6 @@ body.capturing #paTbl .noprint{ display:none !important; }
   </div><!-- /tab main -->
 
   <div class="tabpanel" data-tab="others" style="display:none">
-  <div class="divider">สัญญาผ่อนแยกต่างหาก</div>
-
-  <div class="plan-tools">
-    <span class="pt-label">แผนที่ 2 · สัญญาผ่อน 40 งวด</span>
-    <button class="reset" data-img="cap-loan" data-name="สัญญาผ่อน40งวด">📷 รูปภาพ</button>
-    <button class="reset" data-xls="loan">📊 Excel</button>
-    <button class="reset" data-print="cap-loan">🖨️ พิมพ์</button>
-    <button class="reset" data-pdf="cap-loan" data-name="สัญญาผ่อน40งวด">📄 PDF</button>
-  </div>
-
-  <div id="cap-loan" class="capbox">
-  <section class="panel loan">
-    <div class="lhead">
-      <div class="licon">🚗</div>
-      <div>
-        <div class="ltitle">รถคันสีขาว · ผ่อน 40 งวด</div>
-        <div class="lsub">สินเชื่อทะเบียนรถยนต์ <b>กย1064สฎ</b> • งวดละ 4,875 บาท • แยกจากชุดหนี้ด้านบน</div>
-      </div>
-    </div>
-
-    <div class="lsub" id="loanBankInfo" style="margin:2px 0 10px"></div>
-
-    <div class="lstats">
-      <div class="lstat"><div class="l">ยอดต่องวด</div><div class="v">4,875 <small>บาท</small></div></div>
-      <div class="lstat green"><div class="l">จ่ายไปแล้ว</div><div class="v" id="loanPaidAmt">–</div></div>
-      <div class="lstat accent"><div class="l">ยอดคงเหลือ</div><div class="v" id="loanLeftAmt">–</div></div>
-      <div class="lstat"><div class="l">งวดที่จ่ายแล้ว</div><div class="v" id="loanPaidCnt">–</div></div>
-    </div>
-
-    <div class="lbar"><i id="loanBar" style="width:0%"></i></div>
-    <div class="lbar-meta"><span id="loanPct">0%</span><span id="loanRemainCnt"></span></div>
-
-    <div class="ctrl">
-      <button id="loanMinus" title="ลดงวด">−</button>
-      <button id="loanPlus" title="เพิ่มงวด">+</button>
-      <input id="loanSet" type="number" min="0" placeholder="ตั้งงวด" class="setcnt">
-      <button id="loanSetBtn" class="reset">ตั้งเป็น</button>
-      <span class="cv">จ่ายแล้ว <b id="loanCntTxt">0</b> / 40 งวด</span>
-    </div>
-
-    <div class="chips" id="loanChips"></div>
-  </section>
-  </div><!-- /cap-loan -->
-
   <div class="divider">🏆 สัญญาทองคำ</div>
 
   <div class="plan-tools">
@@ -597,10 +553,6 @@ body.capturing #paTbl .noprint{ display:none !important; }
   </div><!-- /cap-gold -->
 
   <div id="moreLoans"></div>
-
-  <div class="noprint" style="text-align:center;margin:18px 0 6px">
-    <button class="reset" id="car2Toggle" style="font-size:12px;padding:6px 12px">🔒 แสดงรถคันสีเทา</button>
-  </div>
   </div><!-- /tab others -->
 
   </div><!-- /app-pond -->
@@ -719,6 +671,60 @@ body.capturing #paTbl .noprint{ display:none !important; }
       <div class="foot-note noprint">
         👉 พอป๊าจ่ายคืน แก้ยอดในช่อง "จ่ายคืนแล้ว" ได้เลย • กด ✕ เพื่อลบรายการ (ต้องใส่รหัส) • ยอดค้างคำนวณให้อัตโนมัติ
       </div>
+    </div>
+
+    <div class="divider">🚗 หนี้รถที่ฝากไว้</div>
+    <div class="tgtproj" style="margin:0 0 10px;background:#fff7ed;border-color:#fed7aa;color:#9a3412">
+      ℹ️ ส่วนนี้<b>แยกจากตาราง "ป๊าต้องจ่ายคืนเรา"</b> ด้านบน — เป็นหนี้รถที่ย้ายออกมาจากหน้าปอนด์
+      มาพักไว้ที่นี่ ไม่เกี่ยวกับแผนหนี้หลักและไม่ติดไปกับรูป/PDF ที่แชร์ให้ป๊า
+    </div>
+  <div class="plan-tools">
+    <span class="pt-label">รถคันสีขาว · ผ่อน 40 งวด</span>
+    <button class="reset" data-img="cap-loan" data-name="รถคันสีขาว-ผ่อน40งวด">📷 รูปภาพ</button>
+    <button class="reset" data-xls="loan">📊 Excel</button>
+    <button class="reset" data-print="cap-loan">🖨️ พิมพ์</button>
+    <button class="reset" data-pdf="cap-loan" data-name="รถคันสีขาว-ผ่อน40งวด">📄 PDF</button>
+  </div>
+
+  <div id="cap-loan" class="capbox">
+  <section class="panel loan">
+    <div class="lhead">
+      <div class="licon">🚗</div>
+      <div>
+        <div class="ltitle">รถคันสีขาว · ผ่อน 40 งวด</div>
+        <div class="lsub">สินเชื่อทะเบียนรถยนต์ <b>กย1064สฎ</b> • งวดละ 4,875 บาท • แยกจากชุดหนี้ด้านบน</div>
+      </div>
+    </div>
+
+    <div class="lsub" id="loanBankInfo" style="margin:2px 0 10px"></div>
+
+    <div class="lstats">
+      <div class="lstat"><div class="l">ยอดต่องวด</div><div class="v">4,875 <small>บาท</small></div></div>
+      <div class="lstat green"><div class="l">จ่ายไปแล้ว</div><div class="v" id="loanPaidAmt">–</div></div>
+      <div class="lstat accent"><div class="l">ยอดคงเหลือ</div><div class="v" id="loanLeftAmt">–</div></div>
+      <div class="lstat"><div class="l">งวดที่จ่ายแล้ว</div><div class="v" id="loanPaidCnt">–</div></div>
+    </div>
+
+    <div class="lbar"><i id="loanBar" style="width:0%"></i></div>
+    <div class="lbar-meta"><span id="loanPct">0%</span><span id="loanRemainCnt"></span></div>
+
+    <div class="ctrl">
+      <button id="loanMinus" title="ลดงวด">−</button>
+      <button id="loanPlus" title="เพิ่มงวด">+</button>
+      <input id="loanSet" type="number" min="0" placeholder="ตั้งงวด" class="setcnt">
+      <button id="loanSetBtn" class="reset">ตั้งเป็น</button>
+      <span class="cv">จ่ายแล้ว <b id="loanCntTxt">0</b> / 40 งวด</span>
+    </div>
+
+    <div class="chips" id="loanChips"></div>
+  </section>
+  </div><!-- /cap-loan -->
+
+
+    <div id="paLoans"></div>
+
+    <div class="noprint" style="text-align:center;margin:18px 0 6px">
+      <button class="reset" id="car2Toggle" style="font-size:12px;padding:6px 12px">🔒 แสดงรถคันสีเทา</button>
     </div>
   </div>
 
@@ -1698,7 +1704,7 @@ function xlsLoan(){
   const rows=[];
   for(let n=1;n<=LOAN.total;n++) rows.push([n, fmt(LOAN.per), n<=loanPaid?'✓ จ่ายแล้ว':'ค้าง']);
   rows.push(['รวม', fmt(LOAN.per*LOAN.total), 'จ่ายแล้ว '+loanPaid+'/'+LOAN.total+' งวด']);
-  downloadXls('สัญญาผ่อน40งวด','สัญญาผ่อน 40 งวด · งวดละ '+fmt(LOAN.per)+' บาท',headers,rows);
+  downloadXls('รถคันสีขาว-ผ่อน40งวด','รถคันสีขาว · ผ่อน 40 งวด · งวดละ '+fmt(LOAN.per)+' บาท',headers,rows);
 }
 
 function xlsGold(){
@@ -1816,8 +1822,7 @@ document.getElementById('sharePdfBtn').addEventListener('click', async e=>{
 const car2Hidden = ()=> localStorage.getItem('showCar2_v1')!=='1';
 function toggleCar2(){
   localStorage.setItem('showCar2_v1', car2Hidden()?'1':'0');
-  pondCombDebts = POND_ALL_DEBTS.filter(d=> d.key!=='car' || !car2Hidden());
-  buildMoreLoans('moreLoans');
+  buildMoreLoans('paLoans');
   renderCar2Toggle();
   try{ buildPondTable(); }catch(e){}
   try{ buildPayPick(); }catch(e){}
@@ -1831,13 +1836,14 @@ function renderCar2Toggle(){
   b.style.opacity = hid ? '.45' : '1';
   const w=document.getElementById('mlwrap-car2');
   if(w) w.style.display = hid ? 'none' : '';
-  const d=document.getElementById('pondHomeDesc');
-  if(d) d.textContent = 'หนี้หลัก • รถคันสีขาว • ทองคำ • ชโย เจวี' + (hid?'':' • รถคันสีเทา');
+  const d=document.getElementById('paHomeDesc');
+  if(d) d.textContent = 'เงินที่ป๊าต้องจ่ายคืนเรา • หนี้รถที่ฝากไว้'
+    + (hid?' (รถคันสีขาว)':' (รถคันสีขาว + สีเทา)');
 }
 
 /* ================= สัญญาผ่อนเพิ่มเติม (สร้างแบบ generic) ================= */
 const moreLoanConfigs = [
-  { id:'car2', host:'moreLoans', n:4, icon:'🚗', title:'รถคันสีเทา', per:7000, balance:511000, store:'loanCar2_v1', def:0 },
+  { id:'car2', host:'paLoans', n:0, icon:'🚗', title:'รถคันสีเทา', per:7000, balance:511000, store:'loanCar2_v1', def:0 },
   { id:'chayo', host:'moreLoans', n:5, icon:'📄', title:'ชโย เจวี', per:4000, balance:96000, store:'loanChayo_v1', def:5, editBal:true, note:'เดิมคือกสิกร (ขายหนี้ให้ ชโย เจวี) • สัญญา 4417704017460276 • 24 งวด × 4,000 • เหลือ 19 งวด' },
 ];
 // ปรับ ชโย เจวี = จ่ายแล้ว 4 งวด (16,000 บาท เหลือ 20 งวด / 24 งวดรวม) ครั้งเดียว — ไม่ลดถ้าจ่ายมากกว่านี้ไปแล้ว
@@ -1879,11 +1885,12 @@ function buildMoreLoans(hostId){
     const balTxt = cfg.balance==null ? 'รอยอด' : fmt(cfg.balance);
     const per = perOf(cfg);
     const hid = (cfg.id==='car2' && car2Hidden());
+    const head = cfg.n ? `แผนที่ ${cfg.n} · ${cfg.title}` : cfg.title;
     return `
     <div id="mlwrap-${cfg.id}"${hid?' style="display:none"':''}>
-    <div class="divider">${cfg.icon} แผนที่ ${cfg.n} · ${cfg.title}</div>
+    <div class="divider">${cfg.icon} ${head}</div>
     <div class="plan-tools">
-      <span class="pt-label">แผนที่ ${cfg.n} · ${cfg.title}</span>
+      <span class="pt-label">${head}</span>
       <button class="reset" data-img="cap-${cfg.id}" data-name="${cfg.title}">📷 รูปภาพ</button>
       <button class="reset" data-xls="simple:${cfg.id}">📊 Excel</button>
       <button class="reset" data-print="cap-${cfg.id}">🖨️ พิมพ์</button>
@@ -2167,6 +2174,7 @@ document.addEventListener('click', e=>{
 });
 
 buildMoreLoans('moreLoans');
+buildMoreLoans('paLoans');
 document.getElementById('car2Toggle')?.addEventListener('click', toggleCar2);
 renderCar2Toggle();
 
@@ -2197,7 +2205,6 @@ function payRemaining(id){
 // กลุ่มสัญญาในหน้าโปะหนี้ (จ่ายตรงที่แถวของสัญญานั้นเลย)
 const payGroupDefs = [
   {title:'💳 หนี้หลัก + ทอง + ชโย',  ids:['S','G','YourCash','LINE BK','AEON','gold4341','gold4959','chayo']},
-  {title:'🚗 สัญญารถ / ผ่อน',  ids:['loan40','car2']},
 ];
 // จ่ายไปแล้วเดือนนี้ (จากประวัติ) — แยกตามสัญญา
 function paidThisMonth(id){
@@ -2240,7 +2247,6 @@ function buildPayPick(){
   const groupsHtml = payGroupDefs.map(g=>{
     // รถคันสีเทาซ่อนอยู่ → ไม่ต้องขึ้นในหน้าโปะหนี้
     const rows=g.ids
-      .filter(id=> id!=='car2' || !car2Hidden())
       .filter(id=> id!=='gold4341' || !gold2Gone()).map(id=>{
       const d=payDebts.find(x=>x.id===id);
       const rem=Math.round(payRemaining(id));
@@ -2445,13 +2451,11 @@ initPatBalInputs();
 renderPatAll();
 
 /* ================= ปอนด์: ตารางรวมทุกสัญญา ================= */
+// หนี้รถทั้งสองคันย้ายไปพักที่หน้าป๊าแล้ว → ตารางรวมของปอนด์เหลือเฉพาะหนี้หลัก
 const POND_ALL_DEBTS = [
   {key:'main',   name:'💳 หนี้หลัก+ทอง+ชโย', fixed:false},
-  {key:'loan40', name:'🚗 รถคันสีขาว',  fixed:true, per:4875},
-  {key:'car',    name:'🚙 รถคันสีเทา',  fixed:true, per:7000},
 ];
-// รถคันสีเทาซ่อนอยู่ → ไม่เข้าตารางรวม (กดปุ่มท้ายแท็บสัญญาเพื่อเอากลับมา)
-let pondCombDebts = POND_ALL_DEBTS.filter(d=> d.key!=='car' || !car2Hidden());
+let pondCombDebts = POND_ALL_DEBTS.slice();
 const getPondBudget  = ()=>{ const v=+localStorage.getItem('pondBudget'); return v>0?v:25000; };
 // ทองแยก 2 สัญญา (จ่ายคนละแอป): 4959 เงินต้น 46,000 • 4341 ปิดหมดแล้ว (0)
 function getGoldP1(){ const raw=localStorage.getItem('pcb_gold1'); const v=+raw; return (raw!==null&&raw!==''&&!isNaN(v)&&v>=0)?v:46000; }
