@@ -946,6 +946,15 @@ if(!localStorage.getItem('mainBalSet_20260926')){
   savePay();
   localStorage.setItem('mainBalSet_20260926','1');
 }
+// ชโย: จ่ายไปแล้วทั้งหมด 24,000 = 6 งวด (รวมงวดเดือน ก.ย.) เหลือ 18 งวด / 72,000 — ครั้งเดียว
+if(!localStorage.getItem('chayoPaid24k_v1')){
+  const cur=parseInt(localStorage.getItem('loanChayo_v1')||'0',10);
+  if(isNaN(cur)||cur<6) localStorage.setItem('loanChayo_v1','6');
+  payLog = payLog.filter(e=> e.id!=='chayo');
+  delete extraPaid['chayo'];
+  savePay();
+  localStorage.setItem('chayoPaid24k_v1','1');
+}
 
 /* ===== "ปิดยอดเร็วขึ้น": เงินโปะไปตัดงวดท้ายๆ ของเจ้าหนี้ในตารางหนี้หลัก ===== */
 let coverageMap = {};
@@ -1069,29 +1078,35 @@ const gold2Gone = ()=> !pondReady || getGoldBal2()<=0;
 // G ฟิกตามธนาคาร (แก้ไม่ได้) • ชโยมีค่างวดสัญญา 4,000 • LINE BK ขั้นต่ำ 1,000
 // งบที่เหลือหลังจากนั้น ทุ่มตามลำดับ MAIN_PRIORITY • S ปิดก้อนเดียวท้ายสุด
 const MAIN_FIXED = {
-  G:[0,8560,5993,4510,4510,4510],
+  G:[8560,5993,4510,4510,4510],
 };
-// G = "สินเชื่อเงินสดทันใจ" — งวดตามที่ธนาคารตัดจริง (โน้ต 24 ก.ย. 69):
-//   ก.ย. 0      = งวด 27 ก.ย. จ่ายจากเงินที่เตรียมไว้แล้ว → งบทั้งก้อนเอาไปอัดตัวอื่นได้
+// G = "สินเชื่อเงินสดทันใจ" — งวดตามที่ธนาคารตัดจริง (โน้ต 26 ก.ย. 69) เริ่มนับที่ ต.ค.:
 //   ต.ค. 8,560 • พ.ย. 5,993 • ธ.ค. 4,510 • ม.ค. 4,510 • ก.พ. 4,510 (ปิด 10 ก.พ. 2027)
-//   รวม 28,083 = ยอดคงเหลือ G
+//   รวม 28,083 = ยอดคงเหลือ G (งวด ก.ย. ตัดไปแล้ว)
 const MAIN_MIN   = { YourCash:1000, 'LINE BK':1000, AEON:1000 };
 const MAIN_PAYLAST = ['S'];   // แยกไว้ปิดก้อนเดียวเดือนสุดท้าย
 // ลำดับทุ่มงบส่วนเกิน (g1/g2 = ทอง 4959/4341) — เรียงตามที่เจ้าของหนี้จัดไว้
 const MAIN_PRIORITY = ['g2','g1','LINE BK','YourCash','AEON','chayo'];
 // ทองเริ่มจ่าย 1 ต.ค. 2569 (เดือน ก.ย. ข้ามไปก่อน) — งบเดือน ก.ย. ไหลลงก้อนถัดไปในลำดับแทน
 // เช็คจากปฏิทินจริง → พอพ้นเดือน ก.ย. เงื่อนไขนี้หมดผลเอง ไม่ต้องมาแก้โค้ดทีหลัง
-const GOLD_START = new Date(2026, 9, 1);
-function goldStarted(rowIdx){
-  const now = new Date();
-  return new Date(now.getFullYear(), now.getMonth()+rowIdx, 1) >= GOLD_START;
+// ===== แผนเริ่มเดือน ต.ค. 2569 =====
+// ยอดคงเหลือทุกก้อนที่บันทึกไว้ คือยอด "หลังตัดงวดเดือน ก.ย. แล้ว"
+// → ก.ย. ไม่ต้องอยู่ในตาราง แถวแรกคือ ต.ค. • พอเลย ต.ค. ไปแล้วแผนเริ่มที่เดือนปัจจุบันเอง
+const PLAN_START = new Date(2026, 9, 1);
+function planStartDate(){
+  const n = new Date(), cur = new Date(n.getFullYear(), n.getMonth(), 1);
+  return cur > PLAN_START ? cur : PLAN_START;
 }
-// ตาราง MAIN_FIXED.G ผูกกับปฏิทิน: index 0 = ก.ย. 2569 (งวดที่เตรียมเงินไว้แล้ว = 0)
-// พอถึง ต.ค. แถวแรกจะเริ่มที่ index 1 (8,560) เองโดยไม่ต้องมาแก้ตาราง
-const G_SCHED_ANCHOR = { y:2026, m:8 };
+// แถวแรกของแผนเป็นเดือนปัจจุบันหรือยัง (ถ้ายัง = แผนเริ่มเดือนหน้า)
+function planIsCurrentMonth(){
+  const n = new Date(), d = planStartDate();
+  return d.getFullYear()===n.getFullYear() && d.getMonth()===n.getMonth();
+}
+// ตาราง MAIN_FIXED.G ผูกกับปฏิทิน: index 0 = ต.ค. 2569 (8,560)
+const G_SCHED_ANCHOR = { y:2026, m:9 };
 function gSchedOffset(){
-  const now = new Date();
-  return Math.max(0, (now.getFullYear()-G_SCHED_ANCHOR.y)*12 + (now.getMonth()-G_SCHED_ANCHOR.m));
+  const d = planStartDate();
+  return Math.max(0, (d.getFullYear()-G_SCHED_ANCHOR.y)*12 + (d.getMonth()-G_SCHED_ANCHOR.m));
 }
 const MAIN_ATTACK_ORDER = MAIN_PRIORITY.filter(k=>k!=='g1'&&k!=='g2'&&k!=='chayo');
 // งบหนี้หลักตั้งเองได้ (แยกจากงบรวม) — เริ่มต้น 10,000
@@ -1105,7 +1120,7 @@ if(!localStorage.getItem('mainBudget16k_v1')){ localStorage.setItem('mainBudget'
 if(!localStorage.getItem('mainBudget15000_v2')){ localStorage.setItem('mainBudget','15000'); localStorage.setItem('mainBudget15000_v2','1'); }
 function mainMonthlyBudget(){ return getMainBudget(); }
 const PLAN_MN=['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
-function planMonthLabel(i){ const d=new Date(); return PLAN_MN[(d.getMonth()+i)%12]; }
+function planMonthLabel(i){ const d=planStartDate(); return PLAN_MN[(d.getMonth()+i)%12]; }
 const CHAYO_PER = 4000;   // ชโย เจวี งวดฟิก/เดือน (รวมอยู่ในงบหนี้หลักแล้ว — แบ่งจากส่วนที่เคยทุ่ม AEON)
 function mainPlanGenerate(balGetter, budgetOverride, firstPaid){
   // แผนเดียว: หนี้หลัก + ทอง 2 เส้น + ชโย
@@ -1167,7 +1182,6 @@ function mainPlanGenerate(balGetter, budgetOverride, firstPaid){
       for(const k of MAIN_PRIORITY){
         if(pool<=0) break;
         if(!(bal[k]>0)) continue;
-        if((k==='g1'||k==='g2') && !goldStarted(rows.length)) continue;   // ทองยังไม่เริ่ม → ข้ามไปก้อนถัดไป
         const p=Math.min(pool, bal[k]);
         pay[k]+=p; bal[k]-=p; pool-=p;
         if(bal[k]<=0) closed[k]=true;
@@ -1207,7 +1221,7 @@ function buildMainPlan(){
   const row0orig={};
   if(rows[0]) planCols.forEach(c=> row0orig[c.key]=rows[0].pay[c.key]||0);
   const paidMap={};
-  if(pondReady){
+  if(pondReady && planIsCurrentMonth()){
     planCols.forEach(c=>{ paidMap[c.key]=paidThisMonth(PLANKEY_TO_PAYID[c.key]||c.key); });
     // หักที่จ่ายแล้วออกจากตาราง • ทองหักได้แค่ "ค่าดอกเดือนนี้" (เงินต้นที่จ่ายเกินไปลดยอดในตารางอยู่แล้ว)
     const consumeAmt = c =>
@@ -1236,7 +1250,7 @@ function buildMainPlan(){
       return `<td>${fmt(Math.round(p))}${(r.closed[c.key] && p>0.5)?' <span class="done-tag">ปิด✓</span>':''}</td>`;
     }).join('');
     grand+=r.total;
-    const mlab = i===0 ? planMonthLabel(0)+' <span class="thismonth">(เดือนนี้)</span>' : planMonthLabel(i);
+    const mlab = (i===0 && planIsCurrentMonth()) ? planMonthLabel(0)+' <span class="thismonth">(เดือนนี้)</span>' : planMonthLabel(i);
     const over = Math.round(r.total) - budget;
     const totCell = over>0
       ? `<td><b style="color:#dc2626">${fmt(Math.round(r.total))}</b><br><small style="color:#dc2626">เกินงบ ${fmt(over)}</small></td>`
@@ -1268,10 +1282,12 @@ function buildMainPlan(){
             + overMonths.map(o=>`${o.m} <b>+${fmt(o.over)}</b>`).join(' • ')
             + ` (เพราะ LINE BK ฟิก 7,000 ชนกับงวด G ที่สูง)`
           : '')
-      + (goldStarted(0) ? '' : `<br>🏆 <b>เดือนนี้ยังไม่จ่ายทอง</b> — เริ่มจ่ายเดือนหน้า งบเดือนนี้เลยไหลไปก้อนถัดไปในลำดับแทน`)
+      + (planIsCurrentMonth() ? '' : `<br>📅 <b>แผนเริ่มเดือน ${planMonthLabel(0)}</b> — ยอดคงเหลือทุกก้อนเป็นยอดหลังตัดงวดเดือนนี้แล้ว`)
       + `<br>🔄 <b>ค่าต่อดอกทองจ่ายแยกนอกงบ</b> — เงินในตารางนี้ลด<b>เงินต้น</b>เต็มจำนวนทุกบาท`
-      + `<br>🏦 <b>G งวด 27 ก.ย. เตรียมเงินไว้แล้ว</b> — ธนาคารตัดเอง ไม่ต้องกันจากงบ ${fmt(budget)} (ตารางเลยขึ้น "–" ที่ช่อง G เดือนนี้) • งวด ต.ค. 8,560 คือยอดเต็มทั้งเดือน (10 ต.ค. + 27 ต.ค.)`
-      + `<br>🟣 <b>เดือนนี้เหลือต้องจ่ายอีก ${fmt(m0)} บาท</b> (ก้อนที่จ่ายแล้วขึ้น "จ่ายแล้ว ✓")`;
+      + `<br>🏦 <b>G ตัดตามงวดธนาคาร</b> ต.ค. 8,560 (ยอดเต็มทั้งเดือน 10 ต.ค. + 27 ต.ค.) • พ.ย. 5,993 • ธ.ค.–ก.พ. 4,510 → ปิด 10 ก.พ. 70`
+      + (planIsCurrentMonth()
+          ? `<br>🟣 <b>เดือนนี้เหลือต้องจ่ายอีก ${fmt(m0)} บาท</b> (ก้อนที่จ่ายแล้วขึ้น "จ่ายแล้ว ✓")`
+          : `<br>🟣 <b>งวดแรก (${planMonthLabel(0)}) รวม ${fmt(m0)} บาท</b>`);
   }
 }
 
@@ -1603,7 +1619,7 @@ renderGoldSystem_v3();
 // รวมทุก localStorage key ที่แอปใช้ ไว้ในไฟล์เดียว
 const BACKUP_KEYS = ['debtCellsPaid_v1','loanInstall_v1','goldCellsPaid_isolated_v3','loanCar2_v1','loanKsk_v1','loanKsk_v1_bal','loanChayo_v1','loanChayo_v1_bal','extraPaid_v1','payLog_v1','patTarget_v1','patBal_gold','patGoldMin','patTableCells_v1','activeProfile','monthlyTarget_v1',
   'mainBal_S','mainBal_G','mainBal_YourCash','mainBal_LINE BK','mainBal_AEON',
-  'pondBudget','pcb_main','pcb_loan40','pcb_gold','pcb_goldmin','pcb_car','pcb_ksk','pcb_chayo','pondCombCells','paDebts_v1','chayoInit21_v1','mainBudget','ycAdd2000_v1','ycAdd1000_v1','mainBalSet_20260704','mainBudget15k_v1','mainBalSetS_v2','pcb_gold1','pcb_goldmin1','pcb_gold2','pcb_goldmin2','goldMinReal_v2','rushTarget_v1','mainBudget15046_v1','chayoInit24_v1','mainBalSet_20260918','chayoInit20k_v1','lineBk10k_v1','gold4341_8k_v1','lineBk11k_v1','lineBk16k_v1','lineBk20k_v1','gPrepaid8556_v1','gold4341_6k_v1','whiteCar14_v1','showCar2_v1','lineBk14k_v1','goldSet_20260921_v1','mainBalSet_20260924','mainBudget16k_v1','mainBalSet_20260926','mainBudget15000_v2'];
+  'pondBudget','pcb_main','pcb_loan40','pcb_gold','pcb_goldmin','pcb_car','pcb_ksk','pcb_chayo','pondCombCells','paDebts_v1','chayoInit21_v1','mainBudget','ycAdd2000_v1','ycAdd1000_v1','mainBalSet_20260704','mainBudget15k_v1','mainBalSetS_v2','pcb_gold1','pcb_goldmin1','pcb_gold2','pcb_goldmin2','goldMinReal_v2','rushTarget_v1','mainBudget15046_v1','chayoInit24_v1','mainBalSet_20260918','chayoInit20k_v1','lineBk10k_v1','gold4341_8k_v1','lineBk11k_v1','lineBk16k_v1','lineBk20k_v1','gPrepaid8556_v1','gold4341_6k_v1','whiteCar14_v1','showCar2_v1','lineBk14k_v1','goldSet_20260921_v1','mainBalSet_20260924','mainBudget16k_v1','mainBalSet_20260926','mainBudget15000_v2','chayoPaid24k_v1'];
 
 document.getElementById('exportBtn').addEventListener('click',()=>{
   const dump = { app:'debt-plan', version:1, exportedAt:new Date().toISOString(), data:{} };
@@ -1865,7 +1881,7 @@ function renderCar2Toggle(){
 /* ================= สัญญาผ่อนเพิ่มเติม (สร้างแบบ generic) ================= */
 const moreLoanConfigs = [
   { id:'car2', host:'paLoans', n:0, icon:'🚗', title:'รถคันสีเทา', per:7000, balance:511000, store:'loanCar2_v1', def:0 },
-  { id:'chayo', host:'moreLoans', n:0, icon:'📄', title:'ชโย เจวี', per:4000, balance:96000, store:'loanChayo_v1', def:5, editBal:true, note:'เดิมคือกสิกร (ขายหนี้ให้ ชโย เจวี) • สัญญา 4417704017460276 • 24 งวด × 4,000 • เหลือ 19 งวด' },
+  { id:'chayo', host:'moreLoans', n:0, icon:'📄', title:'ชโย เจวี', per:4000, balance:96000, store:'loanChayo_v1', def:5, editBal:true, note:'เดิมคือกสิกร (ขายหนี้ให้ ชโย เจวี) • สัญญา 4417704017460276 • 24 งวด × 4,000 • จ่ายแล้ว 24,000 (6 งวด) เหลือ 18 งวด' },
 ];
 // ปรับ ชโย เจวี = จ่ายแล้ว 4 งวด (16,000 บาท เหลือ 20 งวด / 24 งวดรวม) ครั้งเดียว — ไม่ลดถ้าจ่ายมากกว่านี้ไปแล้ว
 if(!localStorage.getItem('chayoInit24_v1')){
