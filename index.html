@@ -365,7 +365,7 @@ tfoot td.col-refund{background:#ede9fe;color:#5b21b6}
       <div>
         <h1>แผนจัดการหนี้</h1>
         <div class="sub">แผนจ่ายหนี้รายเดือน • บันทึกที่จ่ายแล้ว แผนอัปเดตให้อัตโนมัติ</div>
-        <div class="sub" style="opacity:.6;font-size:11px">เวอร์ชัน <b id="appVer">20260927-1434</b> • ถ้าเลขนี้ไม่ตรงกับที่บอกไว้ แปลว่ายังเป็นของเก่า — ปิดแท็บแล้วเปิดใหม่</div>
+        <div class="sub" style="opacity:.6;font-size:11px">เวอร์ชัน <b id="appVer">20260927-1439</b> • ถ้าเลขนี้ไม่ตรงกับที่บอกไว้ แปลว่ายังเป็นของเก่า — ปิดแท็บแล้วเปิดใหม่</div>
       </div>
     </div>
     <div class="topbtns" id="globalTools">
@@ -1474,6 +1474,14 @@ function buildMainPlan(){
       if(p<=0.5) return `<td${c.cls?` class="${c.cls}"`:' style="color:#cbd5e1"'}>–</td>`;
       // ช่องชโย: บอกด้วยว่าเงินคืนเดือนนั้นวนไปโปะก้อนไหน
       let trail='';
+      // ก้อนที่ได้เงินคืนจากชโยมาสมทบ → แยกให้เห็นว่าจ่ายวันที่ 5 เท่าไหร่ วันที่ 10–15 อีกเท่าไหร่
+      const fromRefund = Math.round((r.refundTo||{})[c.key]||0);
+      if(fromRefund>0.5 && c.key!=='chayo'){
+        const day5 = Math.round(p) - fromRefund;
+        trail = `<br><small style="font-weight:600;color:#7c3aed">`
+          + (day5>0 ? `วันที่ 5 จ่าย ${fmt(day5)} + ` : '')
+          + `วันที่ 10–15 อีก ${fmt(fromRefund)} (เงินคืนชโย)</small>`;
+      }
       if(c.key==='chayo' && r.refund>0.5){
         const to=Object.entries(r.refundTo||{}).filter(([,v])=>v>0.5)
           .map(([k,v])=>`${colName(k)} ${fmt(Math.round(v))}`).join(' + ');
@@ -1512,6 +1520,7 @@ function buildMainPlan(){
       + `<br>🗓️ <b>ยอดที่ถึงกำหนดจ่ายให้ครบก่อนวันที่ 5</b> จากงบ ${fmt(mainMonthlyBudget())} • เงินคืนมาวันที่ 10–15 ค่อยเอาไป<b>โปะเพิ่ม</b>อีก ${fmt(CHAYO_PER)}`
       + ` → ทั้งเดือนจึงลดหนี้ได้ถึง <b>${fmt(mainMonthlyBudget()+CHAYO_PER)}</b> บาท`
       + `<br>🚫 <b>วนกลับมาจ่ายชโยเองไม่ได้</b> — ดูบรรทัด <b>"↪ คืนไปโปะ …"</b> ในช่องชโย บอกทุกเดือนว่าเงินคืนวนไปที่ไหน`
+      + `<br>➗ <b>ตัวเลขในตารางคือยอดรวมทั้งเดือน</b> — ก้อนที่มีบรรทัดสีม่วงกำกับ แปลว่าแบ่งจ่าย 2 รอบ (วันที่ 5 + วันที่ 10–15) ไม่ใช่จ่ายทีเดียว`
       + `<br>💰 <b>ชโยจ่ายเดือนละ ${fmt(CHAYO_PER)} เท่านั้น</b> — งบที่เหลือเก็บเข้า<b>กองทุน</b> (ช่องสีเหลือง) พอกองทุนพอ ก็ดึงมา<b>ปิดยอดที่เหลือทีเดียวจบ</b>`
       + `<br>💰 ตลอดแผนจะได้คืนรวม <b>${fmt(refundTotal)}</b> บาท (${chayoMonths} เดือน)`;
   }
