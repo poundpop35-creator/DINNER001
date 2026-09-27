@@ -283,10 +283,14 @@ body.capturing #paTbl .noprint{ display:none !important; }
   body.solo header.top{ display:none !important; }
 }
 /* ---- แถบ Export ท้ายทุกตาราง ---- */
-.plan-tools.export-bottom{margin-top:6px;background:#f8fafc;border:1px dashed var(--line);
-  border-radius:14px;padding:8px 10px}
-.plan-tools.export-bottom .pt-label{color:var(--muted);font-size:12px}
+.plan-tools.export-bottom{margin:6px 16px 4px;background:#f0f9ff;border:1px solid #bae6fd;
+  border-radius:14px;padding:10px}
+.plan-tools.export-bottom .pt-label{color:#075985;font-size:12px;font-weight:800}
 .plan-tools.export-bottom button{background:#fff}
+.plan-tools.export-bottom button.hot{background:linear-gradient(135deg,#0ea5e9,#38bdf8);
+  color:#fff;border-color:transparent;font-weight:800}
+/* ตอนแคป "ตารางอย่างเดียว" ให้กรอบพอดีตาราง ไม่มีขอบขาวเหลือ */
+body.capturing .tableonly{border:none!important;box-shadow:none!important;margin:0!important}
 /* ---- โหมดเก็บเงินรายวัน ---- */
 .panel.daily{border-top:4px solid #0ea5e9}
 .daychips{display:grid;grid-template-columns:repeat(auto-fill,minmax(38px,1fr));gap:6px;margin-top:10px}
@@ -315,7 +319,7 @@ tfoot td.col-refund{background:#ede9fe;color:#5b21b6}
       <div>
         <h1>แผนจัดการหนี้</h1>
         <div class="sub">แผนจ่ายหนี้รายเดือน • บันทึกที่จ่ายแล้ว แผนอัปเดตให้อัตโนมัติ</div>
-        <div class="sub" style="opacity:.6;font-size:11px">เวอร์ชัน <b id="appVer">20260927-0651</b> • ถ้าเลขนี้ไม่ตรงกับที่บอกไว้ แปลว่ายังเป็นของเก่า — ปิดแท็บแล้วเปิดใหม่</div>
+        <div class="sub" style="opacity:.6;font-size:11px">เวอร์ชัน <b id="appVer">20260927-0655</b> • ถ้าเลขนี้ไม่ตรงกับที่บอกไว้ แปลว่ายังเป็นของเก่า — ปิดแท็บแล้วเปิดใหม่</div>
       </div>
     </div>
     <div class="topbtns" id="globalTools">
@@ -1890,11 +1894,23 @@ function addExportBars(){
     if(!box.id || box.dataset.exportBar) return;
     const src=document.querySelector(`[data-img="${box.id}"]`);
     const name=(src && src.dataset.name) ? src.dataset.name : box.id;
+    // กรอบ "ตารางล้วน" = section ที่ห่อ <table> อยู่ (ไม่เอา KPI / หมายเหตุ / ปุ่มต่างๆ)
+    const tbl=box.querySelector('table');
+    const onlyId=`${box.id}-tableonly`;
+    let onlyBtns='';
+    if(tbl){
+      // .tablewrap ห่อ <table> พอดีเป๊ะ — ใช้ตัวนี้ก่อน จะได้ไม่ติด KPI / หมายเหตุ ที่อยู่ใน section เดียวกัน
+      const sec=tbl.closest('.tablewrap') || tbl.closest('section') || tbl;
+      sec.id=onlyId; sec.classList.add('tableonly');
+      onlyBtns=`<button class="reset hot" data-img="${onlyId}" data-name="${name}-ตาราง">📷 ตารางอย่างเดียว</button>`
+        +`<button class="reset hot" data-pdf="${onlyId}" data-name="${name}-ตาราง">📄 PDF ตารางอย่างเดียว</button>`;
+    }
     const bar=document.createElement('div');
     bar.className='plan-tools export-bottom noprint';
-    bar.innerHTML=`<span class="pt-label">💾 บันทึก/แชร์ตารางนี้</span>`
-      +`<button class="reset" data-img="${box.id}" data-name="${name}">📷 รูปภาพ</button>`
-      +`<button class="reset" data-pdf="${box.id}" data-name="${name}">📄 PDF</button>`
+    bar.innerHTML=`<span class="pt-label">💾 บันทึก / แชร์</span>`
+      + onlyBtns
+      +`<button class="reset" data-img="${box.id}" data-name="${name}">🖼️ ทั้งหน้า</button>`
+      +`<button class="reset" data-pdf="${box.id}" data-name="${name}">📄 PDF ทั้งหน้า</button>`
       +`<button class="reset" data-print="${box.id}">🖨️ พิมพ์</button>`;
     box.insertAdjacentElement('afterend', bar);
     box.dataset.exportBar='1';
