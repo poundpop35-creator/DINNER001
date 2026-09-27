@@ -319,7 +319,7 @@ tfoot td.col-refund{background:#ede9fe;color:#5b21b6}
       <div>
         <h1>แผนจัดการหนี้</h1>
         <div class="sub">แผนจ่ายหนี้รายเดือน • บันทึกที่จ่ายแล้ว แผนอัปเดตให้อัตโนมัติ</div>
-        <div class="sub" style="opacity:.6;font-size:11px">เวอร์ชัน <b id="appVer">20260927-0655</b> • ถ้าเลขนี้ไม่ตรงกับที่บอกไว้ แปลว่ายังเป็นของเก่า — ปิดแท็บแล้วเปิดใหม่</div>
+        <div class="sub" style="opacity:.6;font-size:11px">เวอร์ชัน <b id="appVer">20260927-0755</b> • ถ้าเลขนี้ไม่ตรงกับที่บอกไว้ แปลว่ายังเป็นของเก่า — ปิดแท็บแล้วเปิดใหม่</div>
       </div>
     </div>
     <div class="topbtns" id="globalTools">
@@ -1314,16 +1314,18 @@ function buildMainPlan(){
              {key:'chayo',name:'🔁 ชโย<small>จ่ายก่อน · ได้คืน 10–15</small>',cls:'col-refund'}]);
   const budget=mainMonthlyBudget();
   // ยอดตั้งต้นตาราง: ก้อนปกติใช้ยอด "ต้นเดือน" (งวดเต็ม) • ทองใช้เงินต้นปัจจุบัน (จ่ายแล้วหายจริง)
+  // ยอดตั้งต้นของตาราง = ยอด "ก่อนจ่ายเดือนนี้" ทุกก้อน
+  // (เดี๋ยวขั้นตอน consume ด้านล่างจะหักที่จ่ายไปแล้วออกให้ → ขึ้น "จ่ายแล้ว ✓" และยอดรวมลดตามจริง)
   const tableBal = k=>
-    k==='g1' ? (pondReady?getGoldBal1():0) :
-    k==='g2' ? (pondReady?getGoldBal2():0) :
+    k==='g1' ? (pondReady?getGoldBal1():0) + paidThisMonth('gold4959') :
+    k==='g2' ? (pondReady?getGoldBal2():0) + paidThisMonth('gold4341') :
     k==='chayo' ? (pondReady?getPondBal('chayo'):0) + paidThisMonth('chayo') :
     getMainBal(k)+paidThisMonth(k);
   const rows = pondReady ? mainPlanGenerate(tableBal) : mainPlanGenerate();
   const row0orig={};
   if(rows[0]) planCols.forEach(c=> row0orig[c.key]=rows[0].pay[c.key]||0);
   const paidMap={};
-  if(pondReady && planIsCurrentMonth()){
+  if(pondReady){
     planCols.forEach(c=>{ paidMap[c.key]=paidThisMonth(PLANKEY_TO_PAYID[c.key]||c.key); });
     // หักที่จ่ายแล้วออกจากตาราง • ทองหักได้แค่ "ค่าดอกเดือนนี้" (เงินต้นที่จ่ายเกินไปลดยอดในตารางอยู่แล้ว)
     const consumeAmt = c =>
