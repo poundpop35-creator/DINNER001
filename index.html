@@ -301,7 +301,7 @@ tfoot td.col-refund{background:#ede9fe;color:#5b21b6}
       <div>
         <h1>แผนจัดการหนี้</h1>
         <div class="sub">แผนจ่ายหนี้รายเดือน • บันทึกที่จ่ายแล้ว แผนอัปเดตให้อัตโนมัติ</div>
-        <div class="sub" style="opacity:.6;font-size:11px">เวอร์ชัน <b id="appVer">20260927-0604</b> • ถ้าเลขนี้ไม่ตรงกับที่บอกไว้ แปลว่ายังเป็นของเก่า — ปิดแท็บแล้วเปิดใหม่</div>
+        <div class="sub" style="opacity:.6;font-size:11px">เวอร์ชัน <b id="appVer">20260927-0611</b> • ถ้าเลขนี้ไม่ตรงกับที่บอกไว้ แปลว่ายังเป็นของเก่า — ปิดแท็บแล้วเปิดใหม่</div>
       </div>
     </div>
     <div class="topbtns" id="globalTools">
@@ -1144,6 +1144,9 @@ function mainMonthlyBudget(){ return getMainBudget(); }
 const PLAN_MN=['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
 function planMonthLabel(i){ const d=planStartDate(); return PLAN_MN[(d.getMonth()+i)%12]; }
 const CHAYO_PER = 4000;   // ชโย เจวี งวดฟิก/เดือน (รวมอยู่ในงบหนี้หลักแล้ว — แบ่งจากส่วนที่เคยทุ่ม AEON)
+// ค่างวดชโยที่จ่ายออกไป ได้คืนวันที่ 10–15 ของเดือนนั้น → เอากลับมาโปะต่อในเดือนเดียวกันได้
+// งบเดือนนั้นจึงเป็น (งบตั้งไว้ + ยอดที่ได้คืน) และพอชโยปิด เงินคืนก็หมดไปด้วย งบกลับเป็นปกติเอง
+const CHAYO_REFUNDED = true;
 function mainPlanGenerate(balGetter, budgetOverride, firstPaid){
   // แผนเดียว: หนี้หลัก + ทอง 2 เส้น + ชโย
   // g1 = ทอง 4959 • g2 = ทอง 4341 • ชโยจ่ายฟิก 4,000 ทุกเดือน
@@ -1167,6 +1170,9 @@ function mainPlanGenerate(balGetter, budgetOverride, firstPaid){
   let guard=0;
   while((creditors.some(c=>bal[c.key]>0) || bal.g1>0 || bal.g2>0 || bal.chayo>0) && guard<400){
     guard++;
+    // เงินค่างวดชโยที่จะได้คืนกลางเดือน (จ่ายเท่าไหร่ได้คืนเท่านั้น สูงสุดเท่าค่างวด)
+    const refund = (CHAYO_REFUNDED && bal.chayo>0) ? Math.min(CHAYO_PER, bal.chayo) : 0;
+    const monthBudget = budget + refund;
     const fp = (rows.length===0 && firstPaid) ? firstPaid : null;  // ลดภาระเฉพาะเดือนแรก
     const owe = (k, base)=> fp ? Math.max(0, base-(fp[k]||0)) : base;
     const pay={}, closed={};
@@ -1199,7 +1205,7 @@ function mainPlanGenerate(balGetter, budgetOverride, firstPaid){
       // งบที่เหลือหลังหัก G → ปัดลงเป็นหลักร้อย เพื่อให้ทุกก้อน (ยกเว้น G) เป็นเลขกลมๆ ไม่มีเศษ
       // ยอดคงเหลือทุกก้อนเป็นหลักร้อยอยู่แล้ว → ทั้งค่างวดปกติและงวดปิดจึงออกมากลมเสมอ
       const gPaid = fixedKeys.reduce((s,k)=>s+pay[k],0);
-      const roundBudget = gPaid + roundDown100(Math.max(0, budget-gPaid));
+      const roundBudget = gPaid + roundDown100(Math.max(0, monthBudget-gPaid));
       let pool=Math.max(0, roundBudget-spent);
       for(const k of MAIN_PRIORITY){
         if(pool<=0) break;
@@ -1210,7 +1216,7 @@ function mainPlanGenerate(balGetter, budgetOverride, firstPaid){
       }
     } else {
       // เหลือแต่ S → ปิดก้อนเดียวด้วยงบที่เหลือทั้งหมด (ปัดเป็นหลักร้อย)
-      let pool=roundDown100(budget);
+      let pool=roundDown100(monthBudget);
       lastKeys.forEach(k=>{
         if(bal[k]<=0 || pool<=0) return;
         const amt=Math.min(bal[k], pool);
@@ -1219,7 +1225,7 @@ function mainPlanGenerate(balGetter, budgetOverride, firstPaid){
       });
     }
     const total=creditors.reduce((s,c)=>s+pay[c.key],0)+pay.g1+pay.g2+pay.chayo;
-    rows.push({pay, closed, total});
+    rows.push({pay, closed, total, budget:monthBudget, refund});
     if(total<=0) break;
   }
   return rows;
@@ -1276,7 +1282,7 @@ function buildMainPlan(){
     }).join('');
     grand+=r.total;
     const mlab = (i===0 && planIsCurrentMonth()) ? planMonthLabel(0)+' <span class="thismonth">(เดือนนี้)</span>' : planMonthLabel(i);
-    const over = Math.round(r.total) - budget;
+    const over = Math.round(r.total) - Math.round(r.budget||budget);
     const totCell = over>0
       ? `<td><b style="color:#dc2626">${fmt(Math.round(r.total))}</b><br><small style="color:#dc2626">เกินงบ ${fmt(over)}</small></td>`
       : `<td><b>${fmt(Math.round(r.total))}</b></td>`;
@@ -1291,16 +1297,18 @@ function buildMainPlan(){
     const chayoLeft = pondReady ? Math.round(getPondBal('chayo')) : 0;
     const chayoMonths = rows.filter(r=>(r.pay.chayo||0)>0.5).length;
     rf.style.display = chayoLeft>0 ? '' : 'none';
+    const refundTotal = Math.round(rows.reduce((a,r)=>a+(r.refund||0),0));
     if(chayoLeft>0) rf.innerHTML =
       `🔁 <b>ชโยเป็นเงินหมุน ไม่ใช่เงินที่หายไป</b> — จ่ายออก <b>${fmt(CHAYO_PER)}</b> ต้นเดือน`
-      + ` แล้ว<b>ได้คืนวันที่ 10–15</b> ของเดือนนั้น เอาไปใช้ต่อได้`
-      + `<br>💰 ตลอดแผนจะหมุนผ่านช่องนี้ <b>${fmt(chayoLeft)}</b> บาท (${chayoMonths} เดือน) —`
-      + ` เงินก้อนนี้กลับมาหาคุณทุกเดือน ไม่ได้จมอยู่กับหนี้`;
+      + ` แล้ว<b>ได้คืนวันที่ 10–15</b> ของเดือนนั้น`
+      + `<br>♻️ <b>เงินคืนถูกใส่กลับเข้าแผนแล้ว</b> — เดือนที่ยังมีชโย งบใช้จริงคือ`
+      + ` <b>${fmt(mainMonthlyBudget())} + ${fmt(CHAYO_PER)} = ${fmt(mainMonthlyBudget()+CHAYO_PER)}</b> บาท`
+      + `<br>💰 ตลอดแผนจะหมุนผ่านช่องนี้ <b>${fmt(refundTotal)}</b> บาท (${chayoMonths} เดือน) — พอชโยปิด งบกลับเป็น ${fmt(mainMonthlyBudget())} ตามเดิม`;
   }
   if(note){
     const m0 = rows[0] ? Math.round(rows[0].total) : 0;
     // ลำดับเร่งปิด — เอาเฉพาะก้อนที่ยังเหลืออยู่จริง
-    const overMonths = rows.map((r,i)=>({m:planMonthLabel(i), over:Math.round(r.total)-budget}))
+    const overMonths = rows.map((r,i)=>({m:planMonthLabel(i), over:Math.round(r.total)-Math.round(r.budget||budget)}))
       .filter(o=>o.over>0);
     const chainName = { g1:'ทอง 4959', g2:'ทอง 4341', chayo:'ชโย' };
     const chainLeft = k =>
@@ -1311,7 +1319,9 @@ function buildMainPlan(){
     const minLine = Object.keys(MAIN_MIN).filter(k=> getMainBal(k)>0)
       .map(k=> `<b>${k}</b> ${fmt(MAIN_MIN[k])}`).join(' + ');
     note.innerHTML =
-      `งบไม่เกินเดือนละ <b>${fmt(budget)}</b> บาท • <b>G</b> ฟิกตามธนาคาร + <b>ชโย</b> ค่างวด ${fmt(CHAYO_PER)}`
+      `งบจากกระเป๋าเดือนละ <b>${fmt(budget)}</b> บาท`
+      + (rows[0] && rows[0].refund>0 ? ` <b>+ ${fmt(Math.round(rows[0].refund))}</b> ที่ได้คืนจากชโยกลางเดือน = <b>${fmt(Math.round(rows[0].budget))}</b> ต่อเดือน` : '')
+      + ` • <b>G</b> ฟิกตามธนาคาร + <b>ชโย</b> ค่างวด ${fmt(CHAYO_PER)}`
       + (minLine?` + ขั้นต่ำ ${minLine}`:'')
       + ` • งบที่เหลือทุ่มตามลำดับ <b>${attackChain.join(' → ')||'—'}</b> • ทุกก้อน (ยกเว้น G) เป็น<b>เลขกลมหลักร้อย</b>`
       + (getMainBal('S')>0?' • <b>S</b> ปิดก้อนสุดท้าย':'')
@@ -1321,7 +1331,7 @@ function buildMainPlan(){
             + overMonths.map(o=>`${o.m} <b>+${fmt(o.over)}</b>`).join(' • ')
             + ` (เพราะ LINE BK ฟิก 7,000 ชนกับงวด G ที่สูง)`
           : '')
-      + `<br>🔁 <b>ช่องชโย (สีม่วง)</b> = จ่ายออกก่อน แล้วได้คืนวันที่ 10–15 ทุกเดือน — เงินหมุน ไม่ใช่ค่าใช้จ่ายจริง`
+      + `<br>🔁 <b>ช่องชโย (สีม่วง)</b> = จ่ายออกก่อน ได้คืนวันที่ 10–15 แล้ว<b>วนกลับมาโปะต่อในเดือนเดียวกัน</b> — พอชโยปิด เงินคืนหมด งบกลับเป็น ${fmt(budget)} เอง`
       + (planIsCurrentMonth() ? '' : `<br>📅 <b>แผนเริ่มเดือน ${planMonthLabel(0)}</b> — ยอดคงเหลือทุกก้อนเป็นยอดหลังตัดงวดเดือนนี้แล้ว`)
       + `<br>🔄 <b>ค่าต่อดอกทองจ่ายแยกนอกงบ</b> — เงินในตารางนี้ลด<b>เงินต้น</b>เต็มจำนวนทุกบาท`
       + `<br>🏦 <b>G ตัดตามงวดธนาคาร</b> ต.ค. 8,560 (ยอดเต็มทั้งเดือน 10 ต.ค. + 27 ต.ค.) • พ.ย. 5,993 • ธ.ค.–ก.พ. 4,510 → ปิด 10 ก.พ. 70`
