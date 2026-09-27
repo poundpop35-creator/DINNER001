@@ -301,7 +301,7 @@ tfoot td.col-refund{background:#ede9fe;color:#5b21b6}
       <div>
         <h1>แผนจัดการหนี้</h1>
         <div class="sub">แผนจ่ายหนี้รายเดือน • บันทึกที่จ่ายแล้ว แผนอัปเดตให้อัตโนมัติ</div>
-        <div class="sub" style="opacity:.6;font-size:11px">เวอร์ชัน <b id="appVer">20260927-0611</b> • ถ้าเลขนี้ไม่ตรงกับที่บอกไว้ แปลว่ายังเป็นของเก่า — ปิดแท็บแล้วเปิดใหม่</div>
+        <div class="sub" style="opacity:.6;font-size:11px">เวอร์ชัน <b id="appVer">20260927-0623</b> • ถ้าเลขนี้ไม่ตรงกับที่บอกไว้ แปลว่ายังเป็นของเก่า — ปิดแท็บแล้วเปิดใหม่</div>
       </div>
     </div>
     <div class="topbtns" id="globalTools">
@@ -1210,7 +1210,11 @@ function mainPlanGenerate(balGetter, budgetOverride, firstPaid){
       for(const k of MAIN_PRIORITY){
         if(pool<=0) break;
         if(!(bal[k]>0)) continue;
-        const p=Math.min(pool, bal[k]);
+        // เงินคืนจากชโย เอาไปโปะ "ก้อนอื่น" ได้เท่านั้น — วนกลับมาจ่ายชโยเองไม่ได้
+        // → ชโยจึงรับได้สูงสุดเท่างบตั้งต้นต่อเดือน (ไม่รวมเงินคืน)
+        const cap = (k==='chayo') ? Math.max(0, budget-pay.chayo) : Infinity;
+        const p=Math.min(pool, bal[k], cap);
+        if(p<=0) continue;
         pay[k]+=p; bal[k]-=p; pool-=p;
         if(bal[k]<=0) closed[k]=true;
       }
@@ -1225,7 +1229,9 @@ function mainPlanGenerate(balGetter, budgetOverride, firstPaid){
       });
     }
     const total=creditors.reduce((s,c)=>s+pay[c.key],0)+pay.g1+pay.g2+pay.chayo;
-    rows.push({pay, closed, total, budget:monthBudget, refund});
+    // งบใช้จริงของเดือนนั้น: ถ้าเหลือแต่ชโย เงินคืนเอาไปโปะต่อไม่ได้ → เพดานคือ budget เฉยๆ
+    const capUsed = Math.min(monthBudget, Math.max(budget, Math.round(total)));
+    rows.push({pay, closed, total, budget:capUsed, refund});
     if(total<=0) break;
   }
   return rows;
@@ -1301,9 +1307,10 @@ function buildMainPlan(){
     if(chayoLeft>0) rf.innerHTML =
       `🔁 <b>ชโยเป็นเงินหมุน ไม่ใช่เงินที่หายไป</b> — จ่ายออก <b>${fmt(CHAYO_PER)}</b> ต้นเดือน`
       + ` แล้ว<b>ได้คืนวันที่ 10–15</b> ของเดือนนั้น`
-      + `<br>♻️ <b>เงินคืนถูกใส่กลับเข้าแผนแล้ว</b> — เดือนที่ยังมีชโย งบใช้จริงคือ`
+      + `<br>♻️ <b>เงินคืนเอาไปโปะ "ก้อนอื่น" ต่อได้</b> — เดือนที่ยังมีก้อนอื่นเหลือ จ่ายได้ถึง`
       + ` <b>${fmt(mainMonthlyBudget())} + ${fmt(CHAYO_PER)} = ${fmt(mainMonthlyBudget()+CHAYO_PER)}</b> บาท`
-      + `<br>💰 ตลอดแผนจะหมุนผ่านช่องนี้ <b>${fmt(refundTotal)}</b> บาท (${chayoMonths} เดือน) — พอชโยปิด งบกลับเป็น ${fmt(mainMonthlyBudget())} ตามเดิม`;
+      + `<br>🚫 <b>แต่วนกลับมาจ่ายชโยเองไม่ได้</b> — ช่องชโยจึงรับได้สูงสุดเดือนละ <b>${fmt(mainMonthlyBudget())}</b>`
+      + `<br>💰 ตลอดแผนจะได้คืนรวม <b>${fmt(refundTotal)}</b> บาท (${chayoMonths} เดือน)`;
   }
   if(note){
     const m0 = rows[0] ? Math.round(rows[0].total) : 0;
@@ -1331,7 +1338,7 @@ function buildMainPlan(){
             + overMonths.map(o=>`${o.m} <b>+${fmt(o.over)}</b>`).join(' • ')
             + ` (เพราะ LINE BK ฟิก 7,000 ชนกับงวด G ที่สูง)`
           : '')
-      + `<br>🔁 <b>ช่องชโย (สีม่วง)</b> = จ่ายออกก่อน ได้คืนวันที่ 10–15 แล้ว<b>วนกลับมาโปะต่อในเดือนเดียวกัน</b> — พอชโยปิด เงินคืนหมด งบกลับเป็น ${fmt(budget)} เอง`
+      + `<br>🔁 <b>ช่องชโย (สีม่วง)</b> = จ่ายออกก่อน ได้คืนวันที่ 10–15 • เงินคืนเอาไป<b>โปะก้อนอื่น</b>ได้ แต่วนกลับมาจ่ายชโยเองไม่ได้ → <b>ชโยรับได้สูงสุดเดือนละ ${fmt(budget)}</b>`
       + (planIsCurrentMonth() ? '' : `<br>📅 <b>แผนเริ่มเดือน ${planMonthLabel(0)}</b> — ยอดคงเหลือทุกก้อนเป็นยอดหลังตัดงวดเดือนนี้แล้ว`)
       + `<br>🔄 <b>ค่าต่อดอกทองจ่ายแยกนอกงบ</b> — เงินในตารางนี้ลด<b>เงินต้น</b>เต็มจำนวนทุกบาท`
       + `<br>🏦 <b>G ตัดตามงวดธนาคาร</b> ต.ค. 8,560 (ยอดเต็มทั้งเดือน 10 ต.ค. + 27 ต.ค.) • พ.ย. 5,993 • ธ.ค.–ก.พ. 4,510 → ปิด 10 ก.พ. 70`
