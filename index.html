@@ -300,6 +300,30 @@ body.capturing .tableonly{border:none!important;box-shadow:none!important;margin
 .daychip:hover{transform:translateY(-1px);border-color:#0ea5e9}
 .daychip.done{background:linear-gradient(135deg,#0ea5e9,#38bdf8);color:#fff;border-color:transparent}
 .daychip.today{outline:2px solid #f59e0b;outline-offset:1px}
+/* ---- หัวข้อพับเก็บได้ (ทำให้หน้าไม่รก) ---- */
+details.sec{background:var(--card);border:1px solid var(--line);border-radius:18px;
+  margin:10px 12px;overflow:hidden;box-shadow:0 1px 3px rgba(15,23,42,.05)}
+details.sec>summary{list-style:none;cursor:pointer;padding:14px 16px;display:flex;
+  align-items:center;gap:10px;font-weight:800;color:var(--text2);user-select:none}
+details.sec>summary::-webkit-details-marker{display:none}
+details.sec>summary::after{content:"⌄";margin-left:10px;font-size:20px;line-height:1;
+  color:var(--muted);transition:transform .18s}
+details.sec[open]>summary::after{transform:rotate(180deg)}
+details.sec[open]>summary{border-bottom:1px solid var(--line)}
+details.sec .sec-ic{font-size:19px}
+details.sec .sec-t{font-size:15px}
+details.sec .sec-sub{margin-left:auto;font-size:12px;font-weight:800;color:#0891b2;
+  background:#ecfeff;border:1px solid #a5f3fc;border-radius:999px;padding:3px 10px;white-space:nowrap}
+details.sec[open] .sec-sub{display:none}
+details.sec.primary{border-color:#c4b5fd;box-shadow:0 3px 14px rgba(124,58,237,.10)}
+details.sec.primary>summary{background:linear-gradient(135deg,#f5f3ff,#ede9fe);color:#5b21b6}
+details.infobox{margin:8px 16px 12px;border:1px solid #bbf7d0;background:#f0fdf4;border-radius:14px;overflow:hidden}
+details.infobox>summary{list-style:none;cursor:pointer;padding:10px 12px;font-size:13px;
+  font-weight:800;color:#166534;user-select:none}
+details.infobox>summary::-webkit-details-marker{display:none}
+details.infobox>summary::after{content:" ⌄";color:#16a34a}
+details.infobox[open]>summary::after{content:" ⌃"}
+details.infobox .tgtproj{margin:0 10px 10px!important}
 /* ---- เช็กลิสต์เดือนนี้ แยก 2 รอบ ---- */
 .rc-round{border:1px solid var(--line);border-radius:14px;padding:12px;margin-top:10px;background:var(--card2)}
 .rc-round.r2{background:#f5f3ff;border-color:#ddd6fe}
@@ -341,7 +365,7 @@ tfoot td.col-refund{background:#ede9fe;color:#5b21b6}
       <div>
         <h1>แผนจัดการหนี้</h1>
         <div class="sub">แผนจ่ายหนี้รายเดือน • บันทึกที่จ่ายแล้ว แผนอัปเดตให้อัตโนมัติ</div>
-        <div class="sub" style="opacity:.6;font-size:11px">เวอร์ชัน <b id="appVer">20260927-1429</b> • ถ้าเลขนี้ไม่ตรงกับที่บอกไว้ แปลว่ายังเป็นของเก่า — ปิดแท็บแล้วเปิดใหม่</div>
+        <div class="sub" style="opacity:.6;font-size:11px">เวอร์ชัน <b id="appVer">20260927-1433</b> • ถ้าเลขนี้ไม่ตรงกับที่บอกไว้ แปลว่ายังเป็นของเก่า — ปิดแท็บแล้วเปิดใหม่</div>
       </div>
     </div>
     <div class="topbtns" id="globalTools">
@@ -428,13 +452,15 @@ tfoot td.col-refund{background:#ede9fe;color:#5b21b6}
     <div class="bar-meta"><span id="overallPct">0%</span><span id="overallAmt"></span></div>
   </section>
 
-  <section class="panel">
-    <h2>✏️ ยอดคงเหลือรายใบ (แก้ได้)</h2>
+  <section class="panel" style="padding:0;overflow:hidden">
+    <details id="balEditor"><summary style="list-style:none;cursor:pointer;padding:16px;font-weight:800;color:var(--text2)">✏️ แก้ยอดคงเหลือรายใบ <span style="font-weight:600;color:var(--muted);font-size:12px">(กดเปิดเมื่อยอดไม่ตรง)</span></summary>
+    <div style="padding:0 16px 16px">
     <div id="mainBalForm" class="patbals" style="grid-template-columns:1fr"></div>
     <button id="mainBalSave" class="btn-pay" style="background:#0891b2;margin-top:10px">💾 บันทึกยอด</button>
     <div class="tgtproj" style="margin-top:10px;background:#ecfeff;border-color:#a5f3fc;color:#155e75">
-      ℹ️ ใส่ยอดคงเหลือจริงของแต่ละใบ • เวลาจ่าย/โปะ บันทึกที่หัวข้อ 💰 บันทึกการจ่าย ด้านล่าง แล้วยอดจะลดให้เอง
+      ℹ️ ใส่ยอดคงเหลือจริงของแต่ละใบ • เวลาจ่าย/โปะ บันทึกที่หัวข้อ 💰 บันทึกการจ่าย แล้วยอดจะลดให้เอง
     </div>
+    </div></details>
   </section>
 
   <section class="panel" style="padding:0;overflow:hidden">
@@ -2801,6 +2827,69 @@ function buildRoundCheck(){
   });
 }
 
+
+/* ================= จัดหน้าปอนด์ใหม่: หัวข้อพับเก็บได้ ================= */
+const POND_SECTIONS = [
+  {tab:'roundcheck', icon:'📋', title:'เดือนนี้ต้องจ่ายอะไร', open:true,  primary:true},
+  {tab:'main',       icon:'🗓️', title:'ตารางแผนจ่ายทั้งหมด',  open:true},
+  {tab:'pay',        icon:'💰', title:'บันทึก / โปะเพิ่มเอง',  open:false},
+  {tab:'others',     icon:'📄', title:'รายละเอียดสัญญา (ทอง · ชโย)', open:false},
+  {tab:'daily',      icon:'💵', title:'โหมดเก็บเงินรายวัน',    open:false},
+  {tab:'rush',       icon:'⚡', title:'ลองคำนวณปิดให้ไวขึ้น',  open:false},
+];
+function buildPondSections(){
+  const app=document.getElementById('app-pond'); if(!app) return;
+  let host=document.getElementById('pondSections');
+  if(!host){ host=document.createElement('div'); host.id='pondSections'; app.appendChild(host); }
+  POND_SECTIONS.forEach(sec=>{
+    const panel=app.querySelector(`.tabpanel[data-tab="${sec.tab}"]`);
+    if(!panel) return;
+    let d=panel.closest('details.sec');
+    if(!d){
+      d=document.createElement('details');
+      d.className='sec'+(sec.primary?' primary':''); d.open=sec.open; d.dataset.sec=sec.tab;
+      d.innerHTML=`<summary><span class="sec-ic">${sec.icon}</span>`
+        +`<span class="sec-t">${sec.title}</span>`
+        +`<span class="sec-sub" data-secsub="${sec.tab}"></span></summary>`;
+      panel.parentNode.insertBefore(d, panel);
+      d.appendChild(panel);
+      panel.style.display='';
+      const key='sec_'+sec.tab;                    // จำว่าเปิด/ปิดไว้ยังไง
+      const saved=localStorage.getItem(key);
+      if(saved!=null) d.open = saved==='1';
+      d.addEventListener('toggle',()=> localStorage.setItem(key, d.open?'1':'0'));
+    }
+    host.appendChild(d);
+  });
+  // ยุบกล่องอธิบายกติกาไว้ที่เดียว กดอ่านได้
+  const rf=document.getElementById('refundNote'), nt=document.getElementById('mainPlanNote');
+  if(nt && !document.getElementById('planRules')){
+    const box=document.createElement('details');
+    box.id='planRules'; box.className='infobox';
+    box.innerHTML='<summary>ℹ️ กติกาของแผนนี้ (กดอ่าน)</summary>';
+    nt.parentNode.insertBefore(box, rf||nt);
+    if(rf) box.appendChild(rf);
+    box.appendChild(nt);
+    if(localStorage.getItem('sec_rules')==='1') box.open=true;
+    box.addEventListener('toggle',()=> localStorage.setItem('sec_rules', box.open?'1':'0'));
+  }
+  updateSectionSubs();
+}
+// ป้ายสรุปสั้นๆ บนหัวข้อที่พับอยู่ จะได้รู้ว่าข้างในมีอะไรโดยไม่ต้องกดเปิด
+function updateSectionSubs(){
+  const set=(tab,txt)=>{ const el=document.querySelector(`[data-secsub="${tab}"]`); if(el) el.textContent=txt||''; };
+  try{
+    const rows=pondReady?mainPlanGenerate():[];
+    set('main', rows.length?`ปิดครบใน ${rows.length} เดือน`:'');
+    set('pay', `ค้างรวม ${fmt(Math.round(creditors.reduce((s,c)=>s+getMainBal(c.key),0)
+      + (pondReady?getGoldBal1()+getGoldBal2()+getPondBal('chayo'):0)))} ฿`);
+    set('others', pondReady?`ทอง ${fmt(Math.round(getGoldBal1()))} · ชโย ${fmt(Math.round(getPondBal('chayo')))}`:'');
+    set('daily', `วันละ ${fmt(getDailyAmt())}`);
+    set('rush', 'เครื่องคิดเลข');
+    if(rows[0]) set('roundcheck', `เดือนนี้ ${fmt(Math.round(rows[0].paid!=null?rows[0].paid:rows[0].total))} ฿`);
+  }catch(e){}
+}
+
 function renderAllExtra(){
   buildTable();        // คำนวณ "ปิดยอดเร็วขึ้น" ในตารางหนี้หลักใหม่
   render(); renderLoan(); renderGoldSystem_v3();
@@ -2808,6 +2897,7 @@ function renderAllExtra(){
   renderPayLog();
   if(payReady) buildPayPick();
   if(pondReady){ buildRushPlan(); buildDailyPlan(); buildRoundCheck(); }
+  if(typeof updateSectionSubs==='function') updateSectionSubs();
 }
 
 function renderPayLog(){
@@ -3248,9 +3338,14 @@ function xlsPaDebt(){
    เพื่อให้โค้ดเดิมที่อ้าง id ในนั้น (ตารางรวม/กราฟ) ยังทำงานได้โดยไม่ต้องรื้อ */
 function showAllPondTabs(){
   document.querySelectorAll('#app-pond .tabpanel').forEach(p=>{ if(!p.hasAttribute('hidden')) p.style.display=''; });
+  // ตอนพิมพ์/แคปทั้งหน้า ต้องกางหัวข้อที่พับไว้ออกให้หมด
+  document.querySelectorAll('#app-pond details').forEach(d=>{ if(!d.open){ d.dataset.wasClosed='1'; d.open=true; } });
 }
-function restorePondTabs(){ showAllPondTabs(); }
-showAllPondTabs();
+function restorePondTabs(){
+  document.querySelectorAll('#app-pond details[data-was-closed]').forEach(d=>{ d.open=false; delete d.dataset.wasClosed; });
+  document.querySelectorAll('#app-pond .tabpanel').forEach(p=>{ if(!p.hasAttribute('hidden')) p.style.display=''; });
+}
+buildPondSections();
 
 /* ================= หน้าแรก: เลือกเจ้าของหนี้ (ปอนด์ / ปัท) ================= */
 function showProfile(pk){
