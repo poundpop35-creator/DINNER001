@@ -300,6 +300,12 @@ body.capturing .tableonly{border:none!important;box-shadow:none!important;margin
 .daychip:hover{transform:translateY(-1px);border-color:#0ea5e9}
 .daychip.done{background:linear-gradient(135deg,#0ea5e9,#38bdf8);color:#fff;border-color:transparent}
 .daychip.today{outline:2px solid #f59e0b;outline-offset:1px}
+/* คอลัมน์กองทุนสะสมไว้ปิดชโย */
+th.col-pot{background:linear-gradient(180deg,#fffbeb,#fef3c7)!important;color:#92400e!important;
+  border-left:2px solid #fcd34d;border-right:2px solid #fcd34d}
+th.col-pot small{display:block;font-weight:600;font-size:10px;opacity:.95;margin-top:2px}
+td.col-pot{background:#fffdf5;border-left:2px solid #fef3c7;border-right:2px solid #fef3c7;color:#b45309;font-weight:700}
+tfoot td.col-pot{background:#fef3c7;color:#92400e}
 /* คอลัมน์พิเศษ: จ่ายออกไปก่อน แล้วได้คืนกลับมาทุกเดือน (ชโย) */
 th.col-refund{background:linear-gradient(180deg,#f5f3ff,#ede9fe)!important;color:#5b21b6!important;
   border-left:2px solid #c4b5fd;border-right:2px solid #c4b5fd}
@@ -319,7 +325,7 @@ tfoot td.col-refund{background:#ede9fe;color:#5b21b6}
       <div>
         <h1>แผนจัดการหนี้</h1>
         <div class="sub">แผนจ่ายหนี้รายเดือน • บันทึกที่จ่ายแล้ว แผนอัปเดตให้อัตโนมัติ</div>
-        <div class="sub" style="opacity:.6;font-size:11px">เวอร์ชัน <b id="appVer">20260927-1404</b> • ถ้าเลขนี้ไม่ตรงกับที่บอกไว้ แปลว่ายังเป็นของเก่า — ปิดแท็บแล้วเปิดใหม่</div>
+        <div class="sub" style="opacity:.6;font-size:11px">เวอร์ชัน <b id="appVer">20260927-1425</b> • ถ้าเลขนี้ไม่ตรงกับที่บอกไว้ แปลว่ายังเป็นของเก่า — ปิดแท็บแล้วเปิดใหม่</div>
       </div>
     </div>
     <div class="topbtns" id="globalTools">
@@ -1180,7 +1186,9 @@ const MAIN_FIXED = {
 const MAIN_MIN   = { YourCash:1000, 'LINE BK':1000, AEON:1000 };
 const MAIN_PAYLAST = ['S'];   // แยกไว้ปิดก้อนเดียวเดือนสุดท้าย
 // ลำดับทุ่มงบส่วนเกิน (g1/g2 = ทอง 4959/4341) — เรียงตามที่เจ้าของหนี้จัดไว้
-const MAIN_PRIORITY = ['g2','g1','LINE BK','YourCash','AEON','chayo'];
+// ชโยไม่อยู่ในลิสต์นี้ — จ่ายแค่ค่างวด 4,000/เดือน ส่วนงบที่เหลือเก็บเป็น "กองทุน"
+// แล้วเดือนไหนกองทุนพอปิดยอดชโยที่เหลือ ก็จ่ายปิดทีเดียวจบ
+const MAIN_PRIORITY = ['g2','g1','LINE BK','YourCash','AEON'];
 // ทองเริ่มจ่าย 1 ต.ค. 2569 (เดือน ก.ย. ข้ามไปก่อน) — งบเดือน ก.ย. ไหลลงก้อนถัดไปในลำดับแทน
 // เช็คจากปฏิทินจริง → พอพ้นเดือน ก.ย. เงื่อนไขนี้หมดผลเอง ไม่ต้องมาแก้โค้ดทีหลัง
 // ===== แผนเริ่มเดือน ต.ค. 2569 =====
@@ -1241,6 +1249,7 @@ function mainPlanGenerate(balGetter, budgetOverride, firstPaid){
   const lastKeys  = creditors.map(c=>c.key).filter(k=>MAIN_PAYLAST.includes(k));
   const minKeys   = creditors.map(c=>c.key).filter(k=>!MAIN_FIXED[k] && !MAIN_PAYLAST.includes(k));
   const fixIdx={}; fixedKeys.forEach(k=> fixIdx[k] = (k==='G') ? gSchedOffset() : 0);
+  let chayoPot = 0;   // กองทุนสะสมไว้ปิดชโยทีเดียว
   let guard=0;
   while((creditors.some(c=>bal[c.key]>0) || bal.g1>0 || bal.g2>0 || bal.chayo>0) && guard<400){
     guard++;
@@ -1249,6 +1258,7 @@ function mainPlanGenerate(balGetter, budgetOverride, firstPaid){
     const refund = (CHAYO_REFUNDED && bal.chayo>0) ? Math.min(CHAYO_PER, bal.chayo) : 0;
     const monthBudget = budget + refund;
     const refundTo = {};   // เงินคืนเดือนนี้ไปโปะก้อนไหนบ้าง
+    let potAdd = 0, potUsed = 0;   // เก็บเข้ากองทุน / ดึงกองทุนออกมาปิดชโย
     const fp = (rows.length===0 && firstPaid) ? firstPaid : null;  // ลดภาระเฉพาะเดือนแรก
     const owe = (k, base)=> fp ? Math.max(0, base-(fp[k]||0)) : base;
     const pay={}, closed={};
@@ -1308,9 +1318,19 @@ function mainPlanGenerate(balGetter, budgetOverride, firstPaid){
       let rem=refund;
       for(let i=allocOrder.length-1; i>=0 && rem>0.5; i--){
         const a=allocOrder[i];
-        if(a.k==='chayo') continue;
         const take=Math.min(rem, a.amt);
         refundTo[a.k]=(refundTo[a.k]||0)+take; rem-=take;
+      }
+      // งบที่เหลือหลังจ่ายก้อนอื่นครบ → เก็บเข้ากองทุนปิดชโย
+      // หักส่วนที่เป็น "เงินคืนที่ยังไม่ได้ใช้" (rem) ออกก่อน เพราะเงินคืนเอาไปปิดชโยไม่ได้
+      if(bal.chayo>0) potAdd = roundDown100(Math.max(0, pool-rem));
+      chayoPot += potAdd;
+      // กองทุนพอปิดยอดที่เหลือแล้ว → จ่ายปิดทีเดียวจบ
+      if(bal.chayo>0 && chayoPot >= bal.chayo){
+        potUsed = bal.chayo;
+        pay.chayo += bal.chayo;
+        chayoPot -= bal.chayo;
+        bal.chayo = 0; closed.chayo = true;
       }
     } else {
       // เหลือแต่ S → ปิดก้อนเดียวด้วยงบที่เหลือทั้งหมด (ปัดเป็นหลักร้อย)
@@ -1322,10 +1342,11 @@ function mainPlanGenerate(balGetter, budgetOverride, firstPaid){
         if(bal[k]<=0) closed[k]=true;
       });
     }
-    const total=creditors.reduce((s,c)=>s+pay[c.key],0)+pay.g1+pay.g2+pay.chayo;
-    // งบใช้จริงของเดือนนั้น: ถ้าเหลือแต่ชโย เงินคืนเอาไปโปะต่อไม่ได้ → เพดานคือ budget เฉยๆ
+    const paid=creditors.reduce((s,c)=>s+pay[c.key],0)+pay.g1+pay.g2+pay.chayo;
+    // เงินที่ออกจากกระเป๋าจริงเดือนนั้น = ที่จ่ายเจ้าหนี้ + ที่เก็บเข้ากองทุน − ส่วนที่ดึงกองทุนเก่ามาใช้
+    const total = paid + potAdd - potUsed;
     const capUsed = Math.min(monthBudget, Math.max(budget, Math.round(total)));
-    rows.push({pay, closed, total, budget:capUsed, refund, refundTo});
+    rows.push({pay, closed, total, paid, budget:capUsed, refund, refundTo, potAdd, potUsed, potBal:chayoPot});
     if(total<=0) break;
   }
   return rows;
@@ -1342,7 +1363,8 @@ function buildMainPlan(){
   let planCols = creditors.map(c=>({key:c.key,name:c.name}))
     .concat(gold2Gone()?[]:[{key:'g2',name:'🏆 ทอง 4341'}])
     .concat([{key:'g1',name:'🏆 ทอง 4959'},
-             {key:'chayo',name:'🔁 ชโย<small>จ่ายก่อน · ได้คืน 10–15</small>',cls:'col-refund'}]);
+             {key:'chayo',name:'🔁 ชโย<small>จ่ายก่อน · ได้คืน 10–15</small>',cls:'col-refund'},
+             {key:'__pot',name:'💰 กองทุน<small>สะสมไว้ปิดชโย</small>',cls:'col-pot',pot:true}]);
   const budget=mainMonthlyBudget();
   // ยอดตั้งต้นตาราง: ก้อนปกติใช้ยอด "ต้นเดือน" (งวดเต็ม) • ทองใช้เงินต้นปัจจุบัน (จ่ายแล้วหายจริง)
   // ยอดตั้งต้นของตาราง = ยอด "ก่อนจ่ายเดือนนี้" ทุกก้อน
@@ -1365,7 +1387,11 @@ function buildMainPlan(){
       let remain=consumeAmt(c);
       for(const r of rows){ if(remain<=0.5) break; const a=r.pay[c.key]||0; if(a<=0) continue; const cut=Math.min(a,remain); r.pay[c.key]=a-cut; remain-=cut; }
     });
-    rows.forEach(r=>{ r.total=planCols.reduce((s,c)=>s+(r.pay[c.key]||0),0); });
+    // total = เงินออกจากกระเป๋าจริง = จ่ายเจ้าหนี้ + เก็บเข้ากองทุน − ส่วนที่ดึงกองทุนเก่ามาใช้
+    rows.forEach(r=>{
+      r.paid = planCols.reduce((s,c)=> s + (c.pot?0:(r.pay[c.key]||0)), 0);
+      r.total = r.paid + (r.potAdd||0) - (r.potUsed||0);
+    });
   }
   if(!rows.length){
     body.innerHTML=`<tr><td colspan="${planCols.length+2}" style="padding:16px;color:#64748b">🎉 ปิดหนี้หลัก+ทอง+ชโยครบแล้ว!</td></tr>`;
@@ -1374,13 +1400,22 @@ function buildMainPlan(){
     return;
   }
   // ตัดคอลัมน์ของก้อนที่ปิดไปแล้ว (ไม่มียอดต้องจ่ายสักเดือน และไม่ได้จ่ายเดือนนี้) ออกจากตาราง
-  planCols = planCols.filter(c=> rows.some(r=>(r.pay[c.key]||0)>0.5) || (paidMap[c.key]||0)>0.5);
+  planCols = planCols.filter(c=> c.pot ? rows.some(r=>(r.potAdd||0)>0.5)
+    : (rows.some(r=>(r.pay[c.key]||0)>0.5) || (paidMap[c.key]||0)>0.5));
   head.innerHTML='<th style="text-align:left">เดือน</th>'
     +planCols.map(c=>`<th${c.cls?` class="${c.cls}"`:''}>${c.name}</th>`).join('')+'<th>รวมจ่าย</th>';
   const colSum={}; planCols.forEach(c=>{ colSum[c.key]=0; }); let grand=0;
   body.innerHTML=rows.map((r,i)=>{
     const tds=planCols.map(c=>{
       const cc=c.cls?` class="${c.cls}"`:'';
+      if(c.pot){
+        const add=Math.round(r.potAdd||0), used=Math.round(r.potUsed||0), bal=Math.round(r.potBal||0);
+        colSum.__pot+=add;
+        if(add<=0 && used<=0 && bal<=0) return `<td class="${c.cls}">–</td>`;
+        return `<td class="${c.cls}">${add>0?'+'+fmt(add):'–'}`
+          + (used>0?`<br><small style="color:#dc2626;font-weight:700">ดึงปิดชโย −${fmt(used)}</small>`:'')
+          + `<br><small style="opacity:.8">กองทุน ${fmt(bal)}</small></td>`;
+      }
       const p=r.pay[c.key]||0; colSum[c.key]+=p;
       if(i===0 && p<=0.5 && (row0orig[c.key]||0)>0.5 && (paidMap[c.key]||0)>0.5) return '<td class="paidcell">จ่ายแล้ว ✓</td>';
       if(p<=0.5) return `<td${c.cls?` class="${c.cls}"`:' style="color:#cbd5e1"'}>–</td>`;
@@ -1395,7 +1430,7 @@ function buildMainPlan(){
       }
       return `<td${cc}>${fmt(Math.round(p))}${(r.closed[c.key] && p>0.5)?' <span class="done-tag">ปิด✓</span>':''}${trail}</td>`;
     }).join('');
-    grand+=r.total;
+    grand+=(r.paid!=null?r.paid:r.total);   // แถวรวม = เงินที่ถึงมือเจ้าหนี้จริง (ไม่นับเงินที่ยังพักในกองทุน)
     const mlab = (i===0 && planIsCurrentMonth()) ? planMonthLabel(0)+' <span class="thismonth">(เดือนนี้)</span>' : planMonthLabel(i);
     const over = Math.round(r.total) - Math.round(r.budget||budget);
     const totCell = over>0
@@ -1403,8 +1438,13 @@ function buildMainPlan(){
       : `<td><b>${fmt(Math.round(r.total))}</b></td>`;
     return `<tr class="${i===0?'planrow-now':''}"><td style="text-align:left">${mlab}</td>${tds}${totCell}</tr>`;
   }).join('');
+  const potLeft = rows.length ? Math.round(rows[rows.length-1].potBal||0) : 0;
   foot.innerHTML='<td style="text-align:left">รวม</td>'
-    +planCols.map(c=>`<td${c.cls?` class="${c.cls}"`:''}>${fmt(Math.round(colSum[c.key]))}</td>`).join('')
+    +planCols.map(c=>{
+      const v=fmt(Math.round(colSum[c.key]));
+      if(c.pot) return `<td class="${c.cls}">${v}${potLeft>0?`<br><small>เหลือ ${fmt(potLeft)}</small>`:''}</td>`;
+      return `<td${c.cls?` class="${c.cls}"`:''}>${v}</td>`;
+    }).join('')
     +`<td>${fmt(Math.round(grand))}</td>`;
   // กล่องอธิบายคอลัมน์เงินคืน (ชโย) — โชว์เฉพาะตอนที่ยังมียอดชโยเหลือ
   const rf=document.getElementById('refundNote');
@@ -1418,8 +1458,8 @@ function buildMainPlan(){
       + ` แล้ว<b>ได้คืนวันที่ 10–15</b> ของเดือนนั้น`
       + `<br>♻️ <b>เงินคืนเอาไปโปะ "ก้อนอื่น" ต่อได้</b> — เดือนที่ยังมีก้อนอื่นเหลือ จ่ายได้ถึง`
       + ` <b>${fmt(mainMonthlyBudget())} + ${fmt(CHAYO_PER)} = ${fmt(mainMonthlyBudget()+CHAYO_PER)}</b> บาท`
-      + `<br>🚫 <b>วนกลับมาจ่ายชโยเองไม่ได้</b> • ชโยจ่ายเป็น<b>ทวีคูณของ ${fmt(CHAYO_PER)}</b> เท่านั้น (${fmt(CHAYO_PER)} / ${fmt(CHAYO_PER*2)} / ${fmt(CHAYO_PER*3)} …) ไม่มีเศษ`
-      + `<br>👀 ดูในตารางช่องชโยได้เลย มีบรรทัด <b>"↪ คืนไปโปะ …"</b> บอกทุกเดือนว่าเงินคืนวนไปที่ไหน`
+      + `<br>🚫 <b>วนกลับมาจ่ายชโยเองไม่ได้</b> — ดูบรรทัด <b>"↪ คืนไปโปะ …"</b> ในช่องชโย บอกทุกเดือนว่าเงินคืนวนไปที่ไหน`
+      + `<br>💰 <b>ชโยจ่ายเดือนละ ${fmt(CHAYO_PER)} เท่านั้น</b> — งบที่เหลือเก็บเข้า<b>กองทุน</b> (ช่องสีเหลือง) พอกองทุนพอ ก็ดึงมา<b>ปิดยอดที่เหลือทีเดียวจบ</b>`
       + `<br>💰 ตลอดแผนจะได้คืนรวม <b>${fmt(refundTotal)}</b> บาท (${chayoMonths} เดือน)`;
   }
   if(note){
@@ -2545,14 +2585,15 @@ function buildDailyPlan(){
   let planCols = creditors.map(c=>({key:c.key,name:c.name}))
     .concat(gold2Gone()?[]:[{key:'g2',name:'🏆 ทอง 4341'}])
     .concat([{key:'g1',name:'🏆 ทอง 4959'},
-             {key:'chayo',name:'🔁 ชโย<small>ได้คืน 10–15</small>',cls:'col-refund'}]);
+             {key:'chayo',name:'🔁 ชโย<small>ได้คืน 10–15</small>',cls:'col-refund'},
+             {key:'__pot',name:'💰 กองทุน<small>สะสมไว้ปิดชโย</small>',cls:'col-pot',pot:true}]);
 
   if(!rows.length){
     head.innerHTML=''; body.innerHTML=`<tr><td style="padding:16px;color:#64748b">🎉 ปิดหนี้ครบแล้ว!</td></tr>`;
     foot.innerHTML=''; if(res) res.textContent=''; if(note) note.textContent='';
     buildDailyTicks(); return;
   }
-  planCols = planCols.filter(c=> rows.some(r=>(r.pay[c.key]||0)>0.5));
+  planCols = planCols.filter(c=> c.pot ? rows.some(r=>(r.potAdd||0)>0.5) : rows.some(r=>(r.pay[c.key]||0)>0.5));
 
   // นับจำนวนวันจริง: เดือนสุดท้ายคิดเท่าที่ต้องใช้
   let totalDays=0;
@@ -2573,6 +2614,14 @@ function buildDailyPlan(){
     const pot=amt*dim; potSum+=pot; grand+=r.total;
     const tds=planCols.map(c=>{
       const cc=c.cls?` class="${c.cls}"`:'';
+      if(c.pot){
+        const add=Math.round(r.potAdd||0), used=Math.round(r.potUsed||0), bal=Math.round(r.potBal||0);
+        colSum.__pot+=add;
+        if(add<=0 && used<=0 && bal<=0) return `<td class="${c.cls}">–</td>`;
+        return `<td class="${c.cls}">${add>0?'+'+fmt(add):'–'}`
+          + (used>0?`<br><small style="color:#dc2626;font-weight:700">ดึงปิดชโย −${fmt(used)}</small>`:'')
+          + `<br><small style="opacity:.8">กองทุน ${fmt(bal)}</small></td>`;
+      }
       const v=r.pay[c.key]||0; colSum[c.key]+=v;
       if(v<=0.5) return `<td${c.cls?` class="${c.cls}"`:' style="color:#cbd5e1"'}>–</td>`;
       return `<td${cc}>${fmt(Math.round(v))}${r.closed[c.key]?' <span class="done-tag">ปิด✓</span>':''}</td>`;
