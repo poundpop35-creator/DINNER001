@@ -282,6 +282,11 @@ body.capturing #paTbl .noprint{ display:none !important; }
   body.solo .capbox.solo-target{ display:block !important; }
   body.solo header.top{ display:none !important; }
 }
+/* ---- แถบ Export ท้ายทุกตาราง ---- */
+.plan-tools.export-bottom{margin-top:6px;background:#f8fafc;border:1px dashed var(--line);
+  border-radius:14px;padding:8px 10px}
+.plan-tools.export-bottom .pt-label{color:var(--muted);font-size:12px}
+.plan-tools.export-bottom button{background:#fff}
 /* ---- โหมดเก็บเงินรายวัน ---- */
 .panel.daily{border-top:4px solid #0ea5e9}
 .daychips{display:grid;grid-template-columns:repeat(auto-fill,minmax(38px,1fr));gap:6px;margin-top:10px}
@@ -310,7 +315,7 @@ tfoot td.col-refund{background:#ede9fe;color:#5b21b6}
       <div>
         <h1>แผนจัดการหนี้</h1>
         <div class="sub">แผนจ่ายหนี้รายเดือน • บันทึกที่จ่ายแล้ว แผนอัปเดตให้อัตโนมัติ</div>
-        <div class="sub" style="opacity:.6;font-size:11px">เวอร์ชัน <b id="appVer">20260927-0637</b> • ถ้าเลขนี้ไม่ตรงกับที่บอกไว้ แปลว่ายังเป็นของเก่า — ปิดแท็บแล้วเปิดใหม่</div>
+        <div class="sub" style="opacity:.6;font-size:11px">เวอร์ชัน <b id="appVer">20260927-0651</b> • ถ้าเลขนี้ไม่ตรงกับที่บอกไว้ แปลว่ายังเป็นของเก่า — ปิดแท็บแล้วเปิดใหม่</div>
       </div>
     </div>
     <div class="topbtns" id="globalTools">
@@ -1877,6 +1882,26 @@ function xlsGold(){
   downloadXls('สัญญาทองคำ','แผนปิดสัญญาทองคำ · ดอก 1.25%/เดือน (✓ = จ่ายแล้ว)',headers,rows);
 }
 
+/* เติมปุ่ม Export (รูปภาพ/PDF/พิมพ์) ไว้ "ท้าย" ทุกตารางอัตโนมัติ
+   ของเดิมมีแค่แถบด้านบน พอตารางยาวๆ เลื่อนลงมาแล้วหาปุ่มไม่เจอ
+   แถบนี้อยู่ใน .plan-tools ซึ่ง renderCanvas/printPlan ตัดทิ้งอยู่แล้ว จึงไม่ติดไปในรูป */
+function addExportBars(){
+  document.querySelectorAll('.capbox').forEach(box=>{
+    if(!box.id || box.dataset.exportBar) return;
+    const src=document.querySelector(`[data-img="${box.id}"]`);
+    const name=(src && src.dataset.name) ? src.dataset.name : box.id;
+    const bar=document.createElement('div');
+    bar.className='plan-tools export-bottom noprint';
+    bar.innerHTML=`<span class="pt-label">💾 บันทึก/แชร์ตารางนี้</span>`
+      +`<button class="reset" data-img="${box.id}" data-name="${name}">📷 รูปภาพ</button>`
+      +`<button class="reset" data-pdf="${box.id}" data-name="${name}">📄 PDF</button>`
+      +`<button class="reset" data-print="${box.id}">🖨️ พิมพ์</button>`;
+    box.insertAdjacentElement('afterend', bar);
+    box.dataset.exportBar='1';
+  });
+}
+addExportBars();
+
 document.addEventListener('click', e=>{
   const b=e.target.closest('button'); if(!b) return;
   if(b.dataset.img){ exportImage(b.dataset.img, b.dataset.name, b); }
@@ -2089,6 +2114,7 @@ function buildMoreLoans(hostId){
     buildLoanChips(cfg);
   });
   list.forEach(renderMoreLoan);
+  if(typeof addExportBars==='function') addExportBars();
 }
 
 function buildLoanChips(cfg){
