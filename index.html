@@ -319,7 +319,7 @@ tfoot td.col-refund{background:#ede9fe;color:#5b21b6}
       <div>
         <h1>แผนจัดการหนี้</h1>
         <div class="sub">แผนจ่ายหนี้รายเดือน • บันทึกที่จ่ายแล้ว แผนอัปเดตให้อัตโนมัติ</div>
-        <div class="sub" style="opacity:.6;font-size:11px">เวอร์ชัน <b id="appVer">20260927-1351</b> • ถ้าเลขนี้ไม่ตรงกับที่บอกไว้ แปลว่ายังเป็นของเก่า — ปิดแท็บแล้วเปิดใหม่</div>
+        <div class="sub" style="opacity:.6;font-size:11px">เวอร์ชัน <b id="appVer">20260927-1404</b> • ถ้าเลขนี้ไม่ตรงกับที่บอกไว้ แปลว่ายังเป็นของเก่า — ปิดแท็บแล้วเปิดใหม่</div>
       </div>
     </div>
     <div class="topbtns" id="globalTools">
@@ -1248,6 +1248,7 @@ function mainPlanGenerate(balGetter, budgetOverride, firstPaid){
     // เงินค่างวดชโยที่จะได้คืนกลางเดือน (จ่ายเท่าไหร่ได้คืนเท่านั้น สูงสุดเท่าค่างวด)
     const refund = (CHAYO_REFUNDED && bal.chayo>0) ? Math.min(CHAYO_PER, bal.chayo) : 0;
     const monthBudget = budget + refund;
+    const refundTo = {};   // เงินคืนเดือนนี้ไปโปะก้อนไหนบ้าง
     const fp = (rows.length===0 && firstPaid) ? firstPaid : null;  // ลดภาระเฉพาะเดือนแรก
     const owe = (k, base)=> fp ? Math.max(0, base-(fp[k]||0)) : base;
     const pay={}, closed={};
@@ -1282,16 +1283,34 @@ function mainPlanGenerate(balGetter, budgetOverride, firstPaid){
       const gPaid = fixedKeys.reduce((s,k)=>s+pay[k],0);
       const roundBudget = gPaid + roundDown100(Math.max(0, monthBudget-gPaid));
       let pool=Math.max(0, roundBudget-spent);
+      const allocOrder=[];   // ลำดับการจ่ายจากงบส่วนเกิน (ใช้ไล่ย้อนว่าเงินคืนไปโปะก้อนไหน)
       for(const k of MAIN_PRIORITY){
         if(pool<=0) break;
         if(!(bal[k]>0)) continue;
-        // เงินคืนจากชโย เอาไปโปะ "ก้อนอื่น" ได้เท่านั้น — วนกลับมาจ่ายชโยเองไม่ได้
-        // → ชโยจึงรับได้สูงสุดเท่างบตั้งต้นต่อเดือน (ไม่รวมเงินคืน)
-        const cap = (k==='chayo') ? Math.max(0, budget-pay.chayo) : Infinity;
-        const p=Math.min(pool, bal[k], cap);
+        let p;
+        if(k==='chayo'){
+          // ชโยจ่ายได้เป็น "ทวีคูณของค่างวด" เท่านั้น (4,000 / 8,000 / 12,000 …) ห้ามมีเศษ
+          // และเงินคืนวนกลับมาจ่ายชโยเองไม่ได้ → เพดานคืองบตั้งต้น ไม่รวมเงินคืน
+          const cap = Math.max(0, budget - pay.chayo);
+          const room = Math.min(pool, cap);
+          p = Math.min(Math.floor(room/CHAYO_PER)*CHAYO_PER, bal.chayo);
+          if(p<CHAYO_PER && bal.chayo<CHAYO_PER) p = Math.min(room, bal.chayo);  // เศษสุดท้าย (ถ้ามี)
+        } else {
+          p = Math.min(pool, bal[k]);
+        }
         if(p<=0) continue;
         pay[k]+=p; bal[k]-=p; pool-=p;
+        allocOrder.push({k, amt:p});
         if(bal[k]<=0) closed[k]=true;
+      }
+      // เงินคืนจากชโยมาถึงกลางเดือน → มันคือเงินก้อน "ท้ายสุด" ที่ถูกจ่ายออกไปในเดือนนั้น
+      // ไล่ย้อนลำดับการจ่ายเพื่อบอกว่าเงินคืนก้อนนี้ไปโปะใครบ้าง (ไม่นับชโยเอง)
+      let rem=refund;
+      for(let i=allocOrder.length-1; i>=0 && rem>0.5; i--){
+        const a=allocOrder[i];
+        if(a.k==='chayo') continue;
+        const take=Math.min(rem, a.amt);
+        refundTo[a.k]=(refundTo[a.k]||0)+take; rem-=take;
       }
     } else {
       // เหลือแต่ S → ปิดก้อนเดียวด้วยงบที่เหลือทั้งหมด (ปัดเป็นหลักร้อย)
@@ -1306,10 +1325,14 @@ function mainPlanGenerate(balGetter, budgetOverride, firstPaid){
     const total=creditors.reduce((s,c)=>s+pay[c.key],0)+pay.g1+pay.g2+pay.chayo;
     // งบใช้จริงของเดือนนั้น: ถ้าเหลือแต่ชโย เงินคืนเอาไปโปะต่อไม่ได้ → เพดานคือ budget เฉยๆ
     const capUsed = Math.min(monthBudget, Math.max(budget, Math.round(total)));
-    rows.push({pay, closed, total, budget:capUsed, refund});
+    rows.push({pay, closed, total, budget:capUsed, refund, refundTo});
     if(total<=0) break;
   }
   return rows;
+}
+// ชื่อสั้นๆ ของแต่ละก้อน (ใช้ในบรรทัด "เงินคืนไปโปะ...")
+function colName(k){
+  return k==='g1' ? 'ทอง' : k==='g2' ? 'ทอง 4341' : k==='chayo' ? 'ชโย' : k;
 }
 function buildMainPlan(){
   const head=document.getElementById('mainPlanHead'); if(!head) return;
@@ -1361,7 +1384,16 @@ function buildMainPlan(){
       const p=r.pay[c.key]||0; colSum[c.key]+=p;
       if(i===0 && p<=0.5 && (row0orig[c.key]||0)>0.5 && (paidMap[c.key]||0)>0.5) return '<td class="paidcell">จ่ายแล้ว ✓</td>';
       if(p<=0.5) return `<td${c.cls?` class="${c.cls}"`:' style="color:#cbd5e1"'}>–</td>`;
-      return `<td${cc}>${fmt(Math.round(p))}${(r.closed[c.key] && p>0.5)?' <span class="done-tag">ปิด✓</span>':''}</td>`;
+      // ช่องชโย: บอกด้วยว่าเงินคืนเดือนนั้นวนไปโปะก้อนไหน
+      let trail='';
+      if(c.key==='chayo' && r.refund>0.5){
+        const to=Object.entries(r.refundTo||{}).filter(([,v])=>v>0.5)
+          .map(([k,v])=>`${colName(k)} ${fmt(Math.round(v))}`).join(' + ');
+        trail = to
+          ? `<br><small style="font-weight:600;opacity:.85">↪ คืนไปโปะ ${to}</small>`
+          : `<br><small style="font-weight:600;opacity:.85">↪ คืน ${fmt(Math.round(r.refund))} เก็บไว้ใช้เอง (ไม่มีก้อนอื่นให้โปะ)</small>`;
+      }
+      return `<td${cc}>${fmt(Math.round(p))}${(r.closed[c.key] && p>0.5)?' <span class="done-tag">ปิด✓</span>':''}${trail}</td>`;
     }).join('');
     grand+=r.total;
     const mlab = (i===0 && planIsCurrentMonth()) ? planMonthLabel(0)+' <span class="thismonth">(เดือนนี้)</span>' : planMonthLabel(i);
@@ -1386,7 +1418,8 @@ function buildMainPlan(){
       + ` แล้ว<b>ได้คืนวันที่ 10–15</b> ของเดือนนั้น`
       + `<br>♻️ <b>เงินคืนเอาไปโปะ "ก้อนอื่น" ต่อได้</b> — เดือนที่ยังมีก้อนอื่นเหลือ จ่ายได้ถึง`
       + ` <b>${fmt(mainMonthlyBudget())} + ${fmt(CHAYO_PER)} = ${fmt(mainMonthlyBudget()+CHAYO_PER)}</b> บาท`
-      + `<br>🚫 <b>แต่วนกลับมาจ่ายชโยเองไม่ได้</b> — ช่องชโยจึงรับได้สูงสุดเดือนละ <b>${fmt(mainMonthlyBudget())}</b>`
+      + `<br>🚫 <b>วนกลับมาจ่ายชโยเองไม่ได้</b> • ชโยจ่ายเป็น<b>ทวีคูณของ ${fmt(CHAYO_PER)}</b> เท่านั้น (${fmt(CHAYO_PER)} / ${fmt(CHAYO_PER*2)} / ${fmt(CHAYO_PER*3)} …) ไม่มีเศษ`
+      + `<br>👀 ดูในตารางช่องชโยได้เลย มีบรรทัด <b>"↪ คืนไปโปะ …"</b> บอกทุกเดือนว่าเงินคืนวนไปที่ไหน`
       + `<br>💰 ตลอดแผนจะได้คืนรวม <b>${fmt(refundTotal)}</b> บาท (${chayoMonths} เดือน)`;
   }
   if(note){
