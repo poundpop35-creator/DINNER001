@@ -365,7 +365,7 @@ tfoot td.col-refund{background:#ede9fe;color:#5b21b6}
       <div>
         <h1>แผนจัดการหนี้</h1>
         <div class="sub">แผนจ่ายหนี้รายเดือน • บันทึกที่จ่ายแล้ว แผนอัปเดตให้อัตโนมัติ</div>
-        <div class="sub" style="opacity:.6;font-size:11px">เวอร์ชัน <b id="appVer">20260927-1433</b> • ถ้าเลขนี้ไม่ตรงกับที่บอกไว้ แปลว่ายังเป็นของเก่า — ปิดแท็บแล้วเปิดใหม่</div>
+        <div class="sub" style="opacity:.6;font-size:11px">เวอร์ชัน <b id="appVer">20260927-1434</b> • ถ้าเลขนี้ไม่ตรงกับที่บอกไว้ แปลว่ายังเป็นของเก่า — ปิดแท็บแล้วเปิดใหม่</div>
       </div>
     </div>
     <div class="topbtns" id="globalTools">
@@ -379,16 +379,16 @@ tfoot td.col-refund{background:#ede9fe;color:#5b21b6}
   </header>
 
   <div id="profileBar" class="pbar noprint" style="display:none">
-    <span>👤 หนี้ของ <b id="profileName"></b></span>
-    <button class="reset" id="backHome">↩ เปลี่ยนคน</button>
+    <span id="profileLabel">👤 หนี้ของ <b id="profileName"></b></span>
+    <button class="reset" id="backHome">👥 คนอื่น</button>
   </div>
 
   <section id="home" class="homewrap">
-    <h2 class="homeh">เลือกเจ้าของสัญญาหนี้</h2>
+    <h2 class="homeh">ดูหนี้ของคนอื่น</h2>
     <div class="homecards">
       <button class="homecard" data-profile="pond">
-        <span class="hi">🧑</span><span class="hn">ปอนด์</span>
-        <span class="hd">หนี้หลัก • ทองคำ • ชโย เจวี</span>
+        <span class="hi">🧑</span><span class="hn">ฉัน (ปอนด์)</span>
+        <span class="hd">หนี้หลัก • ทองคำ • ชโย เจวี — หน้าหลัก</span>
       </button>
       <button class="homecard" data-profile="pat">
         <span class="hi">👩</span><span class="hn">ปัท</span>
@@ -3369,16 +3369,24 @@ function showProfile(pk){
   tools.style.display=''; bar.style.display='';
   document.getElementById('resetBtn').style.display = pk==='pond' ? '' : 'none';
   document.getElementById('profileName').textContent = pk==='pond' ? 'ปอนด์' : pk==='pat' ? 'ปัท' : 'ป๊า';
+  // อยู่หน้าตัวเองอยู่แล้ว ไม่ต้องย้ำ — โชว์ป้ายเฉพาะตอนดูของคนอื่น
+  const lb=document.getElementById('profileLabel');
+  if(lb) lb.style.visibility = pk==='pond' ? 'hidden' : '';
+  const bh=document.getElementById('backHome');
+  if(bh) bh.textContent = pk==='pond' ? '👥 ดูของปัท / ป๊า' : '↩ กลับหน้าฉัน';
   if(pk==='pa') renderPa();
   localStorage.setItem('activeProfile', pk);
   window.scrollTo(0,0);
 }
 document.querySelectorAll('.homecard').forEach(b=>
   b.addEventListener('click', ()=> showProfile(b.dataset.profile)));
-document.getElementById('backHome').addEventListener('click', ()=> showProfile(null));
+document.getElementById('backHome').addEventListener('click', ()=>{
+  const cur=localStorage.getItem('activeProfile');
+  showProfile(cur==='pond' ? null : 'pond');   // อยู่หน้าตัวเอง → เปิดรายชื่อ • อยู่หน้าคนอื่น → กลับหน้าตัวเอง
+});
 
-// เปิดแอปมา = เจอหน้าเลือกคนก่อนเสมอ
-showProfile(null);
+// เปิดแอปมา = เข้าหน้าของ P เลย (ของปัท/ป๊านานๆ ใช้ที กดปุ่ม "คนอื่น" ถึงจะเข้า)
+showProfile('pond');
 </script>
 </body>
 </html>
