@@ -282,6 +282,14 @@ body.capturing #paTbl .noprint{ display:none !important; }
   body.solo .capbox.solo-target{ display:block !important; }
   body.solo header.top{ display:none !important; }
 }
+/* คอลัมน์พิเศษ: จ่ายออกไปก่อน แล้วได้คืนกลับมาทุกเดือน (ชโย) */
+th.col-refund{background:linear-gradient(180deg,#f5f3ff,#ede9fe)!important;color:#5b21b6!important;
+  border-left:2px solid #c4b5fd;border-right:2px solid #c4b5fd}
+th.col-refund small{display:block;font-weight:600;font-size:10px;opacity:.95;margin-top:2px;letter-spacing:.2px}
+td.col-refund{background:#faf9ff;border-left:2px solid #ede9fe;border-right:2px solid #ede9fe;color:#6d28d9;font-weight:700}
+tfoot td.col-refund{background:#ede9fe;color:#5b21b6}
+.refund-note{background:#f5f3ff;border:1px solid #ddd6fe;color:#5b21b6;border-radius:12px;
+  padding:10px 12px;font-size:13px;line-height:1.55;margin:8px 16px 0}
 </style>
 </head>
 <body>
@@ -293,7 +301,7 @@ body.capturing #paTbl .noprint{ display:none !important; }
       <div>
         <h1>แผนจัดการหนี้</h1>
         <div class="sub">แผนจ่ายหนี้รายเดือน • บันทึกที่จ่ายแล้ว แผนอัปเดตให้อัตโนมัติ</div>
-        <div class="sub" style="opacity:.6;font-size:11px">เวอร์ชัน <b id="appVer">20260927-0428</b> • ถ้าเลขนี้ไม่ตรงกับที่บอกไว้ แปลว่ายังเป็นของเก่า — ปิดแท็บแล้วเปิดใหม่</div>
+        <div class="sub" style="opacity:.6;font-size:11px">เวอร์ชัน <b id="appVer">20260927-0604</b> • ถ้าเลขนี้ไม่ตรงกับที่บอกไว้ แปลว่ายังเป็นของเก่า — ปิดแท็บแล้วเปิดใหม่</div>
       </div>
     </div>
     <div class="topbtns" id="globalTools">
@@ -391,6 +399,7 @@ body.capturing #paTbl .noprint{ display:none !important; }
 
   <section class="panel" style="padding:0;overflow:hidden">
     <h2 style="padding:14px 16px 0">🗓️ แผนจ่ายหนี้หลักรายเดือน</h2>
+    <div id="refundNote" class="refund-note"></div>
     <div id="mainPlanNote" class="tgtproj" style="margin:8px 16px 12px;background:#f0fdf4;border-color:#bbf7d0;color:#166534"></div>
     <div class="tablewrap">
       <table id="mainPlanTbl">
@@ -1222,7 +1231,8 @@ function buildMainPlan(){
   const note=document.getElementById('mainPlanNote');
   let planCols = creditors.map(c=>({key:c.key,name:c.name}))
     .concat(gold2Gone()?[]:[{key:'g2',name:'🏆 ทอง 4341'}])
-    .concat([{key:'g1',name:'🏆 ทอง 4959'},{key:'chayo',name:'📄 ชโย'}]);
+    .concat([{key:'g1',name:'🏆 ทอง 4959'},
+             {key:'chayo',name:'🔁 ชโย<small>จ่ายก่อน · ได้คืน 10–15</small>',cls:'col-refund'}]);
   const budget=mainMonthlyBudget();
   // ยอดตั้งต้นตาราง: ก้อนปกติใช้ยอด "ต้นเดือน" (งวดเต็ม) • ทองใช้เงินต้นปัจจุบัน (จ่ายแล้วหายจริง)
   const tableBal = k=>
@@ -1253,14 +1263,16 @@ function buildMainPlan(){
   }
   // ตัดคอลัมน์ของก้อนที่ปิดไปแล้ว (ไม่มียอดต้องจ่ายสักเดือน และไม่ได้จ่ายเดือนนี้) ออกจากตาราง
   planCols = planCols.filter(c=> rows.some(r=>(r.pay[c.key]||0)>0.5) || (paidMap[c.key]||0)>0.5);
-  head.innerHTML='<th style="text-align:left">เดือน</th>'+planCols.map(c=>`<th>${c.name}</th>`).join('')+'<th>รวมจ่าย</th>';
+  head.innerHTML='<th style="text-align:left">เดือน</th>'
+    +planCols.map(c=>`<th${c.cls?` class="${c.cls}"`:''}>${c.name}</th>`).join('')+'<th>รวมจ่าย</th>';
   const colSum={}; planCols.forEach(c=>{ colSum[c.key]=0; }); let grand=0;
   body.innerHTML=rows.map((r,i)=>{
     const tds=planCols.map(c=>{
+      const cc=c.cls?` class="${c.cls}"`:'';
       const p=r.pay[c.key]||0; colSum[c.key]+=p;
       if(i===0 && p<=0.5 && (row0orig[c.key]||0)>0.5 && (paidMap[c.key]||0)>0.5) return '<td class="paidcell">จ่ายแล้ว ✓</td>';
-      if(p<=0.5) return '<td style="color:#cbd5e1">–</td>';
-      return `<td>${fmt(Math.round(p))}${(r.closed[c.key] && p>0.5)?' <span class="done-tag">ปิด✓</span>':''}</td>`;
+      if(p<=0.5) return `<td${c.cls?` class="${c.cls}"`:' style="color:#cbd5e1"'}>–</td>`;
+      return `<td${cc}>${fmt(Math.round(p))}${(r.closed[c.key] && p>0.5)?' <span class="done-tag">ปิด✓</span>':''}</td>`;
     }).join('');
     grand+=r.total;
     const mlab = (i===0 && planIsCurrentMonth()) ? planMonthLabel(0)+' <span class="thismonth">(เดือนนี้)</span>' : planMonthLabel(i);
@@ -1270,7 +1282,21 @@ function buildMainPlan(){
       : `<td><b>${fmt(Math.round(r.total))}</b></td>`;
     return `<tr class="${i===0?'planrow-now':''}"><td style="text-align:left">${mlab}</td>${tds}${totCell}</tr>`;
   }).join('');
-  foot.innerHTML='<td style="text-align:left">รวม</td>'+planCols.map(c=>`<td>${fmt(Math.round(colSum[c.key]))}</td>`).join('')+`<td>${fmt(Math.round(grand))}</td>`;
+  foot.innerHTML='<td style="text-align:left">รวม</td>'
+    +planCols.map(c=>`<td${c.cls?` class="${c.cls}"`:''}>${fmt(Math.round(colSum[c.key]))}</td>`).join('')
+    +`<td>${fmt(Math.round(grand))}</td>`;
+  // กล่องอธิบายคอลัมน์เงินคืน (ชโย) — โชว์เฉพาะตอนที่ยังมียอดชโยเหลือ
+  const rf=document.getElementById('refundNote');
+  if(rf){
+    const chayoLeft = pondReady ? Math.round(getPondBal('chayo')) : 0;
+    const chayoMonths = rows.filter(r=>(r.pay.chayo||0)>0.5).length;
+    rf.style.display = chayoLeft>0 ? '' : 'none';
+    if(chayoLeft>0) rf.innerHTML =
+      `🔁 <b>ชโยเป็นเงินหมุน ไม่ใช่เงินที่หายไป</b> — จ่ายออก <b>${fmt(CHAYO_PER)}</b> ต้นเดือน`
+      + ` แล้ว<b>ได้คืนวันที่ 10–15</b> ของเดือนนั้น เอาไปใช้ต่อได้`
+      + `<br>💰 ตลอดแผนจะหมุนผ่านช่องนี้ <b>${fmt(chayoLeft)}</b> บาท (${chayoMonths} เดือน) —`
+      + ` เงินก้อนนี้กลับมาหาคุณทุกเดือน ไม่ได้จมอยู่กับหนี้`;
+  }
   if(note){
     const m0 = rows[0] ? Math.round(rows[0].total) : 0;
     // ลำดับเร่งปิด — เอาเฉพาะก้อนที่ยังเหลืออยู่จริง
@@ -1295,6 +1321,7 @@ function buildMainPlan(){
             + overMonths.map(o=>`${o.m} <b>+${fmt(o.over)}</b>`).join(' • ')
             + ` (เพราะ LINE BK ฟิก 7,000 ชนกับงวด G ที่สูง)`
           : '')
+      + `<br>🔁 <b>ช่องชโย (สีม่วง)</b> = จ่ายออกก่อน แล้วได้คืนวันที่ 10–15 ทุกเดือน — เงินหมุน ไม่ใช่ค่าใช้จ่ายจริง`
       + (planIsCurrentMonth() ? '' : `<br>📅 <b>แผนเริ่มเดือน ${planMonthLabel(0)}</b> — ยอดคงเหลือทุกก้อนเป็นยอดหลังตัดงวดเดือนนี้แล้ว`)
       + `<br>🔄 <b>ค่าต่อดอกทองจ่ายแยกนอกงบ</b> — เงินในตารางนี้ลด<b>เงินต้น</b>เต็มจำนวนทุกบาท`
       + `<br>🏦 <b>G ตัดตามงวดธนาคาร</b> ต.ค. 8,560 (ยอดเต็มทั้งเดือน 10 ต.ค. + 27 ต.ค.) • พ.ย. 5,993 • ธ.ค.–ก.พ. 4,510 → ปิด 10 ก.พ. 70`
