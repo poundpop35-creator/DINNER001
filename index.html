@@ -293,7 +293,7 @@ body.capturing #paTbl .noprint{ display:none !important; }
       <div>
         <h1>แผนจัดการหนี้</h1>
         <div class="sub">แผนจ่ายหนี้รายเดือน • บันทึกที่จ่ายแล้ว แผนอัปเดตให้อัตโนมัติ</div>
-        <div class="sub" style="opacity:.6;font-size:11px">เวอร์ชัน <b id="appVer">20260926-1107</b> • ถ้าเลขนี้ไม่ตรงกับที่บอกไว้ แปลว่ายังเป็นของเก่า — ปิดแท็บแล้วเปิดใหม่</div>
+        <div class="sub" style="opacity:.6;font-size:11px">เวอร์ชัน <b id="appVer">20260927-0428</b> • ถ้าเลขนี้ไม่ตรงกับที่บอกไว้ แปลว่ายังเป็นของเก่า — ปิดแท็บแล้วเปิดใหม่</div>
       </div>
     </div>
     <div class="topbtns" id="globalTools">
@@ -960,6 +960,14 @@ if(!localStorage.getItem('chayoPaid24k_v1')){
   savePay();
   localStorage.setItem('chayoPaid24k_v1','1');
 }
+// AEON ยอดใหม่ 10,000 (จากเดิม 5,000) — ครั้งเดียว
+if(!localStorage.getItem('aeon10k_v1')){
+  localStorage.setItem('mainBal_AEON','10000');
+  delete extraPaid['AEON'];
+  payLog = payLog.filter(e=> e.id!=='AEON');
+  savePay();
+  localStorage.setItem('aeon10k_v1','1');
+}
 
 /* ===== "ปิดยอดเร็วขึ้น": เงินโปะไปตัดงวดท้ายๆ ของเจ้าหนี้ในตารางหนี้หลัก ===== */
 let coverageMap = {};
@@ -1624,7 +1632,7 @@ renderGoldSystem_v3();
 // รวมทุก localStorage key ที่แอปใช้ ไว้ในไฟล์เดียว
 const BACKUP_KEYS = ['debtCellsPaid_v1','loanInstall_v1','goldCellsPaid_isolated_v3','loanCar2_v1','loanKsk_v1','loanKsk_v1_bal','loanChayo_v1','loanChayo_v1_bal','extraPaid_v1','payLog_v1','patTarget_v1','patBal_gold','patGoldMin','patTableCells_v1','activeProfile','monthlyTarget_v1',
   'mainBal_S','mainBal_G','mainBal_YourCash','mainBal_LINE BK','mainBal_AEON',
-  'pondBudget','pcb_main','pcb_loan40','pcb_gold','pcb_goldmin','pcb_car','pcb_ksk','pcb_chayo','pondCombCells','paDebts_v1','chayoInit21_v1','mainBudget','ycAdd2000_v1','ycAdd1000_v1','mainBalSet_20260704','mainBudget15k_v1','mainBalSetS_v2','pcb_gold1','pcb_goldmin1','pcb_gold2','pcb_goldmin2','goldMinReal_v2','rushTarget_v1','mainBudget15046_v1','chayoInit24_v1','mainBalSet_20260918','chayoInit20k_v1','lineBk10k_v1','gold4341_8k_v1','lineBk11k_v1','lineBk16k_v1','lineBk20k_v1','gPrepaid8556_v1','gold4341_6k_v1','whiteCar14_v1','showCar2_v1','lineBk14k_v1','goldSet_20260921_v1','mainBalSet_20260924','mainBudget16k_v1','mainBalSet_20260926','mainBudget15000_v2','chayoPaid24k_v1'];
+  'pondBudget','pcb_main','pcb_loan40','pcb_gold','pcb_goldmin','pcb_car','pcb_ksk','pcb_chayo','pondCombCells','paDebts_v1','chayoInit21_v1','mainBudget','ycAdd2000_v1','ycAdd1000_v1','mainBalSet_20260704','mainBudget15k_v1','mainBalSetS_v2','pcb_gold1','pcb_goldmin1','pcb_gold2','pcb_goldmin2','goldMinReal_v2','rushTarget_v1','mainBudget15046_v1','chayoInit24_v1','mainBalSet_20260918','chayoInit20k_v1','lineBk10k_v1','gold4341_8k_v1','lineBk11k_v1','lineBk16k_v1','lineBk20k_v1','gPrepaid8556_v1','gold4341_6k_v1','whiteCar14_v1','showCar2_v1','lineBk14k_v1','goldSet_20260921_v1','mainBalSet_20260924','mainBudget16k_v1','mainBalSet_20260926','mainBudget15000_v2','chayoPaid24k_v1','aeon10k_v1'];
 
 document.getElementById('exportBtn').addEventListener('click',()=>{
   const dump = { app:'debt-plan', version:1, exportedAt:new Date().toISOString(), data:{} };
