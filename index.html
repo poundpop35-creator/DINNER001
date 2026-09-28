@@ -340,6 +340,9 @@ details.infobox .tgtproj{margin:0 10px 10px!important}
   background:linear-gradient(135deg,#7c3aed,#a78bfa);cursor:pointer;white-space:nowrap}
 .rc-ok{font-size:13px;font-weight:800;color:#16a34a;white-space:nowrap}
 .rc-part{font-size:11px;color:#b45309;font-weight:700}
+/* บรรทัดกำกับเล็กๆ ในเซลล์ — บีบให้ขึ้นบรรทัดใหม่ ไม่ให้คอลัมน์ยืด */
+td .cell-note{display:inline-block;max-width:176px;white-space:normal;line-height:1.35;
+  font-size:10.5px;margin-top:2px}
 /* คอลัมน์กองทุนสะสมไว้ปิดชโย */
 th.col-pot{background:linear-gradient(180deg,#fffbeb,#fef3c7)!important;color:#92400e!important;
   border-left:2px solid #fcd34d;border-right:2px solid #fcd34d}
@@ -365,7 +368,7 @@ tfoot td.col-refund{background:#ede9fe;color:#5b21b6}
       <div>
         <h1>แผนจัดการหนี้</h1>
         <div class="sub">แผนจ่ายหนี้รายเดือน • บันทึกที่จ่ายแล้ว แผนอัปเดตให้อัตโนมัติ</div>
-        <div class="sub" style="opacity:.6;font-size:11px">เวอร์ชัน <b id="appVer">20260928-0934</b> • ถ้าเลขนี้ไม่ตรงกับที่บอกไว้ แปลว่ายังเป็นของเก่า — ปิดแท็บแล้วเปิดใหม่</div>
+        <div class="sub" style="opacity:.6;font-size:11px">เวอร์ชัน <b id="appVer">20260928-1044</b> • ถ้าเลขนี้ไม่ตรงกับที่บอกไว้ แปลว่ายังเป็นของเก่า — ปิดแท็บแล้วเปิดใหม่</div>
       </div>
     </div>
     <div class="topbtns" id="globalTools">
@@ -1486,7 +1489,7 @@ function buildMainPlan(){
       const fromRefund = Math.round((r.refundTo||{})[c.key]||0);
       if(fromRefund>0.5 && c.key!=='chayo'){
         const day5 = Math.round(p) - fromRefund;
-        trail = `<br><small style="font-weight:600;color:#7c3aed">`
+        trail = `<br><small class="cell-note" style="font-weight:600;color:#7c3aed">`
           + (day5>0 ? `วันที่ 5 จ่าย ${fmt(day5)} + ` : '')
           + `วันที่ 10–15 อีก ${fmt(fromRefund)} (เงินคืนชโย)</small>`;
       }
@@ -1494,8 +1497,8 @@ function buildMainPlan(){
         const to=Object.entries(r.refundTo||{}).filter(([,v])=>v>0.5)
           .map(([k,v])=>`${colName(k)} ${fmt(Math.round(v))}`).join(' + ');
         trail = to
-          ? `<br><small style="font-weight:600;opacity:.85">↪ คืนไปโปะ ${to}</small>`
-          : `<br><small style="font-weight:600;opacity:.85">↪ คืน ${fmt(Math.round(r.refund))} เก็บไว้ใช้เอง (ไม่มีก้อนอื่นให้โปะ)</small>`;
+          ? `<br><small class="cell-note" style="font-weight:600;opacity:.85">↪ คืนไปโปะ ${to}</small>`
+          : `<br><small class="cell-note" style="font-weight:600;opacity:.85">↪ คืน ${fmt(Math.round(r.refund))} เก็บไว้ใช้เอง (ไม่มีก้อนอื่นให้โปะ)</small>`;
       }
       return `<td${cc}>${fmt(Math.round(p))}${(r.closed[c.key] && p>0.5)?' <span class="done-tag">ปิด✓</span>':''}${trail}</td>`;
     }).join('');
@@ -1941,6 +1944,17 @@ document.getElementById('importFile').addEventListener('change',e=>{
 // เรนเดอร์ element เป็น canvas โดยบังคับ layout แบบจอกว้าง (กันตารางโดนตัดบนมือถือ)
 async function renderCanvas(el){
   document.body.classList.add('capturing');
+  // ขยายกรอบให้พอดีกับตารางที่กว้างที่สุดในกล่องนี้ ไม่งั้นคอลัมน์ขวาโดนตัดหาย
+  const wrapEl=document.querySelector('.wrap');
+  const prevWrapW=wrapEl?wrapEl.style.width:'';
+  let capW=880;
+  if(wrapEl){
+    let need=0;
+    el.querySelectorAll('table').forEach(t=>{ need=Math.max(need, t.scrollWidth); });
+    capW=Math.min(2200, Math.max(880, need+80));
+    wrapEl.style.setProperty('width', capW+'px', 'important');
+    wrapEl.style.setProperty('max-width', capW+'px', 'important');
+  }
   // แปลงช่องกรอก (input) เป็นข้อความจริง เพื่อให้ตัวอักษรเต็ม ไม่โดนตัด และอ่านชัด
   const swapped=[];
   el.querySelectorAll('input').forEach(inp=>{
@@ -1956,13 +1970,14 @@ async function renderCanvas(el){
   try{
     return await Promise.race([
       html2canvas(el, {
-        backgroundColor:'#ffffff', scale:3, windowWidth:960,
+        backgroundColor:'#ffffff', scale: capW>1400?2:3, windowWidth: capW+80,
         ignoreElements: e => e.classList && (e.classList.contains('topbtns') || e.classList.contains('plan-tools') || e.classList.contains('pbar'))
       }),
       new Promise((_,rej)=> setTimeout(()=> rej(new Error('หมดเวลาสร้างภาพ')), 20000))
     ]);
   } finally {
     swapped.forEach(({inp,span})=>{ span.remove(); inp.style.display=''; });
+    if(wrapEl){ wrapEl.style.width=prevWrapW; wrapEl.style.maxWidth=''; }
     document.body.classList.remove('capturing');
   }
 }
