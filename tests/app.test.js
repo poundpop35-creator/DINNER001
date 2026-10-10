@@ -1,0 +1,43 @@
+// Render/event integration against a minimal host. Not a layout or browser E2E test.
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {lessons} from '../dist/lessons.js';
+import {STORAGE_KEY} from '../dist/core.js';
+
+const memory=new Map(),elements=new Map(),listeners={};
+const element=()=>({innerHTML:'',textContent:'',value:'',hidden:false,files:[],classList:{add(){},remove(){},contains(){return false}},focus(){},scrollIntoView(){},append(){},remove(){},click(){}});
+function get(selector){if(!elements.has(selector))elements.set(selector,element());return elements.get(selector);}
+globalThis.document={querySelector:get,getElementById:id=>get('#'+id),addEventListener:(type,fn)=>listeners[type]=fn,body:element(),documentElement:{dataset:{}},createElement:element,title:''};
+globalThis.location={hash:'#home'};
+globalThis.window={localStorage:{getItem:k=>memory.get(k),setItem:(k,v)=>memory.set(k,v)},scrollY:0,scrollTo(){},addEventListener:(type,fn)=>listeners[type]=fn};
+globalThis.confirm=()=>true;
+await import('../dist/app.js');
+const html=()=>get('#main').innerHTML;
+const navigate=hash=>{location.hash=hash;listeners.hashchange();};
+const click=(action,data={})=>listeners.click({target:{closest:()=>({dataset:{action,...data}})}});
+const saved=()=>JSON.parse(memory.get(STORAGE_KEY));
+
+test('every main route and all 35 lesson pages render without runtime errors',()=>{
+ for(const route of ['home','courses','review','plan','exams','notes','about','settings']){navigate('#'+route);assert.ok(html().length>500,route);assert.ok(!html().includes('[object Object]'),route);assert.ok(!html().includes('undefined'),route);}
+ for(const l of lessons){navigate('#lesson/'+l.id);assert.ok(html().includes(l.title),l.id);assert.ok(html().includes(l.example.analysis),l.id);assert.equal((html().match(/class="question-block"/g)||[]).length,2,l.id);}
+ navigate('#lesson/missing');assert.ok(html().includes('ไม่พบหน้าที่เลือก'));
+});
+test('notes save immediately and render as text, never executable user HTML',()=>{
+ navigate('#lesson/POL1101-1');listeners.input({target:{id:'lesson-note',dataset:{lesson:'POL1101-1'},value:'<script>unsafe()</script>\nรัฐกับรัฐบาลต่างกัน'}});
+ assert.equal(saved().notes['POL1101-1'],'<script>unsafe()</script>\nรัฐกับรัฐบาลต่างกัน');
+ navigate('#notes');assert.ok(html().includes('&lt;script&gt;unsafe()&lt;/script&gt;'));assert.ok(!html().includes('<script>unsafe()'));
+ navigate('#lesson/POL1101-1');assert.ok(html().includes('รัฐกับรัฐบาลต่างกัน'));
+});
+test('completion updates progress and remains reversible without changing earned credits',()=>{
+ navigate('#lesson/POL1101-1');click('complete',{id:'POL1101-1'});assert.ok(saved().completed.includes('POL1101-1'));navigate('#course/POL1101');assert.ok(html().includes('เรียนแล้ว 1 / 5 บท'));
+ navigate('#plan');assert.ok(html().includes('สอบผ่านที่บันทึก 0 นก.'));navigate('#lesson/POL1101-1');click('complete',{id:'POL1101-1'});assert.ok(!saved().completed.includes('POL1101-1'));
+});
+test('answers show explanation and mistakes review does not skip it after correction',()=>{
+ navigate('#lesson/POL1101-1');click('answer',{lesson:'POL1101-1',index:'0',value:'0'});assert.ok(html().includes('ลองทบทวนแนวคิดอีกนิด'));assert.ok(html().includes(lessons[0].questions[0].explanation));
+ navigate('#review');click('mode',{mode:'quiz'});listeners.change({target:{id:'mistakes-only',checked:true,classList:{contains(){return false}}}});assert.ok(html().includes(lessons[0].questions[0].prompt));
+ click('retry-one',{id:'POL1101-1:0'});click('answer',{lesson:'POL1101-1',index:'0',value:'1'});assert.ok(html().includes('ถูกต้อง'));assert.ok(html().includes(lessons[0].questions[0].explanation));
+});
+test('search finds actual lesson content and displays a useful empty state',()=>{
+ navigate('#courses');listeners.input({target:{id:'lesson-search',value:'ม่านแห่งความไม่รู้'}});assert.ok(get('#library-results').innerHTML.includes('POL2106-5'));
+ listeners.input({target:{id:'lesson-search',value:'NONEXISTENT-TOPIC-XYZ'}});assert.ok(get('#library-results').innerHTML.includes('ยังไม่พบหัวข้อนี้'));
+});
