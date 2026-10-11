@@ -1,8 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {courses,terms,categoryTargets} from '../dist/data.js';
+import {courses,terms,categoryTargets,studyPhases} from '../dist/data.js';
 import {lessons} from '../dist/lessons.js';
-import {freshState,validateState,loadState,storeState,escapeHTML,thaiDate,today,addDays,courseProgress,nextLesson,exams,examClashes,planSummary,cardsForReview,reviewCard,quizItems,examICS,STORAGE_KEY} from '../dist/core.js';
+import {freshState,validateState,loadState,storeState,escapeHTML,thaiDate,today,addDays,courseProgress,nextLesson,exams,examClashes,planSummary,cardsForReview,reviewCard,quizItems,examICS,STORAGE_KEY,dailyPlan,phaseFor,hoursFor,hoursUntil,streak,weekdayIndex} from '../dist/core.js';
 
 test('enrolled courses and dates exactly match supplied registration screenshot',()=>{
  assert.deepEqual(courses.filter(c=>c.enrolled).map(c=>[c.id,c.credits,c.exam,c.slot]),[
@@ -52,7 +52,7 @@ test('quiz mistake filter only selects attempted wrong answers',()=>{
  const s=freshState();const [a,b]=quizItems(s);s.answers[a.id]=(a.answer+1)%4;s.answers[b.id]=b.answer;assert.deepEqual(quizItems(s,'',true).map(q=>q.id),[a.id]);
 });
 test('flashcards schedule 1, 3, 7 days and return forgotten cards tomorrow',()=>{
- const s=freshState();const id=cardsForReview(s)[0].id;const initial=cardsForReview(s).length;reviewCard(s,id,true,'2026-10-10');assert.deepEqual(s.reviews[id],{level:1,due:'2026-10-11'});assert.equal(cardsForReview(s,'','2026-10-10').length,initial-1);
+ const s=freshState();s.completed=['POL1101-1'];const id=cardsForReview(s)[0].id;const initial=cardsForReview(s).length;reviewCard(s,id,true,'2026-10-10');assert.deepEqual(s.reviews[id],{level:1,due:'2026-10-11'});assert.equal(cardsForReview(s,'','2026-10-10').length,initial-1);
  reviewCard(s,id,true,'2026-10-11');assert.deepEqual(s.reviews[id],{level:2,due:'2026-10-14'});reviewCard(s,id,true,'2026-10-14');assert.equal(s.reviews[id].due,'2026-10-21');reviewCard(s,id,false,'2026-10-21');assert.deepEqual(s.reviews[id],{level:0,due:'2026-10-22'});
 });
 test('backup roundtrip preserves Thai notes, grades, answers and review state',()=>{
@@ -71,4 +71,43 @@ test('corrupted storage is reported, not silently overwritten',()=>{
 test('Thai exam dates use Buddhist year; calendar contains no fabricated hours',()=>{
  assert.match(thaiDate('2027-03-10'),/2570/);assert.match(today(),/^\d{4}-\d{2}-\d{2}$/);assert.equal(addDays('2027-12-31',1),'2028-01-01');
  const ics=examICS();assert.equal((ics.match(/BEGIN:VEVENT/g)||[]).length,7);assert.ok(ics.includes('DTSTART;VALUE=DATE:20270310'));assert.ok(ics.includes('DTEND;VALUE=DATE:20270311'));assert.ok(!ics.includes('DTSTART;TZID'));assert.ok(ics.endsWith('END:VCALENDAR\r\n'));
+});
+test('every lesson has a plain-language layer whose textbook terms become extra flashcards',()=>{
+ for(const l of lessons){const x=l.easy;assert.ok(x,l.id);assert.ok(x.one.length>40,l.id);assert.equal(x.points.length,3,l.id);assert.ok(x.points.every(p=>p.length>20),l.id);assert.ok(x.analogy.length>60,l.id);assert.ok(x.remember.length>10,l.id);assert.ok(x.terms.length>=3,l.id);
+  assert.deepEqual(l.cards.slice(-x.terms.length),x.terms.map(([front,back])=>({front,back})),l.id);assert.ok(x.terms.every(([f,b])=>f.trim()&&b.length>8),l.id);}
+ const text=JSON.stringify(lessons.map(l=>l.easy));for(const name of ['Leviathan','POSDCORB','POCCC','Hawthorne','Kirkpatrick','Duverger','Polyarchy','Wendt','Morgenthau','Merit system'])assert.ok(text.includes(name),name);
+});
+test('flashcards queue only for lessons already read unless every card is requested',()=>{
+ const s=freshState();assert.equal(cardsForReview(s).length,0);assert.ok(cardsForReview(s,'',today(),true).length>150);
+ s.completed=['POL2106-3'];const due=cardsForReview(s);assert.ok(due.length>=6);assert.ok(due.every(c=>c.lesson==='POL2106-3'));
+ reviewCard(s,'POL2104-1:0',true,'2026-10-10');assert.ok(cardsForReview(s,'POL2104','2026-10-11').some(c=>c.id==='POL2104-1:0'));
+});
+test('daily plan fills exactly the chosen hours on every non-exam day of each phase',()=>{
+ const s=freshState();
+ for(let d='2026-10-11';d<='2027-03-22';d=addDays(d,1)){for(const h of [1,2,3,4]){s.todayHours={date:d,hours:h};const p=dailyPlan(s,d);const examDay=exams().some(c=>c.exam===d);
+  if(examDay){assert.ok(p.blocks.some(b=>b.id==='examday'),d);assert.ok(p.minutes<=h*60,d);}else assert.equal(p.minutes,h*60,`${d} ${h}h`);
+  assert.equal(new Set(p.blocks.map(b=>b.id)).size,p.blocks.length,d);assert.ok(p.blocks.every(b=>b.title&&b.detail&&!/undefined|null/.test(b.title+b.detail)),d);}}
+ s.todayHours=null;assert.deepEqual(dailyPlan(s,'2027-03-23').blocks,[]);assert.equal(phaseFor('2027-03-23').id,'done');
+});
+test('plan follows the weekly rotation, then exam order, then the next exam',()=>{
+ const s=freshState();
+ assert.equal(phaseFor('2026-10-12').id,'learn');assert.equal(weekdayIndex('2026-10-12'),0);
+ const mon=dailyPlan(s,'2026-10-12');assert.equal(mon.blocks.find(b=>b.id==='main').course,'POL2106');assert.equal(mon.blocks.find(b=>b.id==='main').href,'#lesson/POL2106-1');
+ s.completed=['POL2106-1','POL2106-2','POL2106-3','POL2106-4','POL2106-5'];assert.equal(dailyPlan(s,'2026-10-12').blocks.find(b=>b.id==='main').href,'#course/POL2106');
+ const order=exams().map(c=>c.id);for(let i=0;i<7;i++)assert.equal(dailyPlan(s,addDays('2027-02-01',i)).blocks.find(b=>b.id==='main').course,order[i]);
+ assert.equal(dailyPlan(s,'2027-03-14').blocks.find(b=>b.id==='main').course,'POL2303');
+ const examDay=dailyPlan(s,'2027-03-21');assert.ok(examDay.blocks.find(b=>b.id==='examday').title.includes('POL2301'));assert.equal(examDay.blocks.find(b=>b.id==='second').course,'POL2107');
+ assert.equal(studyPhases.length,4);
+});
+test('study hours use weekday/weekend defaults with a same-day override',()=>{
+ const s=freshState();assert.equal(hoursFor(s,'2026-10-12'),2);assert.equal(hoursFor(s,'2026-10-11'),4);
+ s.todayHours={date:'2026-10-12',hours:1};assert.equal(hoursFor(s,'2026-10-12'),1);assert.equal(hoursFor(s,'2026-10-13'),2);
+ assert.equal(hoursUntil(s,'2027-03-01','2027-03-08'),5*2+2*4);
+});
+test('hours, plan checkmarks and streak survive backup; bad values are dropped',()=>{
+ const v=freshState();v.hours={weekday:3,weekend:4};v.todayHours={date:'2026-10-11',hours:1};v.planDone={'2026-10-10':['cards','main'],'2026-10-11':['wrap']};
+ const memory=new Map();const storage={getItem:k=>memory.get(k),setItem:(k,x)=>memory.set(k,x)};storeState(storage,v);assert.deepEqual(loadState(storage).state,v);
+ const bad=validateState({version:1,hours:{weekday:9,weekend:'4'},todayHours:{date:'x',hours:2},planDone:{'2026-10-11':['main','hack','main'],'__proto__':['main'],'nope':['cards']}});
+ assert.deepEqual(bad.hours,{weekday:2,weekend:4});assert.equal(bad.todayHours,null);assert.deepEqual(bad.planDone,{'2026-10-11':['main']});
+ assert.equal(streak(v,'2026-10-11'),2);assert.equal(streak(v,'2026-10-12'),2);assert.equal(streak(v,'2026-10-13'),0);
 });

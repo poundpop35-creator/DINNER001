@@ -2,7 +2,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {lessons} from '../dist/lessons.js';
-import {STORAGE_KEY} from '../dist/core.js';
+import {STORAGE_KEY,escapeHTML,today} from '../dist/core.js';
 
 const memory=new Map(),elements=new Map(),listeners={};
 const element=()=>({innerHTML:'',textContent:'',value:'',hidden:false,files:[],classList:{add(){},remove(){},contains(){return false}},focus(){},scrollIntoView(){},append(){},remove(){},click(){}});
@@ -40,4 +40,18 @@ test('answers show explanation and mistakes review does not skip it after correc
 test('search finds actual lesson content and displays a useful empty state',()=>{
  navigate('#courses');listeners.input({target:{id:'lesson-search',value:'ม่านแห่งความไม่รู้'}});assert.ok(get('#library-results').innerHTML.includes('POL2106-5'));
  listeners.input({target:{id:'lesson-search',value:'NONEXISTENT-TOPIC-XYZ'}});assert.ok(get('#library-results').innerHTML.includes('ยังไม่พบหัวข้อนี้'));
+});
+test('lesson pages open with the one-minute summary, analogy, memory hook and terms',()=>{
+ for(const l of lessons){navigate('#lesson/'+l.id);const h=html();assert.ok(h.includes('เข้าใจใน 1 นาที'),l.id);for(const t of [l.easy.one,...l.easy.points,l.easy.analogy,l.easy.remember])assert.ok(h.includes(escapeHTML(t)),l.id);for(const [front] of l.easy.terms)assert.ok(h.includes(escapeHTML(front)),l.id);}
+});
+test('home shows a daily plan; ticking a block and choosing hours are saved',()=>{
+ navigate('#home');assert.ok(html().includes('แผนวันนี้'));assert.ok(html().includes('data-action="block"'));
+ click('hours',{value:'3'});assert.equal(saved().todayHours.hours,3);assert.equal(saved().todayHours.date,today());assert.ok(html().includes('ฟังคำบรรยาย'));
+ click('block',{id:'main'});assert.deepEqual(saved().planDone[today()],['main']);assert.ok(html().includes('aria-pressed="true"'));
+ click('block',{id:'main'});assert.deepEqual(saved().planDone[today()],[]);
+ click('hours',{value:'9'});assert.equal(saved().todayHours.hours,3);
+});
+test('search covers the plain-language layer and textbook terms',()=>{
+ navigate('#courses');listeners.input({target:{id:'lesson-search',value:'POSDCORB'}});assert.ok(get('#library-results').innerHTML.includes('POL2301-2'));
+ listeners.input({target:{id:'lesson-search',value:''}});
 });

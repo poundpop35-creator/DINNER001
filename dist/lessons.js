@@ -1,13 +1,14 @@
 // Original foundation lessons, not university lecture transcripts or past exam questions.
+import {easy} from './easy.js?v=20261011';
 const L = (course, n, title, intro, sections, example, trap, terms, questions) => ({
- id:`${course}-${n}`,course,n,title,intro,minutes:12,
+ id:`${course}-${n}`,course,n,title,intro,minutes:15,
  sections:sections.map(([heading,body])=>({heading,body})),
  example:{situation:example[0],analysis:example[1]},trap,
  cards:terms.map(([front,back])=>({front,back})),
  questions:questions.map(([prompt,options,answer,explanation])=>({prompt,options,answer,explanation})),
  reflection:'ลองอธิบายแนวคิดในบทนี้ด้วยภาษาของตัวเอง พร้อมยกตัวอย่างใหม่หนึ่งกรณี และบอกข้อจำกัดของคำอธิบายนั้น'
 });
-export const lessons = [
+const base = [
 L('POL1101',1,'รัฐ รัฐบาล และระบอบการเมือง',
 'เริ่มจากแยกสามคำที่ดูคล้ายกัน เมื่อแยกได้จะอ่านข่าวการเมืองและบทเรียนถัดไปได้โดยไม่สับสนว่าอะไรเปลี่ยนและอะไรยังอยู่',[
  ['รัฐคือกรอบที่ดำรงต่อเนื่อง','รัฐเป็นองค์การทางการเมืองที่ใช้อำนาจเหนือประชากรในอาณาเขตหนึ่ง มีสถาบันและกติกาจัดการเรื่องส่วนรวม คำว่าอำนาจอธิปไตยเน้นอำนาจสูงสุดในทางหลักการ ทั้งภายในและความเป็นอิสระภายนอก แต่ในโลกจริงการใช้อำนาจยังสัมพันธ์กับกฎหมาย ข้อตกลง และข้อจำกัดด้านทรัพยากร'],
@@ -328,3 +329,5 @@ L('POL2303',5,'ความเป็นธรรม จริยธรรม แ
  [['ความเป็นธรรมเชิงกระบวนการ','ความสม่ำเสมอ ตรวจสอบได้ และโอกาสอธิบายในวิธีตัดสินใจ'],['ผลประโยชน์ทับซ้อน','ผลประโยชน์ส่วนตัวที่อาจกระทบการปฏิบัติหน้าที่อย่างเป็นกลาง']],
  [['กระบวนการตัดสินใจที่ให้ชี้แจงและทบทวนสะท้อนอะไร',['ความเป็นธรรมเชิงกระบวนการ','การให้ทุกคนคะแนนเท่ากัน','ไม่มีมาตรฐาน','ยกเลิกอำนาจบริหาร'],0,'เน้นวิธีตัดสินใจที่อธิบายและตรวจสอบได้'],['พบความสัมพันธ์ส่วนตัวกับผู้ถูกประเมิน ควรทำอะไร',['ไม่ต้องสนใจหากมั่นใจตนเอง','จัดการความเสี่ยงด้วยเกณฑ์และการตรวจสอบตามกติกา','เผยข้อมูลส่วนบุคคลทั้งหมด','ให้คะแนนต่ำไว้ก่อน'],1,'ต้องคุ้มครองความเป็นธรรมโดยไม่ลงโทษหรือเปิดข้อมูลเกินจำเป็น']]),
 ];
+// Attach the plain-language layer; its textbook terms become extra flashcards after the original ones.
+export const lessons = base.map(l=>({...l,easy:easy[l.id],cards:[...l.cards,...(easy[l.id]?.terms||[]).map(([front,back])=>({front,back}))]}));
