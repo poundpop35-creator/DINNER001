@@ -2,7 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {courses,terms,categoryTargets,studyPhases} from '../dist/data.js';
 import {lessons} from '../dist/lessons.js';
-import {freshState,validateState,loadState,storeState,escapeHTML,thaiDate,today,addDays,courseProgress,nextLesson,exams,examClashes,planSummary,cardsForReview,reviewCard,quizItems,examICS,STORAGE_KEY,dailyPlan,phaseFor,hoursFor,hoursUntil,streak,weekdayIndex} from '../dist/core.js';
+import {prep} from '../dist/prep.js';
+import {freshState,validateState,loadState,storeState,escapeHTML,thaiDate,today,addDays,courseProgress,nextLesson,exams,examClashes,planSummary,cardsForReview,reviewCard,quizItems,examICS,STORAGE_KEY,dailyPlan,phaseFor,hoursFor,hoursUntil,streak,weekdayIndex,prepResult} from '../dist/core.js';
 
 test('enrolled courses and dates exactly match supplied registration screenshot',()=>{
  assert.deepEqual(courses.filter(c=>c.enrolled).map(c=>[c.id,c.credits,c.exam,c.slot]),[
@@ -110,4 +111,26 @@ test('hours, plan checkmarks and streak survive backup; bad values are dropped',
  const bad=validateState({version:1,hours:{weekday:9,weekend:'4'},todayHours:{date:'x',hours:2},planDone:{'2026-10-11':['main','hack','main'],'__proto__':['main'],'nope':['cards']}});
  assert.deepEqual(bad.hours,{weekday:2,weekend:4});assert.equal(bad.todayHours,null);assert.deepEqual(bad.planDone,{'2026-10-11':['main']});
  assert.equal(streak(v,'2026-10-11'),2);assert.equal(streak(v,'2026-10-12'),2);assert.equal(streak(v,'2026-10-13'),0);
+});
+test('every enrolled course has an exam guide with balanced 5-choice practice questions',()=>{
+ assert.deepEqual(Object.keys(prep).sort(),courses.filter(c=>c.enrolled).map(c=>c.id).sort());
+ for(const [code,g] of Object.entries(prep)){
+  for(const k of ['format','textbook'])assert.ok(g[k].length>15,code+k);for(const k of ['topics','seen','tips','links'])assert.ok(g[k].length>=1,code+k);
+  assert.ok(g.links.every(([t,u])=>t&&/^https?:\/\//.test(u)),code);assert.ok(g.questions.length>=20,code);
+  const spread=[0,1,2,3,4].map(i=>g.questions.filter(q=>q.answer===i).length);assert.ok(Math.max(...spread)<=Math.ceil(g.questions.length*0.32),`${code} ${spread}`);
+  for(const q of g.questions){assert.equal(q.options.length,5,q.prompt);assert.equal(new Set(q.options).size,5,q.prompt);assert.ok(q.answer>=0&&q.answer<5);assert.ok(q.explanation.length>10,q.prompt);
+   assert.ok(q.options.slice(0,4).every(o=>o!=='ถูกทุกข้อ'&&o!=='ไม่มีข้อใดถูก'),q.prompt);if(q.lesson)assert.ok(lessons.some(l=>l.id===q.lesson),q.lesson);}
+ }
+});
+test('practice scores survive backup and invalid practice data is dropped',()=>{
+ const s=freshState();const q=prep.POL2301.questions;s.prep.POL2301={answers:{0:q[0].answer,1:(q[1].answer+1)%5},submitted:true,best:1,last:1};
+ const memory=new Map();const storage={getItem:k=>memory.get(k),setItem:(k,x)=>memory.set(k,x)};storeState(storage,s);const back=loadState(storage).state;
+ assert.deepEqual(back.prep.POL2301,{answers:{'0':q[0].answer,'1':(q[1].answer+1)%5},submitted:true,best:1,last:1});
+ assert.deepEqual(prepResult(back,'POL2301').correct,1);assert.equal(prepResult(back,'POL2301').answered,2);
+ const bad=validateState({version:1,prep:{POL9999:{answers:{0:1}},POL1101:{answers:{0:9,'x':1,999:0,'2':3},submitted:'yes',best:500},['__proto__']:{answers:{}}}});
+ assert.deepEqual(Object.keys(bad.prep),['POL1101']);assert.deepEqual(bad.prep.POL1101,{answers:{'2':3},submitted:false,best:null,last:null});
+});
+test('review and exam phases send four-hour days to the practice exam',()=>{
+ const s=freshState();s.todayHours={date:'2027-02-03',hours:4};const extra=dailyPlan(s,'2027-02-03').blocks.find(b=>b.id==='extra');assert.equal(extra.href,`#prep/${extra.course}`);
+ s.todayHours={date:'2027-03-14',hours:4};assert.equal(dailyPlan(s,'2027-03-14').blocks.find(b=>b.id==='extra').href,'#prep/POL2303');
 });

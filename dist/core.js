@@ -1,7 +1,8 @@
 import {courses,terms,categoryTargets,readingWeek,studyPhases,studyHours} from './data.js?v=20261011';
 import {lessons} from './lessons.js?v=20261011';
+import {prep} from './prep.js?v=20261011';
 export const STORAGE_KEY='ru-study-planner.v1';
-export function freshState(){return {version:1,completed:[],notes:{},answers:{},reviews:{},grades:{},termMoves:{},lastLesson:null,transfer:{general:0,free:0},sessions:[],dailyGoal:1,font:'normal',hours:{weekday:2,weekend:4},todayHours:null,planDone:{}};}
+export function freshState(){return {version:1,completed:[],notes:{},answers:{},reviews:{},grades:{},termMoves:{},lastLesson:null,transfer:{general:0,free:0},sessions:[],dailyGoal:1,font:'normal',hours:{weekday:2,weekend:4},todayHours:null,planDone:{},prep:{}};}
 const lessonIds=new Set(lessons.map(l=>l.id));
 const courseIds=new Set(courses.map(c=>c.id));
 const cardIds=new Set(lessons.flatMap(l=>l.cards.map((_,i)=>`${l.id}:${i}`)));
@@ -26,6 +27,7 @@ export function validateState(input){
  if(plain(input.hours))for(const k of ['weekday','weekend']){if(studyHours.includes(input.hours[k]))s.hours[k]=input.hours[k];}
  if(plain(input.todayHours)&&isDay(input.todayHours.date)&&studyHours.includes(input.todayHours.hours))s.todayHours={date:input.todayHours.date,hours:input.todayHours.hours};
  if(plain(input.planDone))for(const k of Object.keys(input.planDone).filter(isDay).sort().slice(-120)){const v=input.planDone[k];if(Array.isArray(v))s.planDone[k]=[...new Set(v.filter(x=>BLOCK_IDS.has(x)))];}
+ if(plain(input.prep))for(const [k,v]of Object.entries(input.prep)){if(!Object.hasOwn(prep,k)||!plain(v))continue;const n=prep[k].questions.length,score=x=>Number.isInteger(x)&&x>=0&&x<=n?x:null,answers={};if(plain(v.answers))for(const [i,a]of Object.entries(v.answers)){if(/^\d+$/.test(i)&&Number(i)<n&&Number.isInteger(a)&&a>=0&&a<prep[k].questions[Number(i)].options.length)answers[i]=a;}s.prep[k]={answers,submitted:v.submitted===true,best:score(v.best),last:score(v.last)};}
  return s;
 }
 export function loadState(storage){try{const raw=storage.getItem(STORAGE_KEY);return {state:raw?validateState(JSON.parse(raw)):freshState(),error:null};}catch(error){return {state:freshState(),error:'อ่านข้อมูลที่บันทึกในเครื่องไม่ได้ กรุณานำเข้าไฟล์สำรอง ข้อมูลเดิมจะไม่ถูกเขียนทับจนกว่าจะกู้คืน'};}}
@@ -101,17 +103,19 @@ export function dailyPlan(state,day=today()){
   add('main',one?40:60,`${main} · ทบทวนทั้งวิชา`,'อ่าน “เข้าใจใน 1 นาที” ครบ 5 บท + บันทึกของตัวเอง แล้วทำคำถามทบทวนของวิชานี้',main,`#course/${main}`);
   if(!one)add('second',30,`${second} · วิชาหนัก ทบทวนซ้ำ`,'อ่าน “จุดที่มักสับสน” ทุกบท แล้วลองอธิบายนักคิดหรือแนวคิดหลักโดยไม่เปิดดู',second,`#course/${second}`);
   if(hours>=3)add('deep',60,`${main} · อ่านตำราส่วนที่ยังไม่มั่นใจ`,'เลือกหัวข้อที่ตอบผิดหรืออธิบายไม่ได้ อ่านตำราหรือฟังคำบรรยายเฉพาะส่วนนั้น',main,`#course/${main}`);
-  if(hours>=4)add('extra',60,'ซ้อมตอบคละวิชา','ทำคำถามทบทวนทุกวิชาแบบต่อเนื่อง จดข้อที่ผิดไว้ทบทวนพรุ่งนี้',null,'#review');
+  if(hours>=4)add('extra',60,`${main} · ทำแนวข้อสอบ`,'ทำข้อสอบเสมือนแบบจำลองสอบ แล้วอ่านเฉลยข้อที่ผิดและเปิดตำราหัวข้อนั้น',main,`#prep/${main}`);
   add('wrap',one?10:15,'ปิดท้าย: จดสิ่งที่ยังไม่แม่น','เขียน 3 เรื่องที่ยังไม่มั่นใจ ไว้เปิดดูก่อนเริ่มพรุ่งนี้',null,'#notes');
  }else{
   const left=daysBetween(day,nextExam.exam);
   add('main',one?40:60,`${main} · สอบ ${thaiDate(nextExam.exam,true)} (อีก ${left} วัน)`,'อ่าน “เข้าใจใน 1 นาที” + “จำง่าย” ครบ 5 บท แล้วทำคำถามทั้งหมดของวิชานี้',main,`#course/${main}`);
   if(!one)add('second',30,second===main?`${main} · จุดที่มักสับสน`:`${second} · เตรียมวิชาถัดไป`,second===main?'อ่าน “จุดที่มักสับสน” ทุกบท แล้วอธิบายออกเสียงโดยไม่เปิดดู':'อ่านสรุปง่ายเบา ๆ ให้คุ้นก่อนถึงคิวเต็ม',second,`#course/${second}`);
   if(hours>=3)add('deep',60,`${main} · เก็บจุดที่ยังไม่แม่น`,'ทบทวนข้อที่เคยตอบผิดและบันทึกของตัวเอง ไม่เริ่มอ่านเรื่องใหม่ที่ยาว',main,`#course/${main}`);
-  if(hours>=4)add('extra',60,`${main} · ซ้อมอธิบาย`,'เลือก 3 หัวข้อ อธิบายให้ตัวเองฟังโดยไม่เปิดดู แล้วตรวจกับบทเรียน',main,`#course/${main}`);
+  if(hours>=4)add('extra',60,`${main} · ทำแนวข้อสอบอีกรอบ`,'ทำข้อสอบเสมือนแบบจำลองสอบให้ได้คะแนนดีกว่ารอบก่อน แล้วเก็บข้อที่ยังผิด',main,`#prep/${main}`);
   add('wrap',one?10:15,left===1?'เตรียมตัวสอบพรุ่งนี้':'ปิดท้าย: ข้อที่เคยผิด',left===1?'เตรียมของตามตารางสอบรายบุคคล ตั้งนาฬิกาปลุก และนอนให้พอ':'ทำคำถามข้อที่เคยผิดของวิชานี้อีกครั้ง',null,left===1?'#exams':'#review');
  }
  return result();
 }
 export function activeDays(state){const days=new Set(state.sessions.map(s=>s.date));for(const [d,v]of Object.entries(state.planDone))if(v.length)days.add(d);return days;}
 export function streak(state,day=today()){const days=activeDays(state);let d=days.has(day)?day:addDays(day,-1),n=0;while(days.has(d)){n++;d=addDays(d,-1);}return n;}
+// ---- Exam-style practice sets ----
+export function prepResult(state,code){const g=prep[code];if(!g)return null;const p=state.prep[code]||{answers:{},submitted:false,best:null,last:null};const total=g.questions.length,answered=Object.keys(p.answers).length,correct=g.questions.filter((q,i)=>p.answers[i]===q.answer).length;return {...p,total,answered,correct};}

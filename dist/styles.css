@@ -387,6 +387,43 @@ td small{color:var(--muted);display:block;margin-top:2px}
 .exam-info .muted{font-size:14.5px}
 .slot{font-family:var(--head);font-weight:600;padding:6px 12px;border-radius:12px;background:var(--navy);color:#fff;white-space:nowrap}
 
+/* ---------- Exam prep (แนวข้อสอบ) ---------- */
+.stat-card.prep-card .stat-icon{background:#f3edff;color:#6d3fc0}
+.exam-actions{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+.prep-strip{display:flex;align-items:center;gap:14px;margin-top:18px;padding:16px 20px;border-radius:var(--radius);background:#fff;border:2px solid var(--course);color:var(--ink);box-shadow:var(--shadow)}
+.prep-strip:hover{color:var(--ink);box-shadow:var(--shadow-lift)}
+.prep-strip .stat-icon{background:var(--course);color:#fff}
+.prep-strip b{display:block;font-family:var(--head);font-size:17px}
+.prep-strip span:not(.stat-icon){font-size:15px;color:var(--muted)}
+.prep-strip>svg:last-child{margin-left:auto;color:var(--course)}
+.prep-info{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:18px 0}
+.prep-info h2{display:flex;align-items:center;gap:8px;font-size:19px}
+.prep-info h3{margin-top:16px}
+.prep-facts{display:grid;grid-template-columns:auto 1fr;gap:6px 14px;margin:8px 0 0}
+.prep-facts dt{font-weight:600;color:var(--muted)}
+.prep-facts dd{margin:0;line-height:1.7}
+.link-list{list-style:none;padding:0;margin:8px 0 0;display:flex;flex-direction:column;gap:6px}
+.link-list a{display:inline-block;padding:8px 12px;border-radius:12px;background:var(--blue-soft);font-weight:600;font-size:15px}
+.mock{margin-top:8px;padding:24px;border-radius:24px;background:#fff;border:1px solid var(--line);box-shadow:var(--shadow)}
+.mock-head{display:flex;justify-content:space-between;align-items:flex-start;gap:14px;flex-wrap:wrap}
+.mock-head p{color:var(--muted);font-size:15px}
+.mock-hint{margin:14px 0 8px;padding:10px 14px;border-radius:12px;background:#f3f6fc;font-size:15px}
+.mock-progress{margin:8px 0;font-size:15.5px}
+.mock-result{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;margin:10px 0;padding:14px 18px;border-radius:16px;background:linear-gradient(135deg,#1e3a8a,#1d4ed8);color:#fff}
+.mock-result b{font-family:var(--head);font-size:34px;line-height:1}
+.mock-result span{font-size:16px;color:#e3ebff}
+.mock-list{list-style:none;padding:0;margin:12px 0 0;display:flex;flex-direction:column;gap:12px}
+.mock-q{padding:18px;border-radius:18px;border:1px solid var(--line);background:#fbfcff;scroll-margin-top:90px}
+.mock-q.is-right{border-color:#62c29b;background:#f6fcf9}
+.mock-q.is-wrong{border-color:#ec8f9b;background:#fffafb}
+.mock-num{display:inline-block;font-family:var(--head);font-weight:600;font-size:14px;color:var(--blue-deep);background:var(--blue-soft);padding:2px 10px;border-radius:999px;margin-bottom:6px}
+.mock-q h3{margin-bottom:10px;font-size:17.5px}
+.choice.picked{background:#e8efff;border-color:var(--blue);box-shadow:inset 0 0 0 1px var(--blue)}
+.choice.picked>span{background:var(--blue);color:#fff}
+.answer-explanation .text-link{display:inline-block;margin-top:6px}
+.mock-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px}
+.button:disabled{opacity:.55;transform:none}
+
 /* ---------- Notes, sources, settings ---------- */
 .notes-grid,.source-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px}
 .saved-note{border-top:5px solid var(--course)}
@@ -436,6 +473,7 @@ details p{margin-top:8px;font-size:15px}
  .split-grid{grid-template-columns:1fr}
  .category-grid{grid-template-columns:repeat(2,1fr)}
  .hours-panel{grid-template-columns:1fr}
+ .prep-info{grid-template-columns:1fr}
 }
 @media (max-width:600px){
  h1,.welcome h1{font-size:25px}
@@ -481,10 +519,15 @@ details p{margin-top:8px;font-size:15px}
  .category-grid{grid-template-columns:1fr 1fr}
  .exam-item{grid-template-columns:64px minmax(0,1fr);gap:12px}
  .exam-item .slot{grid-column:2;justify-self:start}
- .exam-item .button{grid-column:1/-1}
+
  .plan-banner{padding:20px}
  .course-hero-progress{min-width:0;width:100%}
  .term-title>div:last-child{align-items:flex-start}
+ .prep-info{grid-template-columns:1fr}
+ .mock{padding:18px 14px;border-radius:20px}
+ .mock-q{padding:14px}
+ .exam-actions{grid-column:1/-1;justify-content:stretch}
+ .exam-actions .button{flex:1}
 }
 @media (prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;transition:none!important}}
 @media print{.sidebar,.topbar,.bottom-nav,.reading-side,.lesson-finish,.lesson-quiz,footer,.back-link,#toast,.skip,.font-toggle{display:none!important}.workspace{margin:0}main{padding:0}.panel,.quick,.lesson-hero{box-shadow:none}}

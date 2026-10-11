@@ -2,6 +2,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {lessons} from '../dist/lessons.js';
+import {prep} from '../dist/prep.js';
 import {STORAGE_KEY,escapeHTML,today} from '../dist/core.js';
 
 const memory=new Map(),elements=new Map(),listeners={};
@@ -54,4 +55,19 @@ test('home shows a daily plan; ticking a block and choosing hours are saved',()=
 test('search covers the plain-language layer and textbook terms',()=>{
  navigate('#courses');listeners.input({target:{id:'lesson-search',value:'POSDCORB'}});assert.ok(get('#library-results').innerHTML.includes('POL2301-2'));
  listeners.input({target:{id:'lesson-search',value:''}});
+});
+test('exam guides render for every course and both practice modes score correctly',()=>{
+ for(const code of Object.keys(prep)){navigate('#prep/'+code);const h=html();assert.ok(h.includes('ข้อสอบเสมือน'),code);assert.equal((h.match(/class="mock-q/g)||[]).length,prep[code].questions.length,code);assert.ok(!h.includes('undefined'),code);assert.ok(h.includes(escapeHTML(prep[code].textbook)),code);}
+ navigate('#prep/missing');assert.ok(html().includes('ไม่พบหน้าที่เลือก'));
+ navigate('#exams');assert.ok(html().includes('#prep/POL2106'));navigate('#course/POL2106');assert.ok(html().includes('แนวข้อสอบ POL2106'));
+ const qs=prep.POL2106.questions;navigate('#prep/POL2106');
+ click('prep-answer',{course:'POL2106',index:'0',value:String(qs[0].answer)});assert.equal(saved().prep.POL2106.answers['0'],qs[0].answer);assert.ok(html().includes(escapeHTML(qs[0].explanation)));
+ click('prep-answer',{course:'POL2106',index:'0',value:String((qs[0].answer+1)%5)});assert.equal(saved().prep.POL2106.answers['0'],qs[0].answer,'practice answers lock');
+ click('prep-mode',{course:'POL2106',mode:'exam'});assert.deepEqual(saved().prep.POL2106.answers,{});
+ click('prep-answer',{course:'POL2106',index:'1',value:String((qs[1].answer+1)%5)});click('prep-answer',{course:'POL2106',index:'1',value:String(qs[1].answer)});
+ assert.equal(saved().prep.POL2106.answers['1'],qs[1].answer,'exam answers can change before submit');assert.ok(!html().includes(escapeHTML(qs[1].explanation)),'no key before submit');
+ click('prep-submit',{course:'POL2106'});assert.equal(saved().prep.POL2106.submitted,true);assert.equal(saved().prep.POL2106.best,1);assert.ok(html().includes(escapeHTML(qs[1].explanation)));
+ click('prep-answer',{course:'POL2106',index:'2',value:'0'});assert.equal(saved().prep.POL2106.answers['2'],undefined,'locked after submit');
+ click('prep-reset',{course:'POL2106'});assert.deepEqual(saved().prep.POL2106.answers,{});assert.equal(saved().prep.POL2106.best,1);
+ click('prep-mode',{course:'POL2106',mode:'practice'});
 });
