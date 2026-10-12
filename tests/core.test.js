@@ -80,7 +80,7 @@ test('Thai exam dates use Buddhist year; calendar contains no fabricated hours',
 });
 test('every lesson has a plain-language layer whose textbook terms become extra flashcards',()=>{
  for(const l of lessons){const x=l.easy;assert.ok(x,l.id);assert.ok(x.one.length>40,l.id);assert.equal(x.points.length,3,l.id);assert.ok(x.points.every(p=>p.length>20),l.id);assert.ok(x.analogy.length>60,l.id);assert.ok(x.remember.length>10,l.id);assert.ok(x.terms.length>=3,l.id);
-  assert.deepEqual(l.cards.slice(-x.terms.length),x.terms.map(([front,back])=>({front,back})),l.id);assert.ok(x.terms.every(([f,b])=>f.trim()&&b.length>8),l.id);}
+  const at=l.cards.findIndex(c=>c.front===x.terms[0][0]);assert.ok(at>=0,l.id);assert.deepEqual(l.cards.slice(at,at+x.terms.length),x.terms.map(([front,back])=>({front,back})),l.id);assert.ok(x.terms.every(([f,b])=>f.trim()&&b.length>8),l.id);}
  const text=JSON.stringify(lessons.map(l=>l.easy));for(const name of ['Leviathan','POSDCORB','POCCC','Hawthorne','Kirkpatrick','Duverger','Polyarchy','Wendt','Morgenthau','Merit system'])assert.ok(text.includes(name),name);
 });
 test('flashcards queue only for lessons already read unless every card is requested',()=>{

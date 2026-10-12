@@ -261,6 +261,7 @@ footer a{color:var(--muted);text-decoration:underline}
 .part-title{display:flex;align-items:center;gap:12px;margin:30px 0 8px;font-family:var(--head);font-weight:600;color:var(--muted);font-size:15px}
 .part-title::after{content:"";flex:1;height:1px;background:var(--line)}
 .reading-section{display:grid;grid-template-columns:40px minmax(0,1fr);gap:14px;padding:18px 0;border-bottom:1px solid #e3e9f3}
+.reading-section>div{min-width:0}
 .section-num{width:36px;height:36px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-family:var(--head);font-weight:600;color:var(--blue);background:var(--blue-soft)}
 .reading-section h2{font-size:20px;margin-bottom:6px}
 .worked-example{margin-top:26px;padding:22px;border-radius:20px;background:#fff;border:1px solid var(--line);box-shadow:var(--shadow)}
@@ -494,7 +495,7 @@ details p{margin-top:8px;font-size:15px}
  .bottom-nav a{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 2px;border-radius:12px;color:var(--muted);font-size:13px;font-weight:600}
  .bottom-nav a.active{color:var(--blue);background:var(--blue-soft)}
  #toast{bottom:96px}
- .home-grid,.reader-layout{grid-template-columns:1fr}
+ .home-grid,.reader-layout{grid-template-columns:minmax(0,1fr)}
  .home-side{display:grid;grid-template-columns:1fr 1fr}
  .home-side .resume,.home-side .tip-card{grid-column:1/-1}
  .reading-side{position:static}
@@ -538,7 +539,15 @@ details p{margin-top:8px;font-size:15px}
  .quick{padding:18px 16px}
  .quick-one{font-size:19px}
  .key-points li{padding:12px 12px 12px 48px}
- .reading-section{grid-template-columns:1fr;gap:6px}
+ .reading-section{grid-template-columns:minmax(0,1fr);gap:6px}
+ .sec-table{border:0;border-radius:0;overflow:visible}
+ .sec-table table{min-width:0;border-collapse:separate;border-spacing:0}
+ .sec-table thead{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)}
+ .sec-table tr{display:block;margin-bottom:10px;border:1px solid var(--line-strong);border-radius:14px;overflow:hidden;background:#fff}
+ .sec-table tbody tr:nth-child(even){background:#fff}
+ .sec-table td{display:block;border-top:1px solid #e3e9f3;padding:10px 14px}
+ .sec-table td:first-child{border-top:0;background:var(--navy);color:#fff}
+ .sec-table td:not(:first-child)::before{content:attr(data-label);display:block;font-size:13px;font-weight:600;color:var(--blue-deep);margin-bottom:2px}
  .section-num{width:32px;height:32px}
  .term-grid{grid-template-columns:1fr}
  .question-block{padding:16px}
