@@ -38,13 +38,18 @@ test('moving future courses can flag an overloaded summer',()=>{
 test('same day same slot is a clash; same day another slot is not',()=>{
  assert.deepEqual(examClashes([{id:'A',exam:'2027-03-10',slot:'A'},{id:'B',exam:'2027-03-10',slot:'A'},{id:'C',exam:'2027-03-10',slot:'B'}]),[['A','B']]);
 });
-test('learning content has 35 unique lessons, 70 explainable questions and no placeholder lessons',()=>{
- assert.equal(lessons.length,35);assert.equal(new Set(lessons.map(l=>l.id)).size,35);
- for(const c of courses.filter(c=>c.enrolled)){const ls=lessons.filter(l=>l.course===c.id);assert.deepEqual(ls.map(l=>l.n),[1,2,3,4,5]);}
- for(const l of lessons){assert.equal(l.sections.length,3);assert.ok(l.sections.every(s=>s.body.length>=130));assert.ok(l.example.analysis.length>80);assert.equal(l.questions.length,2);assert.ok(l.cards.length>=2);
-  for(const q of l.questions){assert.equal(q.options.length,4);assert.ok(q.answer>=0&&q.answer<q.options.length);assert.ok(q.explanation.length>20);assert.equal(new Set(q.options).size,4);}
+test('learning content: unique lessons numbered 1..N per course, explainable questions, no placeholders',()=>{
+ assert.ok(lessons.length>=35);assert.equal(new Set(lessons.map(l=>l.id)).size,lessons.length);
+ for(const c of courses.filter(c=>c.enrolled)){const ls=lessons.filter(l=>l.course===c.id);assert.deepEqual(ls.map(l=>l.n),ls.map((_,i)=>i+1),c.id);assert.ok(ls.length>=5);assert.deepEqual(ls.slice(0,5).map(l=>l.part),[1,1,1,1,1]);assert.ok(ls.slice(5).every(l=>l.part===2));}
+ for(const l of lessons){assert.ok(l.sections.length>=3,l.id);assert.ok(l.sections.every(s=>s.heading&&s.body.length>=130),l.id);assert.ok(l.example.analysis.length>80,l.id);assert.ok(l.questions.length>=2,l.id);assert.ok(l.cards.length>=2,l.id);assert.ok(l.minutes>=10,l.id);assert.ok(l.easy&&l.easy.points.length===3,l.id);
+  for(const q of l.questions){assert.equal(q.options.length,4,l.id);assert.ok(q.answer>=0&&q.answer<q.options.length,l.id);assert.ok(q.explanation.length>20,l.id);assert.equal(new Set(q.options).size,4,l.id);}
+  for(const r of l.refs)assert.ok(r.title&&r.detail&&(r.url===null||/^https?:\/\//.test(r.url)),l.id);
  }
- assert.equal(quizItems(freshState()).length,70);
+ assert.equal(quizItems(freshState()).length,lessons.reduce((n,l)=>n+l.questions.length,0));
+});
+test('original lesson items keep their positions so saved answers and flashcard reviews stay valid',()=>{
+ const first=lessons.find(l=>l.id==='POL1101-1');assert.equal(first.sections[0].heading,'รัฐคือกรอบที่ดำรงต่อเนื่อง');assert.equal(first.questions[0].prompt,'เปลี่ยนนายกรัฐมนตรีภายใต้กติกาเดิม ข้อใดสรุปได้แน่นอนที่สุด');assert.equal(first.cards[0].front,'รัฐ');
+ for(const l of lessons.filter(l=>l.part===1)){assert.equal(l.sections.slice(0,3).filter(s=>s.deep).length,0,l.id);assert.ok(l.sections.slice(3).every(s=>s.deep),l.id);}
 });
 test('progress and resume only count a course own lessons',()=>{
  const s=freshState();s.completed=['POL1101-1','POL1101-2','POL2104-1'];assert.deepEqual(courseProgress(s,'POL1101'),{done:2,total:5,percent:40});assert.equal(nextLesson(s,'POL1101').id,'POL1101-3');

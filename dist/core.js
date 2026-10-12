@@ -1,6 +1,6 @@
-import {courses,terms,categoryTargets,readingWeek,studyPhases,studyHours} from './data.js?v=20261011';
-import {lessons} from './lessons.js?v=20261011';
-import {prep} from './prep.js?v=20261011';
+import {courses,terms,categoryTargets,readingWeek,studyPhases,studyHours} from './data.js?v=20261012';
+import {lessons} from './lessons.js?v=20261012';
+import {prep} from './prep.js?v=20261012';
 export const STORAGE_KEY='ru-study-planner.v1';
 export function freshState(){return {version:1,completed:[],notes:{},answers:{},reviews:{},grades:{},termMoves:{},lastLesson:null,transfer:{general:0,free:0},sessions:[],dailyGoal:1,font:'normal',hours:{weekday:2,weekend:4},todayHours:null,planDone:{},prep:{}};}
 const lessonIds=new Set(lessons.map(l=>l.id));
@@ -68,7 +68,7 @@ export function hoursUntil(state,from,to){let total=0;for(let d=from;d<to;d=addD
 function lowestProgress(state,skip){return exams().map(c=>c.id).filter(id=>!skip.includes(id)).sort((a,b)=>courseProgress(state,a).percent-courseProgress(state,b).percent)[0];}
 function studyTask(state,code,short){
  const l=unreadLesson(state,code);
- if(l)return {title:`${code} · บทที่ ${l.n} ${l.title}`,detail:short?'อ่าน “เข้าใจใน 1 นาที” และคำสำคัญ ถ้ามีเวลาเหลือค่อยอ่านละเอียด':'อ่าน “เข้าใจใน 1 นาที” → อ่านละเอียด → ตอบคำถาม 2 ข้อ แล้วกดอ่านจบ',href:`#lesson/${l.id}`};
+ if(l)return {title:`${code} · บทที่ ${l.n} ${l.title}`,detail:short?'อ่าน “เข้าใจใน 1 นาที” และคำสำคัญ ถ้ามีเวลาเหลือค่อยอ่านละเอียด':'เปิดเรื่อง → “เข้าใจใน 1 นาที” → อ่านละเอียด → ตอบคำถามท้ายบท แล้วกดอ่านจบ',href:`#lesson/${l.id}`};
  return {title:`${code} · เรียนลึกกับตำรา`,detail:short?'อ่านบันทึกของตัวเอง แล้วทำคำถามทบทวนของวิชานี้':'อ่านตำราหรือดูคำบรรยาย RU on Demand 1 หัวข้อ แล้วจดสรุปด้วยภาษาตัวเองลงบันทึก',href:`#course/${code}`};
 }
 export function dailyPlan(state,day=today()){
@@ -82,10 +82,10 @@ export function dailyPlan(state,day=today()){
  const one=hours===1;
  if(phase.id==='exam'&&nextExam.exam===day){
   const after=list.find(c=>c.exam>day);
-  add('cards',15,`${nextExam.id} · อุ่นเครื่องเบา ๆ ก่อนสอบ`,'อ่านเฉพาะ “จำง่าย” และคำสำคัญของทั้ง 5 บท ไม่เริ่มเรื่องใหม่',nextExam.id,`#course/${nextExam.id}`);
+  add('cards',15,`${nextExam.id} · อุ่นเครื่องเบา ๆ ก่อนสอบ`,'อ่านเฉพาะ “จำง่าย” และคำสำคัญของทุกบท ไม่เริ่มเรื่องใหม่',nextExam.id,`#course/${nextExam.id}`);
   add('examday',0,`วันนี้สอบ ${nextExam.id} คาบ ${nextExam.slot}`,'ตรวจเวลา ห้องสอบ และสิ่งที่ต้องนำไปจากตารางสอบรายบุคคล ไปถึงก่อนเวลา',nextExam.id,'#exams');
   const tomorrow=after&&after.exam===addDays(day,1);
-  if(after&&!one)add('second',tomorrow?hours*60-15:60,tomorrow?`หลังสอบ · เตรียม ${after.id} ที่สอบพรุ่งนี้`:`หลังสอบ · เริ่ม ${after.id}`,tomorrow?'พักสั้น ๆ แล้วอ่าน “เข้าใจใน 1 นาที” + “จำง่าย” ครบ 5 บท ทำคำถามของวิชานี้ และนอนให้พอ':`พักให้หายเหนื่อยก่อน แล้วอ่าน “เข้าใจใน 1 นาที” ของ ${after.id} (สอบ ${thaiDate(after.exam,true)})`,after.id,`#course/${after.id}`);
+  if(after&&!one)add('second',tomorrow?hours*60-15:60,tomorrow?`หลังสอบ · เตรียม ${after.id} ที่สอบพรุ่งนี้`:`หลังสอบ · เริ่ม ${after.id}`,tomorrow?'พักสั้น ๆ แล้วอ่าน “เข้าใจใน 1 นาที” + “จำง่าย” ทุกบท ทำคำถามของวิชานี้ และนอนให้พอ':`พักให้หายเหนื่อยก่อน แล้วอ่าน “เข้าใจใน 1 นาที” ของ ${after.id} (สอบ ${thaiDate(after.exam,true)})`,after.id,`#course/${after.id}`);
   return result();
  }
  let main,second;
@@ -100,14 +100,14 @@ export function dailyPlan(state,day=today()){
   if(hours>=4){const low=lowestProgress(state,[main,second]);const x=studyTask(state,low,false);add('extra',60,x.title,`วิชาที่คืบหน้าน้อยที่สุดตอนนี้ · ${x.detail}`,low,x.href);}
   add('wrap',one?10:15,'ปิดท้าย: เช็กความเข้าใจ','ตอบคำถามข้อที่เคยผิด แล้วเขียนสรุป 3 บรรทัดว่าวันนี้เข้าใจอะไร',null,'#review');
  }else if(phase.id==='review'){
-  add('main',one?40:60,`${main} · ทบทวนทั้งวิชา`,'อ่าน “เข้าใจใน 1 นาที” ครบ 5 บท + บันทึกของตัวเอง แล้วทำคำถามทบทวนของวิชานี้',main,`#course/${main}`);
+  add('main',one?40:60,`${main} · ทบทวนทั้งวิชา`,'อ่าน “เข้าใจใน 1 นาที” ทุกบท + บันทึกของตัวเอง แล้วทำคำถามทบทวนของวิชานี้',main,`#course/${main}`);
   if(!one)add('second',30,`${second} · วิชาหนัก ทบทวนซ้ำ`,'อ่าน “จุดที่มักสับสน” ทุกบท แล้วลองอธิบายนักคิดหรือแนวคิดหลักโดยไม่เปิดดู',second,`#course/${second}`);
   if(hours>=3)add('deep',60,`${main} · อ่านตำราส่วนที่ยังไม่มั่นใจ`,'เลือกหัวข้อที่ตอบผิดหรืออธิบายไม่ได้ อ่านตำราหรือฟังคำบรรยายเฉพาะส่วนนั้น',main,`#course/${main}`);
   if(hours>=4)add('extra',60,`${main} · ทำแนวข้อสอบ`,'ทำข้อสอบเสมือนแบบจำลองสอบ แล้วอ่านเฉลยข้อที่ผิดและเปิดตำราหัวข้อนั้น',main,`#prep/${main}`);
   add('wrap',one?10:15,'ปิดท้าย: จดสิ่งที่ยังไม่แม่น','เขียน 3 เรื่องที่ยังไม่มั่นใจ ไว้เปิดดูก่อนเริ่มพรุ่งนี้',null,'#notes');
  }else{
   const left=daysBetween(day,nextExam.exam);
-  add('main',one?40:60,`${main} · สอบ ${thaiDate(nextExam.exam,true)} (อีก ${left} วัน)`,'อ่าน “เข้าใจใน 1 นาที” + “จำง่าย” ครบ 5 บท แล้วทำคำถามทั้งหมดของวิชานี้',main,`#course/${main}`);
+  add('main',one?40:60,`${main} · สอบ ${thaiDate(nextExam.exam,true)} (อีก ${left} วัน)`,'อ่าน “เข้าใจใน 1 นาที” + “จำง่าย” ทุกบท แล้วทำคำถามทั้งหมดของวิชานี้',main,`#course/${main}`);
   if(!one)add('second',30,second===main?`${main} · จุดที่มักสับสน`:`${second} · เตรียมวิชาถัดไป`,second===main?'อ่าน “จุดที่มักสับสน” ทุกบท แล้วอธิบายออกเสียงโดยไม่เปิดดู':'อ่านสรุปง่ายเบา ๆ ให้คุ้นก่อนถึงคิวเต็ม',second,`#course/${second}`);
   if(hours>=3)add('deep',60,`${main} · เก็บจุดที่ยังไม่แม่น`,'ทบทวนข้อที่เคยตอบผิดและบันทึกของตัวเอง ไม่เริ่มอ่านเรื่องใหม่ที่ยาว',main,`#course/${main}`);
   if(hours>=4)add('extra',60,`${main} · ทำแนวข้อสอบอีกรอบ`,'ทำข้อสอบเสมือนแบบจำลองสอบให้ได้คะแนนดีกว่ารอบก่อน แล้วเก็บข้อที่ยังผิด',main,`#prep/${main}`);

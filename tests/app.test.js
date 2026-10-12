@@ -18,9 +18,9 @@ const navigate=hash=>{location.hash=hash;listeners.hashchange();};
 const click=(action,data={})=>listeners.click({target:{closest:()=>({dataset:{action,...data}})}});
 const saved=()=>JSON.parse(memory.get(STORAGE_KEY));
 
-test('every main route and all 35 lesson pages render without runtime errors',()=>{
+test('every main route and every lesson page renders without runtime errors',()=>{
  for(const route of ['home','courses','review','plan','exams','notes','about','settings']){navigate('#'+route);assert.ok(html().length>500,route);assert.ok(!html().includes('[object Object]'),route);assert.ok(!html().includes('undefined'),route);}
- for(const l of lessons){navigate('#lesson/'+l.id);assert.ok(html().includes(l.title),l.id);assert.ok(html().includes(l.example.analysis),l.id);assert.equal((html().match(/class="question-block"/g)||[]).length,2,l.id);}
+ for(const l of lessons){navigate('#lesson/'+l.id);assert.ok(html().includes(l.title),l.id);assert.ok(html().includes(l.example.analysis),l.id);assert.equal((html().match(/class="question-block"/g)||[]).length,l.questions.length,l.id);}
  navigate('#lesson/missing');assert.ok(html().includes('ไม่พบหน้าที่เลือก'));
 });
 test('notes save immediately and render as text, never executable user HTML',()=>{

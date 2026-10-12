@@ -310,6 +310,36 @@ html[data-font="large"] .quick-one{font-size:23px}
 html[data-font="large"] .reading-section h2{font-size:22px}
 html[data-font="large"] .choice,html[data-font="large"] .term p,html[data-font="large"] .block p{font-size:17.5px}
 
+/* Deep lessons: hook, lists, tables, references, next-lesson card */
+.hook{position:relative;margin-bottom:16px;padding:20px 22px 20px 24px;border-radius:20px;background:linear-gradient(135deg,#fff7ed,#fff);border:1px solid #fbd5a5;border-left:5px solid #f59e0b}
+.hook-label{display:inline-flex;align-items:center;gap:6px;font-family:var(--head);font-weight:600;font-size:14.5px;color:#9a3412;margin-bottom:6px}
+.hook p{font-size:18px;line-height:1.85;color:#3b2a14}
+.reading-section p+p{margin-top:10px}
+.sec-list{margin:12px 0 0;padding:0;list-style:none;display:flex;flex-direction:column;gap:8px}
+.sec-list li{position:relative;padding:10px 14px 10px 38px;border-radius:12px;background:#f5f8ff;border:1px solid #dbe5fb;line-height:1.75}
+.sec-list li::before{content:"";position:absolute;left:15px;top:19px;width:8px;height:8px;border-radius:50%;background:var(--blue)}
+.sec-table{margin-top:14px}
+.sec-table table{min-width:520px;font-size:15px}
+.sec-table td:first-child{font-weight:600;color:var(--navy)}
+.part-title.deep{color:var(--blue-deep)}
+.part-title.deep span{display:inline-flex;align-items:center;gap:6px;padding:4px 12px;border-radius:999px;background:var(--blue-soft)}
+.refs{margin-top:24px;padding:20px 22px;border-radius:18px;background:#fff;border:1px solid var(--line)}
+.refs h2{font-size:19px;margin-bottom:8px}
+.refs ol{margin:0;padding-left:22px;display:flex;flex-direction:column;gap:10px}
+.refs li b{display:block;font-weight:600;line-height:1.6}
+.refs li span{display:block;font-size:15px;color:var(--muted);line-height:1.7}
+.refs a{word-break:break-word}
+.next-card{display:flex;flex-direction:column;gap:4px;margin-top:18px;padding:20px 22px;border-radius:20px;color:var(--ink);background:linear-gradient(135deg,#fff 40%,#eef3ff);background:linear-gradient(135deg,#fff 40%,color-mix(in srgb,var(--course) 14%,#fff));border:2px solid var(--course);box-shadow:var(--shadow)}
+.next-card:hover{color:var(--ink);box-shadow:var(--shadow-lift)}
+.next-card b{font-family:var(--head);font-size:19px;line-height:1.5}
+.next-card p{color:var(--muted);font-size:15.5px}
+.next-card em{font-style:normal;font-weight:600;color:var(--course);display:inline-flex;align-items:center;gap:4px;margin-top:4px}
+.part-head{margin:26px 0 10px}
+.part-head h2{font-size:20px}
+.part-head p{color:var(--muted);font-size:15px}
+html[data-font="large"] .hook p{font-size:20px}
+html[data-font="large"] .sec-list li,html[data-font="large"] .sec-table table{font-size:17.5px}
+
 /* ---------- Review ---------- */
 .review-toolbar{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:16px}
 .segmented{display:inline-flex;padding:4px;border-radius:14px;background:#e6ecf7}

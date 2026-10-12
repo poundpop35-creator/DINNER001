@@ -1,5 +1,6 @@
 // Original foundation lessons, not university lecture transcripts or past exam questions.
-import {easy} from './easy.js?v=20261011';
+import {easy} from './easy.js?v=20261012';
+import {deep} from './deep/index.js?v=20261012';
 const L = (course, n, title, intro, sections, example, trap, terms, questions) => ({
  id:`${course}-${n}`,course,n,title,intro,minutes:15,
  sections:sections.map(([heading,body])=>({heading,body})),
@@ -329,5 +330,16 @@ L('POL2303',5,'ความเป็นธรรม จริยธรรม แ
  [['ความเป็นธรรมเชิงกระบวนการ','ความสม่ำเสมอ ตรวจสอบได้ และโอกาสอธิบายในวิธีตัดสินใจ'],['ผลประโยชน์ทับซ้อน','ผลประโยชน์ส่วนตัวที่อาจกระทบการปฏิบัติหน้าที่อย่างเป็นกลาง']],
  [['กระบวนการตัดสินใจที่ให้ชี้แจงและทบทวนสะท้อนอะไร',['ความเป็นธรรมเชิงกระบวนการ','การให้ทุกคนคะแนนเท่ากัน','ไม่มีมาตรฐาน','ยกเลิกอำนาจบริหาร'],0,'เน้นวิธีตัดสินใจที่อธิบายและตรวจสอบได้'],['พบความสัมพันธ์ส่วนตัวกับผู้ถูกประเมิน ควรทำอะไร',['ไม่ต้องสนใจหากมั่นใจตนเอง','จัดการความเสี่ยงด้วยเกณฑ์และการตรวจสอบตามกติกา','เผยข้อมูลส่วนบุคคลทั้งหมด','ให้คะแนนต่ำไว้ก่อน'],1,'ต้องคุ้มครองความเป็นธรรมโดยไม่ลงโทษหรือเปิดข้อมูลเกินจำเป็น']]),
 ];
-// Attach the plain-language layer; its textbook terms become extra flashcards after the original ones.
-export const lessons = base.map(l=>({...l,easy:easy[l.id],cards:[...l.cards,...(easy[l.id]?.terms||[]).map(([front,back])=>({front,back}))]}));
+const cardsOf=list=>(list||[]).map(([front,back])=>({front,back}));
+const questionsOf=list=>(list||[]).map(([prompt,options,answer,explanation])=>({prompt,options,answer,explanation}));
+const sectionsOf=(list,isDeep)=>(list||[]).map(({heading,body,list,table})=>({heading,body,list:list||null,table:table||null,deep:isDeep}));
+// Reading time: about 450 Thai characters a minute for study reading, plus a few minutes for the quiz, rounded to 5.
+const minutesOf=l=>{const chars=[l.hook,l.intro,...l.sections.flatMap(s=>[s.body,...(s.list||[]),...(s.table?s.table.rows.flat():[])]),l.example.situation,l.example.analysis,l.trap].join('').length;return Math.max(10,Math.round((chars/450+3)/5)*5);};
+const plainRefs=list=>(list||[]).map(({title,detail,url})=>({title,detail,url:typeof url==='string'&&/^https?:\/\/[^\s"'<>]+$/.test(url)?url:null}));
+// Part 1 (n = 1–5): original foundation lessons, plus the plain-language layer and the deep-dive additions appended after them.
+// Card and question order is append-only so saved flashcard reviews and answers keep pointing at the same items.
+function part1(l){const x=deep.expand[l.course]?.[l.n];const e=easy[l.id];return {...l,part:1,easy:e,hook:x?.hook||'',sections:[...l.sections.map(s=>({...s,list:null,table:null,deep:false})),...sectionsOf(x?.sections,true)],cards:[...l.cards,...cardsOf(e?.terms),...cardsOf(x?.cards)],questions:[...l.questions,...questionsOf(x?.questions)],refs:plainRefs(x?.refs),teaser:x?.teaser||''};}
+// Part 2 (n ≥ 6): full textbook-based lessons from dist/deep/<course>.lessons.js.
+function part2(course,l){return {id:`${course}-${l.n}`,course,n:l.n,part:2,title:l.title,intro:l.intro,hook:l.hook,sections:sectionsOf(l.sections,false),example:{situation:l.example.situation,analysis:l.example.analysis},trap:l.trap,easy:l.easy,cards:[...cardsOf(l.cards),...cardsOf(l.easy?.terms)],questions:questionsOf(l.questions),refs:plainRefs(l.refs),teaser:l.teaser||'',reflection:'ลองอธิบายแนวคิดในบทนี้ด้วยภาษาของตัวเอง พร้อมยกตัวอย่างใหม่หนึ่งกรณี และบอกข้อจำกัดของคำอธิบายนั้น'};}
+const courseOrder=[...new Set(base.map(l=>l.course))];
+export const lessons = courseOrder.flatMap(course=>[...base.filter(l=>l.course===course).map(part1),...(deep.lessons[course]||[]).map(l=>part2(course,l))]).map(l=>({...l,minutes:minutesOf(l)}));
