@@ -52,7 +52,7 @@ test('original lesson items keep their positions so saved answers and flashcard 
  for(const l of lessons.filter(l=>l.part===1)){assert.equal(l.sections.slice(0,3).filter(s=>s.deep).length,0,l.id);assert.ok(l.sections.slice(3).every(s=>s.deep),l.id);}
 });
 test('progress and resume only count a course own lessons',()=>{
- const s=freshState();s.completed=['POL1101-1','POL1101-2','POL2104-1'];assert.deepEqual(courseProgress(s,'POL1101'),{done:2,total:5,percent:40});assert.equal(nextLesson(s,'POL1101').id,'POL1101-3');
+ const s=freshState();s.completed=['POL1101-1','POL1101-2','POL2104-1'];const total=lessons.filter(l=>l.course==='POL1101').length;assert.deepEqual(courseProgress(s,'POL1101'),{done:2,total,percent:Math.round(200/total)});assert.equal(nextLesson(s,'POL1101').id,'POL1101-3');
 });
 test('quiz mistake filter only selects attempted wrong answers',()=>{
  const s=freshState();const [a,b]=quizItems(s);s.answers[a.id]=(a.answer+1)%4;s.answers[b.id]=b.answer;assert.deepEqual(quizItems(s,'',true).map(q=>q.id),[a.id]);

@@ -30,7 +30,7 @@ test('notes save immediately and render as text, never executable user HTML',()=
  navigate('#lesson/POL1101-1');assert.ok(html().includes('รัฐกับรัฐบาลต่างกัน'));
 });
 test('completion updates progress and remains reversible without changing earned credits',()=>{
- navigate('#lesson/POL1101-1');click('complete',{id:'POL1101-1'});assert.ok(saved().completed.includes('POL1101-1'));navigate('#course/POL1101');assert.ok(html().includes('เรียนแล้ว 1 / 5 บท'));
+ navigate('#lesson/POL1101-1');click('complete',{id:'POL1101-1'});assert.ok(saved().completed.includes('POL1101-1'));navigate('#course/POL1101');assert.ok(html().includes(`เรียนแล้ว 1 / ${lessons.filter(l=>l.course==='POL1101').length} บท`));
  navigate('#plan');assert.ok(html().includes('สอบผ่านที่บันทึก 0 นก.'));navigate('#lesson/POL1101-1');click('complete',{id:'POL1101-1'});assert.ok(!saved().completed.includes('POL1101-1'));
 });
 test('answers show explanation and mistakes review does not skip it after correction',()=>{
