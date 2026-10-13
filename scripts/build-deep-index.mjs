@@ -1,6 +1,6 @@
 // Regenerate dist/deep/index.js from the course files present in dist/deep/.
 // Usage: node scripts/build-deep-index.mjs [cacheVersion]
-import {readdirSync, writeFileSync} from 'node:fs';
+import {readdirSync, readFileSync, writeFileSync} from 'node:fs';
 
 const version = process.argv[2] || '20261012';
 const files = readdirSync('dist/deep').filter(f => /^POL\d{4}\.(expand|lessons)\.js$/.test(f)).sort();
@@ -15,3 +15,10 @@ for (const f of files) {
 lines.push(`export const deep = {expand:{${expand.join(',')}}, lessons:{${lessons.join(',')}}};`, '');
 writeFileSync('dist/deep/index.js', lines.join('\n'));
 console.log(`dist/deep/index.js: ${expand.length} expand file(s), ${lessons.length} lesson file(s)`);
+
+// Let the browser fetch every course file at once instead of discovering them module by module.
+const html = readFileSync('dist/index.html', 'utf8');
+const preload = files.map(f => ` <link rel="modulepreload" href="./deep/${f}?v=${version}">`).join('\n');
+const marked = /( <!-- deep:preload[^\n]*-->\n)[\s\S]*?( <!-- \/deep:preload -->)/;
+if (!marked.test(html)) throw new Error('dist/index.html is missing the deep:preload markers');
+writeFileSync('dist/index.html', html.replace(marked, (_, open, close) => `${open}${preload ? preload + '\n' : ''}${close}`));

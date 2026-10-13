@@ -103,6 +103,7 @@ footer a{color:var(--muted);text-decoration:underline}
 .progress-track{height:8px;border-radius:99px;background:#e3e9f4;overflow:hidden}
 .progress-track span{display:block;height:100%;border-radius:inherit;background:var(--course,var(--blue));transition:width .4s}
 .empty{text-align:center;padding:40px 24px}
+.loading{padding:48px 8px;text-align:center;font-size:1.05rem;color:var(--muted)}
 .empty h2,.empty h1{margin:10px 0 6px}
 .empty p{margin-bottom:18px;color:var(--muted)}
 .empty-symbol{display:inline-flex;align-items:center;justify-content:center;width:58px;height:58px;border-radius:50%;background:var(--green-soft);color:var(--green)}
