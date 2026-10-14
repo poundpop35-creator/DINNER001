@@ -1,5 +1,5 @@
-import {calendar,courses,schedules} from './data.js?v=20261014d';
-import {addDays,today} from './core.js?v=20261014d';
+import {calendar,courses,schedules} from './data.js?v=20261014e';
+import {addDays,today} from './core.js?v=20261014e';
 export const weekdays=['อาทิตย์','จันทร์','อังคาร','พุธ','พฤหัสบดี','ศุกร์','เสาร์'];
 export function monthBounds(month){
  if(!/^\d{4}-(0[1-9]|1[0-2])$/.test(month))throw new Error('Invalid month');

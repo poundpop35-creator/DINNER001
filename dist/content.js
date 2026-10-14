@@ -1,6 +1,6 @@
-import {supabaseConfig} from './supabase-config.js?v=20261014d';
-import {loadContent,validateCatalog} from './content-client.js?v=20261014d';
-const snapshotURL=new URL('./content.snapshot.json?v=20261014d',import.meta.url);
+import {supabaseConfig} from './supabase-config.js?v=20261014e';
+import {loadContent,validateCatalog} from './content-client.js?v=20261014e';
+const snapshotURL=new URL('./content.snapshot.json?v=20261014e',import.meta.url);
 async function localSnapshot(){
  if(typeof process!=='undefined'&&process.versions?.node){
   const {readFile}=await import('node:fs/promises');return JSON.parse(await readFile(snapshotURL,'utf8'));

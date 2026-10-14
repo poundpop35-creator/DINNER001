@@ -1,7 +1,7 @@
-import {supabaseConfig as config} from './supabase-config.js?v=20261014d';
-import {freshState,validateState} from './core.js?v=20261014d';
-import {freshNotebook,validateEnvelope,validateNotebook,referencedImages} from './notebook-core.js?v=20261014d';
-import {getImage,putImage,newImageId} from './image-store.js?v=20261014d';
+import {supabaseConfig as config} from './supabase-config.js?v=20261014e';
+import {freshState,validateState} from './core.js?v=20261014e';
+import {freshNotebook,validateEnvelope,validateNotebook,referencedImages} from './notebook-core.js?v=20261014e';
+import {getImage,putImage,newImageId} from './image-store.js?v=20261014e';
 export const workspaceKey=id=>'ru-study-workspace.v1:'+id;
 const scriptLoads=new Map();
 export function loadScript(src){if(!scriptLoads.has(src))scriptLoads.set(src,new Promise((resolve,reject)=>{const s=document.createElement('script');s.src=src;s.onload=resolve;s.onerror=()=>{scriptLoads.delete(src);reject(Error('โหลดเครื่องมือไม่สำเร็จ กรุณาลองอีกครั้ง'));};document.head.append(s);}));return scriptLoads.get(src);}

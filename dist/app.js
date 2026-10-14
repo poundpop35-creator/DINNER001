@@ -1,13 +1,13 @@
-import {createStudySpace} from './study-space.js?v=20261014d';
-import {notebookPage,notePage,mountEditor,destroyEditor,notebookAction,notebookSearch,notebookFilter,importNotebook} from './notebook-view.js?v=20261014d';
-import {accountPage,accountAction} from './account-view.js?v=20261014d';
-import {courseResources,resourcesPage} from './resources-view.js?v=20261014d';
-import {calendarPage,calendarAction,calendarCourse,calendarDownload,lectureInfo} from './calendar-view.js?v=20261014d';
-import {contentStatus} from './content.js?v=20261014d';
-import {meta,courses,terms,categories,categoryTargets,sources,courseColors,readingWeek,studyPhases,studyHours} from './data.js?v=20261014d';
-import {lessons} from './lessons.js?v=20261014d';
-import {prep} from './prep.js?v=20261014d';
-import {validateState,loadState,escapeHTML as e,thaiDate,today,daysBetween,courseProgress,progress,nextLesson,exams,examClashes,planSummary,cardsForReview,reviewCard,quizItems,examICS,dailyPlan,phaseFor,hoursUntil,streak,prepResult} from './core.js?v=20261014d';
+import {createStudySpace} from './study-space.js?v=20261014e';
+import {notebookPage,notePage,mountEditor,destroyEditor,notebookAction,notebookSearch,notebookFilter,importNotebook} from './notebook-view.js?v=20261014e';
+import {accountPage,accountAction} from './account-view.js?v=20261014e';
+import {courseResources,resourcesPage} from './resources-view.js?v=20261014e';
+import {calendarPage,calendarAction,calendarCourse,calendarDownload,lectureInfo} from './calendar-view.js?v=20261014e';
+import {contentStatus} from './content.js?v=20261014e';
+import {meta,courses,terms,categories,categoryTargets,sources,courseColors,readingWeek,studyPhases,studyHours} from './data.js?v=20261014e';
+import {lessons} from './lessons.js?v=20261014e';
+import {prep} from './prep.js?v=20261014e';
+import {validateState,loadState,escapeHTML as e,thaiDate,today,daysBetween,courseProgress,progress,nextLesson,exams,examClashes,planSummary,cardsForReview,reviewCard,quizItems,examICS,dailyPlan,phaseFor,hoursUntil,streak,prepResult} from './core.js?v=20261014e';
 
 const icons={home:'<path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1z"/>',book:'<path d="M12 5v16M3 4h5a4 4 0 0 1 4 3 4 4 0 0 1 4-3h5v15h-5a4 4 0 0 0-4 2 4 4 0 0 0-4-2H3z"/>',cards:'<rect x="7" y="3" width="13" height="16" rx="2"/><path d="M4 7H3v14h13v-1M11 8h5m-5 4h5"/>',plan:'<path d="M8 5h13M8 12h13M8 19h13m-19-15 1 1 2-2m-3 8 1 1 2-2m-3 8 1 1 2-2"/>',calendar:'<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M7 3v4m10-4v4M3 11h18m-13 4h2m4 0h2m-8 3h2"/>',notes:'<path d="M14 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-9M9 15l2-5 8-8 3 3-8 8z"/>',link:'<path d="M10 13a5 5 0 0 0 7 0l4-4a5 5 0 0 0-7-7l-2 2M14 11a5 5 0 0 0-7 0l-4 4a5 5 0 0 0 7 7l2-2"/>',arrow:'<path d="M4 12h16m-6-6 6 6-6 6"/>',check:'<path d="m5 12 4 4L19 6"/>',clock:'<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',search:'<circle cx="10" cy="10" r="7"/><path d="m15 15 6 6"/>',download:'<path d="M12 3v12m-5-5 5 5 5-5M4 17v4h16v-4"/>',flame:'<path d="M12 3c1 4 5 6 5 11a5 5 0 0 1-10 0c0-3 2-4 2-7 2 1 3 3 3 5 1-2 1-5 0-9z"/>',bolt:'<path d="M13 2 4 14h7l-1 8 9-12h-7z"/>',bulb:'<path d="M9 18h6m-5 3h4M12 3a6 6 0 0 0-4 10.5c.8.8 1 1.5 1 2.5h6c0-1 .2-1.7 1-2.5A6 6 0 0 0 12 3z"/>',star:'<path d="m12 3 2.7 5.6 6.1.9-4.4 4.3 1 6.1-5.4-2.9-5.4 2.9 1-6.1-4.4-4.3 6.1-.9z"/>',target:'<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/>',gear:'<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>',alert:'<path d="M12 9v4m0 4h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/>',spark:'<path d="M12 3v4m0 10v4M3 12h4m10 0h4M6 6l2.5 2.5m7 7L18 18M6 18l2.5-2.5m7-7L18 6"/>',quote:'<path d="M7 7h4v4c0 3-1.5 5-4 6m6-10h4v4c0 3-1.5 5-4 6"/>'};
 const icon=(name,size=20)=>`<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${icons[name]||icons.book}</svg>`;
