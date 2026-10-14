@@ -8,6 +8,14 @@ export function monthBounds(month){
 }
 export function shiftMonth(month,delta){const [year,n]=month.split('-').map(Number);return new Date(Date.UTC(year,n-1+delta,1,12)).toISOString().slice(0,7);}
 export function defaultMonth(day=today()){return (day<calendar.lectureStart?calendar.lectureStart:day>calendar.examEnd?calendar.examEnd:day).slice(0,7);}
+// Switching a filter must pick a month containing that kind of activity,
+// independently of the month previously selected for a different filter.
+export function activityMonth(type='all',day=today(),course=''){
+ const events=calendarEvents({type,course}).filter(x=>x.type!=='notice');
+ const current=day.slice(0,7);
+ if(events.some(x=>x.date.startsWith(current)))return current;
+ return (events.find(x=>x.date>=day)||events.at(-1))?.date.slice(0,7)||defaultMonth(day);
+}
 export function lectureClashes(){
  const result=[];
  for(let i=0;i<schedules.length;i++)for(let j=i+1;j<schedules.length;j++){

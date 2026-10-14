@@ -1,7 +1,16 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {schedules} from '../dist/data.js';
-import {calendarEvents,firstLecture,lectureClashes,monthBounds,shiftMonth,defaultMonth,scheduleICS} from '../dist/calendar-core.js';
+import {calendarEvents,firstLecture,lectureClashes,monthBounds,shiftMonth,defaultMonth,activityMonth,scheduleICS} from '../dist/calendar-core.js';
+test('filter focus chooses a month containing the selected activity, before, during and after the semester',()=>{
+ assert.equal(activityMonth('exam','2026-10-14'),'2027-03');
+ assert.equal(activityMonth('lecture','2026-10-14'),'2026-11');
+ assert.equal(activityMonth('all','2026-10-14'),'2026-11');
+ assert.equal(activityMonth('lecture','2027-01-20'),'2027-01');
+ assert.equal(activityMonth('lecture','2027-01-20','POL2104'),'2027-01');
+ assert.equal(activityMonth('exam','2027-02-12','POL2104'),'2027-03');
+ assert.equal(activityMonth('lecture','2027-04-01'),'2027-03');
+});
 test('lecture rows exactly match official MR30 pages 142–143, including unusual POL1101 time',()=>{
  const expected={POL1101:[1,'11:10','13:40','KTB 401','2026-11-16'],POL2104:[3,'13:30','15:20','KLB 501','2026-11-18'],POL2106:[3,'13:30','15:20','VPB 501','2026-11-18'],POL2107:[4,'17:30','19:20','VKB 301','2026-11-19'],POL2200:[5,'13:30','15:20','VPB 401','2026-11-20'],POL2301:[3,'11:30','13:20','KLB 301','2026-11-18'],POL2303:[2,'11:30','13:20','KLB 201','2026-11-17']};
  assert.equal(schedules.length,7);for(const s of schedules)assert.deepEqual([s.weekday,s.startTime,s.endTime,s.room,firstLecture(s)],expected[s.course]);

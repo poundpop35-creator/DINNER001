@@ -4,6 +4,7 @@ import assert from 'node:assert/strict';
 import {lessons} from '../dist/lessons.js';
 import {prep} from '../dist/prep.js';
 import {escapeHTML,today} from '../dist/core.js';
+import {activityMonth} from '../dist/calendar-core.js';
 
 import {cloudFixture,personalFetcher} from './cloud-fixture.js';
 const fixture=cloudFixture();
@@ -34,7 +35,7 @@ test('home and full lessons open before any private-space connection, without lo
 });
 
 test('every main route and every lesson page renders without runtime errors',()=>{
- for(const route of ['home','courses','review','plan','calendar','exams','resources','notes','account','about','settings']){navigate('#'+route);assert.ok(html().length>500,route);assert.ok(!html().includes('[object Object]'),route);assert.ok(!html().includes('undefined'),route);}
+ for(const route of ['home','courses','classroom','review','plan','calendar','exams','resources','notes','account','about','settings']){navigate('#'+route);assert.ok(html().length>500,route);assert.ok(!html().includes('[object Object]'),route);assert.ok(!html().includes('undefined'),route);}
  for(const l of lessons){navigate('#lesson/'+l.id);assert.ok(html().includes(l.title),l.id);assert.ok(html().includes(l.example.analysis),l.id);assert.equal((html().match(/class="question-block"/g)||[]).length,l.questions.length,l.id);}
  navigate('#lesson/missing');assert.ok(html().includes('ไม่พบหน้าที่เลือก'));
 });
@@ -46,6 +47,27 @@ test('calendar filters, selected-day details, references and resource links work
  listeners.change({target:{id:'calendar-course',value:'POL2104'}});assert.equal((html().match(/calendar-event exam-event/g)||[]).length,1);assert.ok(html().includes('คาบ A'));assert.ok(html().includes('10 มี.ค. 2570'));
  navigate('#resources');assert.ok(html().includes('https://ondemand.ru.ac.th/'));assert.ok(html().includes('https://bookstore.ru.ac.th/'));assert.equal((html().match(/class="panel desk-course"/g)||[]).length,7);
  navigate('#course/POL1101');assert.ok(html().includes('11:10–13:40'));assert.ok(html().includes('https://bookstore.ru.ac.th/'));
+});
+test('switching exams back to classes leaves March and returns to the relevant lecture month',()=>{
+ navigate('#calendar');listeners.change({target:{id:'calendar-course',value:''}});
+ click('cal-filter',{type:'exam'});click('cal-view',{view:'month'});click('cal-day',{date:'2027-03-10'});
+ click('cal-filter',{type:'lecture'});
+ const label=new Intl.DateTimeFormat('th-TH',{month:'long',year:'numeric',timeZone:'Asia/Bangkok'}).format(new Date(activityMonth('lecture')+'-01T12:00:00+07:00'));
+ assert.ok(html().includes(label));assert.ok(html().includes('แตะวันที่เพื่อดูเวลาและห้องเรียน'));
+ assert.ok(html().includes('calendar-chip lecture'));assert.ok(!html().includes('calendar-chip exam'));
+ click('cal-jump',{month:'2027-03',type:'exam'});assert.ok(html().includes('calendar-chip exam'));
+ click('cal-jump',{month:'2026-11',type:'lecture'});assert.ok(html().includes('calendar-chip lecture'));
+});
+test('pre-class material and actual classroom content are separate, and notes have a visible mobile menu',()=>{
+ navigate('#courses');assert.ok(html().includes('<h1>ติวก่อนเรียน</h1>'));assert.ok(html().includes('ไม่ใช่คำบรรยายหรือเอกสารของอาจารย์'));
+ assert.ok(get('#bottom-nav').innerHTML.includes('href="#notes"'));assert.ok(get('#bottom-nav').innerHTML.includes('สมุดจด'));
+ navigate('#classroom');assert.ok(html().includes('ยังไม่ได้รับเนื้อหาจากอาจารย์'));assert.ok(!html().includes('class="lesson-row'));
+ assert.equal((html().match(/data-source="classroom"/g)||[]).length,7);
+ click('nb-new',{course:'POL2301',source:'classroom'});navigate(location.hash);
+ assert.ok(get('#bottom-nav').innerHTML.includes('href="#notes" aria-current="page"'));
+ assert.ok(html().includes('value="classroom" selected'));assert.ok(html().includes('id="open-ink-pad"'));
+ navigate('#notes');listeners.change({target:{id:'notebook-source',value:'classroom'}});assert.ok(html().includes('note-origin classroom'));
+ listeners.change({target:{id:'notebook-source',value:''}});
 });
 test('notes save immediately and render as text, never executable user HTML',()=>{
  navigate('#lesson/POL1101-1');listeners.input({target:{id:'lesson-note',dataset:{lesson:'POL1101-1'},value:'<script>unsafe()</script>\nรัฐกับรัฐบาลต่างกัน'}});
@@ -61,7 +83,7 @@ test('rich notebook page supports course-linked writing, formatting controls, im
  navigate('#account');assert.ok(html().includes('คัดลอกลิงก์เปิดบนอีกเครื่อง'));assert.ok(!html().includes('account-google'));assert.ok(!html().includes('account-signin'));assert.ok(!html().includes('URL Configuration'));
 });
 test('completion updates progress and remains reversible without changing earned credits',()=>{
- navigate('#lesson/POL1101-1');click('complete',{id:'POL1101-1'});assert.ok(saved().completed.includes('POL1101-1'));navigate('#course/POL1101');assert.ok(html().includes(`เรียนแล้ว 1 / ${lessons.filter(l=>l.course==='POL1101').length} บท`));
+ navigate('#lesson/POL1101-1');click('complete',{id:'POL1101-1'});assert.ok(saved().completed.includes('POL1101-1'));navigate('#course/POL1101');assert.ok(html().includes(`ติวแล้ว 1 / ${lessons.filter(l=>l.course==='POL1101').length} บท`));
  navigate('#plan');assert.ok(html().includes('สอบผ่านที่บันทึก 0 นก.'));navigate('#lesson/POL1101-1');click('complete',{id:'POL1101-1'});assert.ok(!saved().completed.includes('POL1101-1'));
 });
 test('answers show explanation and mistakes review does not skip it after correction',()=>{

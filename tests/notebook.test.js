@@ -5,6 +5,16 @@ import {freshState,validateState} from '../dist/core.js';
 import {createStudySpace,workspaceKey} from '../dist/study-space.js';
 import {memoryStorage,cloudFixture,imageCache,settingsFetcher} from './cloud-fixture.js';
 const makeSpace=(cloud,options={})=>createStudySpace({storage:memoryStorage(),progress:freshState(),clientFactory:async()=>cloud.client,settingsFetcher,imageStore:imageCache(),...options});
+test('old notes remain intact while their source can be distinguished and filtered',()=>{
+ const old=newNote({id:'old',lesson:'POL1101-1',text:'ติวเดิม'});delete old.source;
+ const personal=newNote({id:'personal',text:'บันทึกเดิม'});delete personal.source;
+ const classroom=newNote({id:'classroom',source:'classroom',course:'POL1101',text:'สิ่งที่ฉันจดจากห้อง'});
+ const book=validateNotebook({version:1,notes:[old,personal,classroom]});
+ assert.deepEqual(book.notes.map(n=>n.source),['prep','general','classroom']);
+ assert.equal(deltaText(book.notes[0].delta),'ติวเดิม\n');
+ assert.deepEqual(findNotes(book,{source:'classroom'}).map(n=>n.id),['classroom']);
+ assert.deepEqual(findNotes(book,{source:'prep',query:'ติว'}).map(n=>n.id),['old']);
+});
 
 test('note round trip preserves Thai, color, highlight, image IDs, recall and course links',()=>{
  const n=newNote({course:'POL1101',lesson:'POL1101-1',title:'รัฐกับรัฐบาล'}),id='123e4567-e89b-12d3-a456-426614174000.png';
@@ -33,7 +43,7 @@ test('another device with empty storage restores the complete workspace and pict
  const cloud=cloudFixture(),first=makeSpace(cloud),second=makeSpace(cloud);
  await first.init();
  const image=await first.uploadImage(new Blob(['test image'],{type:'image/png'}));
- const n=newNote({id:'rich',course:'POL1101',text:'เปิดจากอีกเครื่อง'});n.delta.ops.unshift({insert:'ประเด็นสำคัญ',attributes:{color:'#1d4ed8',background:'#fef08a'}},{insert:{studyImage:image}});n.question='คำถาม';n.answer='คำตอบ';
+ const n=newNote({id:'rich',source:'classroom',course:'POL1101',text:'เปิดจากอีกเครื่อง'});n.delta.ops.unshift({insert:'ประเด็นสำคัญ',attributes:{color:'#1d4ed8',background:'#fef08a'}},{insert:{studyImage:image}});n.question='คำถาม';n.answer='คำตอบ';
  first.saveNotebook({version:1,notes:[n]});
  const progress=freshState();progress.completed=['POL1101-1'];progress.grades.POL1101='A';progress.hours.weekday=3;progress.termMoves.POL2104=2;progress.notes['POL1101-1']='โน้ตเดิม';first.saveProgress(progress);
  assert.equal(first.info().dirty,true);assert.notEqual(first.info().phase,'saved');
