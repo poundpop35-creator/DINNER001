@@ -99,7 +99,8 @@ test('plan follows the weekly rotation, then exam order, then the next exam',()=
  const s=freshState();
  assert.equal(phaseFor('2026-10-12').id,'learn');assert.equal(weekdayIndex('2026-10-12'),0);
  const mon=dailyPlan(s,'2026-10-12');assert.equal(mon.blocks.find(b=>b.id==='main').course,'POL2106');assert.equal(mon.blocks.find(b=>b.id==='main').href,'#lesson/POL2106-1');
- s.completed=['POL2106-1','POL2106-2','POL2106-3','POL2106-4','POL2106-5'];assert.equal(dailyPlan(s,'2026-10-12').blocks.find(b=>b.id==='main').href,'#course/POL2106');
+ s.completed=['POL2106-1','POL2106-2','POL2106-3','POL2106-4','POL2106-5'];assert.equal(dailyPlan(s,'2026-10-12').blocks.find(b=>b.id==='main').href,lessons.some(l=>l.id==='POL2106-6')?'#lesson/POL2106-6':'#course/POL2106');
+ s.completed=lessons.filter(l=>l.course==='POL2106').map(l=>l.id);assert.equal(dailyPlan(s,'2026-10-12').blocks.find(b=>b.id==='main').href,'#course/POL2106');
  const order=exams().map(c=>c.id);for(let i=0;i<7;i++)assert.equal(dailyPlan(s,addDays('2027-02-01',i)).blocks.find(b=>b.id==='main').course,order[i]);
  assert.equal(dailyPlan(s,'2027-03-14').blocks.find(b=>b.id==='main').course,'POL2303');
  const examDay=dailyPlan(s,'2027-03-21');assert.ok(examDay.blocks.find(b=>b.id==='examday').title.includes('POL2301'));assert.equal(examDay.blocks.find(b=>b.id==='second').course,'POL2107');

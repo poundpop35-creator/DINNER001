@@ -1,8 +1,8 @@
-import {courses} from './data.js?v=20261014e';
-import {lessons} from './lessons.js?v=20261014e';
-import {escapeHTML as e} from './core.js?v=20261014e';
-import {newNote,findNotes,deltaText,cleanDelta,legacyNotes,PALETTE,HIGHLIGHTS,referencedImages} from './notebook-core.js?v=20261014e';
-import {loadScript} from './study-space.js?v=20261014-nologin1';
+import {courses} from './data.js?v=20261014f';
+import {lessons} from './lessons.js?v=20261014f';
+import {escapeHTML as e} from './core.js?v=20261014f';
+import {newNote,findNotes,deltaText,cleanDelta,legacyNotes,PALETTE,HIGHLIGHTS,referencedImages} from './notebook-core.js?v=20261014f';
+import {loadScript} from './study-space.js?v=20261014f';
 let query='',course='',archived=false,reviewing=false,reviewIndex=0,revealed=false,editor=null,unmount=()=>{},mountNumber=0;
 const stamps=x=>new Intl.DateTimeFormat('th-TH',{dateStyle:'medium',timeStyle:'short'}).format(new Date(x));
 const choices=value=>`<option value="">บันทึกทั่วไป</option>${courses.map(c=>`<option value="${c.id}" ${value===c.id?'selected':''}>${c.id} · ${e(c.title)}</option>`).join('')}`;
