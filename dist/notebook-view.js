@@ -2,12 +2,12 @@ import {courses} from './data.js?v=20261014e';
 import {lessons} from './lessons.js?v=20261014e';
 import {escapeHTML as e} from './core.js?v=20261014e';
 import {newNote,findNotes,deltaText,cleanDelta,legacyNotes,PALETTE,HIGHLIGHTS,referencedImages} from './notebook-core.js?v=20261014e';
-import {loadScript} from './study-space.js?v=20261014e';
+import {loadScript} from './study-space.js?v=20261014-nologin1';
 let query='',course='',archived=false,reviewing=false,reviewIndex=0,revealed=false,editor=null,unmount=()=>{},mountNumber=0;
 const stamps=x=>new Intl.DateTimeFormat('th-TH',{dateStyle:'medium',timeStyle:'short'}).format(new Date(x));
 const choices=value=>`<option value="">บันทึกทั่วไป</option>${courses.map(c=>`<option value="${c.id}" ${value===c.id?'selected':''}>${c.id} · ${e(c.title)}</option>`).join('')}`;
 function heading(title,detail){return `<div class="page-heading"><div><div class="eyebrow">MY LEARNING NOTEBOOK</div><h1>${title}</h1><p>${detail}</p></div></div>`;}
-function status(space){const i=space.info();return `<div class="notebook-status"><span class="status-dot"></span><span data-sync-status>${e(i.status)}</span><a href="#account">${i.user?'บัญชีและการซิงก์':'เข้าสู่ระบบเพื่อเปิดสมุดจดออนไลน์'} →</a></div>`;}
+function status(space){const i=space.info();return `<div class="notebook-status"><span class="status-dot"></span><span data-sync-status>${e(i.status)}</span><a href="#account">ข้อมูลและเปิดบนอีกเครื่อง →</a></div>`;}
 export function notebookPage(space,progress){
  const book=space.notebook(),items=findNotes(book,{query,course,archived});
  if(reviewing){const deck=findNotes(book,{course}).filter(n=>n.question.trim()&&n.answer.trim());const n=deck[reviewIndex%deck.length];return `${heading('ทบทวนจากโน้ตของฉัน','นึกคำตอบก่อนเปิดดู ใช้สิ่งที่คุณจดมาเตรียมสอบ')}<button class="button secondary" data-action="nb-review-close">← กลับสมุดจด</button>${n?`<section class="panel note-recall"><span class="badge">${e(n.course||'ทั่วไป')} · ${reviewIndex%deck.length+1}/${deck.length}</span><h2>${e(n.question)}</h2>${revealed?`<div class="recall-answer">${e(n.answer)}</div><button class="button primary" data-action="nb-review-next">ข้อถัดไป →</button>`:'<button class="button primary" data-action="nb-reveal">เปิดคำตอบ</button>'}<a href="#note/${n.id}" class="text-link">เปิดโน้ตต้นทาง →</a></section>`:'<div class="panel empty"><h2>ยังไม่มีคำถามจากโน้ต</h2><p>เปิดหน้าโน้ต แล้วเติม “คำถามทวนความจำ” กับ “คำตอบของฉัน” ก่อน</p></div>'}`;}
@@ -52,7 +52,7 @@ export async function mountEditor(space,id){
 function download(name,data,type='application/json'){const u=URL.createObjectURL(new Blob([data],{type})),a=document.createElement('a');a.href=u;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(u),1000);}
 async function exportBook(space){const snapshot=space.snapshot(),images={};for(const id of referencedImages(snapshot.notebook)){const b=await space.image(id);images[id]=await new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result);r.onerror=rej;r.readAsDataURL(b);});}download('ru-study-notebook-'+new Date().toISOString().slice(0,10)+'.json',JSON.stringify({format:'ru-study-notebook',version:1,snapshot,images}));}
 export async function notebookAction(action,data,space,progress,render,toast){
- if(!space.info().canEdit){toast('เข้าสู่ระบบก่อนเปิดสมุดจดออนไลน์');return;}
+ if(!space.info().canEdit){toast('กำลังเชื่อมต่อสมุดจดกับ Supabase กรุณาลองอีกครั้ง');return;}
  const book=space.notebook(),n=book.notes.find(x=>x.id===data.id);
  try{
   if(action==='nb-new'||action==='nb-from-lesson'){const l=lessons.find(x=>x.id===data.lesson);const note=newNote({course:l?.course||course,lesson:l?.id||'',title:l?.title||'โน้ตใหม่'});book.notes.push(note);space.saveNotebook(book);location.hash='#note/'+note.id;}

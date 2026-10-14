@@ -22,10 +22,10 @@ test('search, pinning, archive and legacy copy do not discard original lesson no
  const book={version:1,notes:[a,b,c]};assert.deepEqual(findNotes(book).map(n=>n.id),['b','a']);assert.deepEqual(findNotes(book,{query:'รัฐบาล'}).map(n=>n.id),['a']);assert.deepEqual(findNotes(book,{archived:true}).map(n=>n.id),['c']);
  const p=freshState();p.notes['POL1101-1']='ต้นฉบับ';assert.equal(legacyNotes(p,[])[0].id,'legacy-POL1101-1');assert.equal(p.notes['POL1101-1'],'ต้นฉบับ');
 });
-test('online notebook requires an account and cannot silently create device-only data',()=>{
+test('online notebook waits for a connected space and cannot silently create device-only data',()=>{
  const storage=memoryStorage(),space=createStudySpace({storage,progress:freshState()});
- assert.throws(()=>space.saveNotebook({version:1,notes:[newNote()]}),/เข้าสู่ระบบ/);
- assert.throws(()=>space.saveProgress(freshState()),/เข้าสู่ระบบ/);
+ assert.throws(()=>space.saveNotebook({version:1,notes:[newNote()]}),/พื้นที่บันทึก/);
+ assert.throws(()=>space.saveProgress(freshState()),/พื้นที่บันทึก/);
  assert.equal(space.info().canEdit,false);assert.equal(storage.map.size,0);
 });
 

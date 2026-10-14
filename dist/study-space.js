@@ -1,3 +1,4 @@
+import {createPersonalClient} from './personal-client.js?v=20261014-nologin1';
 import {supabaseConfig as config} from './supabase-config.js?v=20261014e';
 import {freshState,validateState} from './core.js?v=20261014e';
 import {freshNotebook,validateEnvelope,validateNotebook,referencedImages} from './notebook-core.js?v=20261014e';
@@ -11,7 +12,7 @@ const message=err=>err?.code==='40001'?'มีข้อมูลใหม่จ�
 // Supabase is authoritative. Device storage is only a recovery queue/cache.
 export function createStudySpace({storage,progress,onProgress=()=>{},onChange=()=>{},onStatus=()=>{},clientFactory,settingsFetcher=fetch,imageStore={get:getImage,put:putImage}}){
  let scope='guest',user=null,client=null,revision=0,dirty=false,conflict=false,timer,poll,busy=false,epoch=0,edit=0,locked=false,initialized=false,hydrated=false,disposed=false;
- let status='กำลังเชื่อมต่อบัญชี…',phase='loading',lastSync='',providers={},cacheWarning='',payload=empty(),subscription;
+ let status='กำลังเชื่อมต่อพื้นที่เรียน…',phase='loading',lastSync='',providers={},cacheWarning='',payload=empty(),subscription;
  const uploaded=new Set(),removeListeners=[];
  function notify(){onStatus(api.info());}
  function setStatus(text,state){status=text;phase=state;notify();}
@@ -25,7 +26,7 @@ export function createStudySpace({storage,progress,onProgress=()=>{},onChange=()
   try{storage.setItem(workspaceKey(scope),JSON.stringify({payload,revision,dirty,lastSync}));cacheWarning='';return true;}
   catch{cacheWarning='เก็บสำเนาชั่วคราวในเครื่องไม่ได้ อย่าปิดหน้านี้จนกว่าจะบันทึกใน Supabase สำเร็จ';return false;}
  }
- function requireAccount(){if(!user)throw Error('เข้าสู่ระบบก่อน เพื่อบันทึกข้อมูลใน Supabase และเปิดต่อได้ทุกเครื่อง');if(!hydrated||locked)throw Error('ยังโหลดข้อมูลบัญชีจาก Supabase ไม่สำเร็จ กรุณาลองเชื่อมต่ออีกครั้ง');}
+ function requireAccount(){if(!user)throw Error('กำลังเชื่อมต่อพื้นที่บันทึกใน Supabase กรุณาลองอีกครั้ง');if(!hydrated||locked)throw Error('ยังโหลดข้อมูลบัญชีจาก Supabase ไม่สำเร็จ กรุณาลองเชื่อมต่ออีกครั้ง');}
  function schedule(delay=700){clearTimeout(timer);timer=setTimeout(()=>sync(),delay);timer?.unref?.();}
  function changed(){requireAccount();edit++;dirty=true;persist();setStatus('กำลังรอบันทึกใน Supabase…','pending');schedule();return true;}
  async function fetchRemote(uid){const {data,error}=await client.from('ru_study_workspaces').select('payload,revision,updated_at').eq('user_id',uid).maybeSingle();if(error)throw error;return data;}
@@ -80,7 +81,8 @@ export function createStudySpace({storage,progress,onProgress=()=>{},onChange=()
  function listen(target,event,fn){target?.addEventListener?.(event,fn);removeListeners.push(()=>target?.removeEventListener?.(event,fn));}
  const api={
   dispose(){disposed=true;clearTimeout(timer);clearInterval(poll);epoch++;subscription?.unsubscribe();removeListeners.forEach(fn=>fn());},
-  info:()=>({scope,user,status,phase,lastSync,dirty,busy,conflict,locked,providers,ready:!!client,initialized,hydrated,canEdit:!!user&&hydrated&&!locked,cacheWarning}),
+  info:()=>({scope,user,status,phase,lastSync,dirty,busy,conflict,locked,personal:!!client?.personal,providers,ready:!!client,initialized,hydrated,canEdit:!!user&&hydrated&&!locked,cacheWarning:client?.access?.().remembered===false?'เครื่องนี้จำลิงก์ส่วนตัวไม่ได้ กรุณาคัดลอกลิงก์ในเมนูข้อมูลไว้ก่อนปิดแอป':cacheWarning}),
+  access:()=>client?.access?.()||null,
   notebook:()=>payload.notebook,
   snapshot:()=>clone(payload),
   requireAccount,
@@ -89,10 +91,10 @@ export function createStudySpace({storage,progress,onProgress=()=>{},onChange=()
   sync,
   async init(){
    try{
-    if(clientFactory)client=await clientFactory();else{if(!globalThis.supabase?.createClient)await loadScript('./vendor/supabase-2.117.3.js');client=globalThis.supabase.createClient(config.url,config.publishableKey,{auth:{flowType:'pkce',persistSession:true,autoRefreshToken:true,detectSessionInUrl:true,storageKey:'ru-study-auth:'+config.url}});}
+    if(clientFactory)client=await clientFactory();else client=createPersonalClient({storage});
     const listener=client.auth.onAuthStateChange((_event,session)=>{setTimeout(()=>switchUser(session?.user||null),0);});subscription=listener?.data?.subscription;
     const {data,error}=await client.auth.getSession();if(error)throw error;await switchUser(data.session?.user||null);
-    try{const r=await settingsFetcher(config.url+'/auth/v1/settings',{headers:{apikey:config.publishableKey}});if(r.ok)providers=(await r.json()).external||{};}catch{}
+    if(!client.personal)try{const r=await settingsFetcher(config.url+'/auth/v1/settings',{headers:{apikey:config.publishableKey}});if(r.ok)providers=(await r.json()).external||{};}catch{}
     listen(globalThis.window,'online',()=>sync());listen(globalThis.window,'focus',()=>sync());
     listen(globalThis.document,'visibilitychange',()=>{if(document.visibilityState==='visible'||dirty)sync();});
     listen(globalThis.window,'beforeunload',event=>{if(dirty){event.preventDefault();event.returnValue='';}});

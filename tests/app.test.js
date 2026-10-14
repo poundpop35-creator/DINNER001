@@ -5,10 +5,11 @@ import {lessons} from '../dist/lessons.js';
 import {prep} from '../dist/prep.js';
 import {escapeHTML,today} from '../dist/core.js';
 
-import {cloudFixture,settingsFetcher} from './cloud-fixture.js';
+import {cloudFixture,personalFetcher} from './cloud-fixture.js';
 const fixture=cloudFixture();
 globalThis.supabase={createClient:()=>fixture.client};
-globalThis.fetch=settingsFetcher;
+let allowCloud;const cloudReady=new Promise(resolve=>allowCloud=resolve),fetchPersonal=personalFetcher(fixture);
+globalThis.fetch=async(url,options)=>{if(String(url).endsWith('/personal-study/open'))await cloudReady;return fetchPersonal(url,options);};
 const memory=new Map(),elements=new Map(),listeners={};
 const element=()=>({dataset:{},innerHTML:'',textContent:'',value:'',hidden:false,files:[],classList:{add(){},remove(){},contains(){return false}},focus(){},scrollIntoView(){},append(){},remove(){},click(){}});
 function get(selector){if(!elements.has(selector))elements.set(selector,element());return elements.get(selector);}
@@ -17,11 +18,20 @@ globalThis.location={hash:'#home'};
 globalThis.window={localStorage:{getItem:k=>memory.get(k),setItem:(k,v)=>memory.set(k,v)},scrollY:0,scrollTo(){},addEventListener:(type,fn)=>listeners[type]=fn};
 globalThis.confirm=()=>true;
 const {appReady}=await import('../dist/app.js');
+const beforeCloudHome=get('#main').innerHTML;
+location.hash='#lesson/POL1101-1';listeners.hashchange();
+const beforeCloudLesson=get('#main').innerHTML;
+allowCloud();
 await appReady;
 const html=()=>get('#main').innerHTML;
 const navigate=hash=>{location.hash=hash;listeners.hashchange();};
 const click=(action,data={})=>listeners.click({target:{closest:()=>({dataset:{action,...data}})}});
 const saved=()=>JSON.parse(memory.get('ru-study-workspace.v1:user-a')).payload.progress;
+
+test('home and full lessons open before any private-space connection, without login forms',()=>{
+ assert.ok(beforeCloudHome.includes('แผนวันนี้'));assert.ok(beforeCloudLesson.includes(lessons[0].title));
+ for(const html of [beforeCloudHome,beforeCloudLesson]){assert.ok(!html.includes('account-signin'));assert.ok(!html.includes('account-google'));}
+});
 
 test('every main route and every lesson page renders without runtime errors',()=>{
  for(const route of ['home','courses','review','plan','calendar','exams','resources','notes','account','about','settings']){navigate('#'+route);assert.ok(html().length>500,route);assert.ok(!html().includes('[object Object]'),route);assert.ok(!html().includes('undefined'),route);}
@@ -48,7 +58,7 @@ test('rich notebook page supports course-linked writing, formatting controls, im
  click('nb-from-lesson',{lesson:'POL1101-1'});assert.match(location.hash,/^#note\//);navigate(location.hash);
  for(const text of ['ไฮไลต์','สีตัวอักษร','แทรกรูป','คำถามทวนความจำ','note-image-file','note-question','POL1101'])assert.ok(html().includes(text),text);
  navigate('#notes');assert.ok(html().includes('ส่งออกโน้ตพร้อมรูป'));assert.ok(html().includes('POL1101'));click('nb-review');assert.ok(html().includes('ยังไม่มีคำถามจากโน้ต'));click('nb-review-close');
- navigate('#account');assert.ok(html().includes('Google'));assert.ok(html().includes('URL Configuration'));
+ navigate('#account');assert.ok(html().includes('คัดลอกลิงก์เปิดบนอีกเครื่อง'));assert.ok(!html().includes('account-google'));assert.ok(!html().includes('account-signin'));assert.ok(!html().includes('URL Configuration'));
 });
 test('completion updates progress and remains reversible without changing earned credits',()=>{
  navigate('#lesson/POL1101-1');click('complete',{id:'POL1101-1'});assert.ok(saved().completed.includes('POL1101-1'));navigate('#course/POL1101');assert.ok(html().includes(`เรียนแล้ว 1 / ${lessons.filter(l=>l.course==='POL1101').length} บท`));
