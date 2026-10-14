@@ -1,4 +1,4 @@
-import {imageId} from './notebook-core.js?v=20261014g';
+import {imageId} from './notebook-core.js?v=20261014h';
 const TYPES={'image/jpeg':'jpg','image/png':'png','image/webp':'webp','image/gif':'gif'};
 let dbPromise;
 function db(){return dbPromise??=new Promise((resolve,reject)=>{const r=indexedDB.open('ru-study-images',1);r.onupgradeneeded=()=>r.result.createObjectStore('images');r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(Error('เปิดที่เก็บรูปในเครื่องไม่ได้'));});}

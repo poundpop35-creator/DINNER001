@@ -1,5 +1,5 @@
-import {courses} from './data.js?v=20261014g';
-import {escapeHTML as e} from './core.js?v=20261014g';
+import {courses} from './data.js?v=20261014h';
+import {escapeHTML as e} from './core.js?v=20261014h';
 
 export function studySections(active='prep'){
  return `<nav class="study-sections" aria-label="แยกเนื้อหาการเรียน"><a href="#courses" ${active==='prep'?'aria-current="page"':''}><strong>ติวก่อนเรียน</strong><span>ปูพื้นฐานและฝึกด้วยตัวเอง</span></a><a href="#classroom" ${active==='classroom'?'aria-current="page"':''}><strong>เนื้อหาจากห้องเรียน</strong><span>เอกสารและคำสอนของอาจารย์</span></a><a href="#notes" ${active==='notes'?'aria-current="page"':''}><strong>สมุดจดของฉัน</strong><span>พิมพ์ เขียนด้วยปากกา และเก็บรูป</span></a></nav>`;

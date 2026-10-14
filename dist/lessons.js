@@ -1,7 +1,7 @@
 // Lessons come from the content catalog (Supabase, or the bundled snapshot) plus deep content shipped with the app in dist/deep/.
 // Part 1 (n = 1–5): catalog lessons with the "เจาะลึก" additions appended. Part 2 (n ≥ 6): full textbook-based lessons.
-import {catalog} from './content.js?v=20261014g';
-import {deep} from './deep/index.js?v=20261014g';
+import {catalog} from './content.js?v=20261014h';
+import {deep} from './deep/index.js?v=20261014h';
 const cardsOf=list=>(list||[]).map(([front,back])=>({front,back}));
 const questionsOf=list=>(list||[]).map(([prompt,options,answer,explanation])=>({prompt,options,answer,explanation}));
 const sectionsOf=(list,isDeep)=>(list||[]).map(({heading,body,list,table})=>({heading,body,list:list||null,table:table||null,deep:isDeep}));
