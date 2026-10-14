@@ -3,31 +3,52 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {lessons} from '../dist/lessons.js';
 import {prep} from '../dist/prep.js';
-import {STORAGE_KEY,escapeHTML,today} from '../dist/core.js';
+import {escapeHTML,today} from '../dist/core.js';
 
+import {cloudFixture,settingsFetcher} from './cloud-fixture.js';
+const fixture=cloudFixture();
+globalThis.supabase={createClient:()=>fixture.client};
+globalThis.fetch=settingsFetcher;
 const memory=new Map(),elements=new Map(),listeners={};
-const element=()=>({innerHTML:'',textContent:'',value:'',hidden:false,files:[],classList:{add(){},remove(){},contains(){return false}},focus(){},scrollIntoView(){},append(){},remove(){},click(){}});
+const element=()=>({dataset:{},innerHTML:'',textContent:'',value:'',hidden:false,files:[],classList:{add(){},remove(){},contains(){return false}},focus(){},scrollIntoView(){},append(){},remove(){},click(){}});
 function get(selector){if(!elements.has(selector))elements.set(selector,element());return elements.get(selector);}
 globalThis.document={querySelector:get,getElementById:id=>get('#'+id),addEventListener:(type,fn)=>listeners[type]=fn,body:element(),documentElement:{dataset:{}},createElement:element,title:''};
 globalThis.location={hash:'#home'};
 globalThis.window={localStorage:{getItem:k=>memory.get(k),setItem:(k,v)=>memory.set(k,v)},scrollY:0,scrollTo(){},addEventListener:(type,fn)=>listeners[type]=fn};
 globalThis.confirm=()=>true;
-await import('../dist/app.js');
+const {appReady}=await import('../dist/app.js');
+await appReady;
 const html=()=>get('#main').innerHTML;
 const navigate=hash=>{location.hash=hash;listeners.hashchange();};
 const click=(action,data={})=>listeners.click({target:{closest:()=>({dataset:{action,...data}})}});
-const saved=()=>JSON.parse(memory.get(STORAGE_KEY));
+const saved=()=>JSON.parse(memory.get('ru-study-workspace.v1:user-a')).payload.progress;
 
 test('every main route and every lesson page renders without runtime errors',()=>{
- for(const route of ['home','courses','review','plan','exams','notes','about','settings']){navigate('#'+route);assert.ok(html().length>500,route);assert.ok(!html().includes('[object Object]'),route);assert.ok(!html().includes('undefined'),route);}
+ for(const route of ['home','courses','review','plan','calendar','exams','resources','notes','account','about','settings']){navigate('#'+route);assert.ok(html().length>500,route);assert.ok(!html().includes('[object Object]'),route);assert.ok(!html().includes('undefined'),route);}
  for(const l of lessons){navigate('#lesson/'+l.id);assert.ok(html().includes(l.title),l.id);assert.ok(html().includes(l.example.analysis),l.id);assert.equal((html().match(/class="question-block"/g)||[]).length,l.questions.length,l.id);}
  navigate('#lesson/missing');assert.ok(html().includes('ไม่พบหน้าที่เลือก'));
+});
+
+test('calendar filters, selected-day details, references and resource links work together',()=>{
+ navigate('#calendar');assert.ok(html().includes('มีเวลาเรียนชนกัน 1 คู่'));assert.ok(html().includes('mr30-2-2569-p142-143.pdf'));
+ click('cal-jump',{month:'2026-11'});click('cal-day',{date:'2026-11-18'});assert.ok(html().includes('KLB 501'));assert.ok(html().includes('VPB 501'));
+ click('cal-filter',{type:'exam'});click('cal-view',{view:'list'});assert.equal((html().match(/calendar-event exam-event/g)||[]).length,7);
+ listeners.change({target:{id:'calendar-course',value:'POL2104'}});assert.equal((html().match(/calendar-event exam-event/g)||[]).length,1);assert.ok(html().includes('คาบ A'));assert.ok(html().includes('10 มี.ค. 2570'));
+ navigate('#resources');assert.ok(html().includes('https://ondemand.ru.ac.th/'));assert.ok(html().includes('https://bookstore.ru.ac.th/'));assert.equal((html().match(/class="panel desk-course"/g)||[]).length,7);
+ navigate('#course/POL1101');assert.ok(html().includes('11:10–13:40'));assert.ok(html().includes('https://bookstore.ru.ac.th/'));
 });
 test('notes save immediately and render as text, never executable user HTML',()=>{
  navigate('#lesson/POL1101-1');listeners.input({target:{id:'lesson-note',dataset:{lesson:'POL1101-1'},value:'<script>unsafe()</script>\nรัฐกับรัฐบาลต่างกัน'}});
  assert.equal(saved().notes['POL1101-1'],'<script>unsafe()</script>\nรัฐกับรัฐบาลต่างกัน');
  navigate('#notes');assert.ok(html().includes('&lt;script&gt;unsafe()&lt;/script&gt;'));assert.ok(!html().includes('<script>unsafe()'));
  navigate('#lesson/POL1101-1');assert.ok(html().includes('รัฐกับรัฐบาลต่างกัน'));
+});
+test('rich notebook page supports course-linked writing, formatting controls, images and recall',()=>{
+ navigate('#lesson/POL1101-1');assert.ok(html().includes('data-action="nb-from-lesson"'));
+ click('nb-from-lesson',{lesson:'POL1101-1'});assert.match(location.hash,/^#note\//);navigate(location.hash);
+ for(const text of ['ไฮไลต์','สีตัวอักษร','แทรกรูป','คำถามทวนความจำ','note-image-file','note-question','POL1101'])assert.ok(html().includes(text),text);
+ navigate('#notes');assert.ok(html().includes('ส่งออกโน้ตพร้อมรูป'));assert.ok(html().includes('POL1101'));click('nb-review');assert.ok(html().includes('ยังไม่มีคำถามจากโน้ต'));click('nb-review-close');
+ navigate('#account');assert.ok(html().includes('Google'));assert.ok(html().includes('URL Configuration'));
 });
 test('completion updates progress and remains reversible without changing earned credits',()=>{
  navigate('#lesson/POL1101-1');click('complete',{id:'POL1101-1'});assert.ok(saved().completed.includes('POL1101-1'));navigate('#course/POL1101');assert.ok(html().includes(`เรียนแล้ว 1 / ${lessons.filter(l=>l.course==='POL1101').length} บท`));
@@ -71,3 +92,4 @@ test('exam guides render for every course and both practice modes score correctl
  click('prep-reset',{course:'POL2106'});assert.deepEqual(saved().prep.POL2106.answers,{});assert.equal(saved().prep.POL2106.best,1);
  click('prep-mode',{course:'POL2106',mode:'practice'});
 });
+

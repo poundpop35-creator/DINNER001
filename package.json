@@ -1,8 +1,17 @@
 {
   "name": "ru-study-planner",
-  "version": "1.0.0",
+  "version": "1.2.1",
   "private": true,
   "type": "module",
   "description": "Thai Political Science learning room with 35 original foundation lessons",
-  "scripts": {"test": "node --test tests/*.test.js", "check": "node --check dist/app.js && node --check dist/lessons.js && node --check dist/data.js && node --check dist/core.js"}
+  "scripts": {
+    "test": "node --test tests/*.test.js",
+    "check": "node scripts/check.mjs",
+    "prepare:seed": "node scripts/generate-seed.mjs",
+    "prepare:vendor": "node scripts/vendor.mjs"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "2.117.3",
+    "quill": "2.0.3"
+  }
 }
