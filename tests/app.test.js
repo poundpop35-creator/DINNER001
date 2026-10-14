@@ -3,20 +3,25 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {lessons} from '../dist/lessons.js';
 import {prep} from '../dist/prep.js';
-import {STORAGE_KEY,escapeHTML,today} from '../dist/core.js';
+import {escapeHTML,today} from '../dist/core.js';
 
+import {cloudFixture,settingsFetcher} from './cloud-fixture.js';
+const fixture=cloudFixture();
+globalThis.supabase={createClient:()=>fixture.client};
+globalThis.fetch=settingsFetcher;
 const memory=new Map(),elements=new Map(),listeners={};
-const element=()=>({innerHTML:'',textContent:'',value:'',hidden:false,files:[],classList:{add(){},remove(){},contains(){return false}},focus(){},scrollIntoView(){},append(){},remove(){},click(){}});
+const element=()=>({dataset:{},innerHTML:'',textContent:'',value:'',hidden:false,files:[],classList:{add(){},remove(){},contains(){return false}},focus(){},scrollIntoView(){},append(){},remove(){},click(){}});
 function get(selector){if(!elements.has(selector))elements.set(selector,element());return elements.get(selector);}
 globalThis.document={querySelector:get,getElementById:id=>get('#'+id),addEventListener:(type,fn)=>listeners[type]=fn,body:element(),documentElement:{dataset:{}},createElement:element,title:''};
 globalThis.location={hash:'#home'};
 globalThis.window={localStorage:{getItem:k=>memory.get(k),setItem:(k,v)=>memory.set(k,v)},scrollY:0,scrollTo(){},addEventListener:(type,fn)=>listeners[type]=fn};
 globalThis.confirm=()=>true;
-await import('../dist/app.js');
+const {appReady}=await import('../dist/app.js');
+await appReady;
 const html=()=>get('#main').innerHTML;
 const navigate=hash=>{location.hash=hash;listeners.hashchange();};
 const click=(action,data={})=>listeners.click({target:{closest:()=>({dataset:{action,...data}})}});
-const saved=()=>JSON.parse(memory.get(STORAGE_KEY));
+const saved=()=>JSON.parse(memory.get('ru-study-workspace.v1:user-a')).payload.progress;
 
 test('every main route and all 35 lesson pages render without runtime errors',()=>{
  for(const route of ['home','courses','review','plan','calendar','exams','resources','notes','account','about','settings']){navigate('#'+route);assert.ok(html().length>500,route);assert.ok(!html().includes('[object Object]'),route);assert.ok(!html().includes('undefined'),route);}

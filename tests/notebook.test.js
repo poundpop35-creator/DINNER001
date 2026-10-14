@@ -3,6 +3,8 @@ import assert from 'node:assert/strict';
 import {cleanDelta,deltaText,validateNotebook,newNote,findNotes,legacyNotes,referencedImages,validateEnvelope} from '../dist/notebook-core.js';
 import {freshState,validateState} from '../dist/core.js';
 import {createStudySpace,workspaceKey} from '../dist/study-space.js';
+import {memoryStorage,cloudFixture,imageCache,settingsFetcher} from './cloud-fixture.js';
+const makeSpace=(cloud,options={})=>createStudySpace({storage:memoryStorage(),progress:freshState(),clientFactory:async()=>cloud.client,settingsFetcher,imageStore:imageCache(),...options});
 
 test('note round trip preserves Thai, color, highlight, image IDs, recall and course links',()=>{
  const n=newNote({course:'POL1101',lesson:'POL1101-1',title:'รัฐกับรัฐบาล'}),id='123e4567-e89b-12d3-a456-426614174000.png';
@@ -20,26 +22,53 @@ test('search, pinning, archive and legacy copy do not discard original lesson no
  const book={version:1,notes:[a,b,c]};assert.deepEqual(findNotes(book).map(n=>n.id),['b','a']);assert.deepEqual(findNotes(book,{query:'รัฐบาล'}).map(n=>n.id),['a']);assert.deepEqual(findNotes(book,{archived:true}).map(n=>n.id),['c']);
  const p=freshState();p.notes['POL1101-1']='ต้นฉบับ';assert.equal(legacyNotes(p,[])[0].id,'legacy-POL1101-1');assert.equal(p.notes['POL1101-1'],'ต้นฉบับ');
 });
-test('guest notebook persists separately from progress key and preserves formatting after reload',()=>{
- const map=new Map(),storage={getItem:k=>map.get(k),setItem:(k,v)=>map.set(k,v)};
- const one=createStudySpace({storage,progress:freshState()});const book=one.notebook();book.notes.push(newNote({id:'n1',text:'อ่านตอนเย็น'}));assert.equal(one.saveNotebook(book),true);
- const two=createStudySpace({storage,progress:freshState()});assert.equal(deltaText(two.notebook().notes[0].delta),'อ่านตอนเย็น\n');assert.ok(map.has(workspaceKey('guest')));assert.equal(map.has('ru-study-planner.v1'),false);
- assert.equal(validateEnvelope(two.snapshot(),validateState).notebook.notes.length,1);
-});
-test('corrupt and quota-limited notebook storage is reported without silently replacing old data',()=>{
- const map=new Map([[workspaceKey('guest'),'BROKEN']]),storage={getItem:k=>map.get(k),setItem:(k,v)=>map.set(k,v)};const s=createStudySpace({storage,progress:freshState()});s.notebook().notes.push(newNote());assert.equal(s.saveNotebook(s.notebook()),false);assert.equal(map.get(workspaceKey('guest')),'BROKEN');assert.equal(s.info().locked,true);
- const full=createStudySpace({storage:{getItem:()=>null,setItem:()=>{throw Error('quota');}},progress:freshState()});assert.equal(full.saveNotebook(full.notebook()),false);assert.match(full.info().status,/ไม่สำเร็จ/);
+test('online notebook requires an account and cannot silently create device-only data',()=>{
+ const storage=memoryStorage(),space=createStudySpace({storage,progress:freshState()});
+ assert.throws(()=>space.saveNotebook({version:1,notes:[newNote()]}),/เข้าสู่ระบบ/);
+ assert.throws(()=>space.saveProgress(freshState()),/เข้าสู่ระบบ/);
+ assert.equal(space.info().canEdit,false);assert.equal(storage.map.size,0);
 });
 
-test('cloud sync detects concurrent edits, keeps local work, and isolates account caches',async()=>{
- globalThis.window={addEventListener(){}};globalThis.document={addEventListener(){}};
- const local=new Map(),storage={getItem:k=>local.get(k),setItem:(k,v)=>local.set(k,v)};
- const owner={id:'user-a',email:'a@example.test'};let remote=null,calls=0;
- const client={auth:{onAuthStateChange(){},async getSession(){return {data:{session:{user:owner}}};}},from:()=>({select:()=>({eq:()=>({maybeSingle:async()=>({data:remote?structuredClone(remote):null,error:null})})})}),async rpc(_name,{expected_revision,new_payload}){calls++;if(expected_revision!==(remote?.revision||0))return {error:{code:'40001'}};remote={payload:structuredClone(new_payload),revision:expected_revision+1,updated_at:new Date().toISOString()};return {data:remote};}};
- const space=createStudySpace({storage,progress:freshState(),clientFactory:async()=>client,settingsFetcher:async()=>({ok:true,json:async()=>({external:{google:false}})})});
- await space.init();assert.equal(space.info().scope,'user-a');assert.equal(space.notebook().notes.length,0);
- const book=space.notebook();book.notes.push(newNote({id:'mine',text:'ฉบับเครื่องนี้'}));space.saveNotebook(book);await space.sync();assert.equal(calls,1);assert.equal(remote.revision,1);assert.equal(space.info().dirty,false);
- remote.revision=2;remote.payload.notebook.notes[0].title='แก้จากอีกเครื่อง';
- const changed=space.notebook();changed.notes[0].title='งานที่ยังไม่ซิงก์';space.saveNotebook(changed);await space.sync();assert.equal(space.info().conflict,true);assert.equal(calls,1);assert.equal(space.notebook().notes[0].title,'งานที่ยังไม่ซิงก์');
- await space.resolve(true);assert.equal(remote.payload.notebook.notes[0].title,'งานที่ยังไม่ซิงก์');assert.equal(remote.revision,3);assert.ok([...local.keys()].some(k=>k.includes(':recovery:')));assert.ok(local.has(workspaceKey('user-a')));assert.equal(local.has(workspaceKey('user-b')),false);space.dispose();
+test('another device with empty storage restores the complete workspace and pictures from Supabase',async()=>{
+ const cloud=cloudFixture(),first=makeSpace(cloud),second=makeSpace(cloud);
+ await first.init();
+ const image=await first.uploadImage(new Blob(['test image'],{type:'image/png'}));
+ const n=newNote({id:'rich',course:'POL1101',text:'เปิดจากอีกเครื่อง'});n.delta.ops.unshift({insert:'ประเด็นสำคัญ',attributes:{color:'#1d4ed8',background:'#fef08a'}},{insert:{studyImage:image}});n.question='คำถาม';n.answer='คำตอบ';
+ first.saveNotebook({version:1,notes:[n]});
+ const progress=freshState();progress.completed=['POL1101-1'];progress.grades.POL1101='A';progress.hours.weekday=3;progress.termMoves.POL2104=2;progress.notes['POL1101-1']='โน้ตเดิม';first.saveProgress(progress);
+ assert.equal(first.info().dirty,true);assert.notEqual(first.info().phase,'saved');
+ await first.sync();assert.equal(first.info().dirty,false);assert.equal(first.info().status,'บันทึกใน Supabase แล้ว');assert.deepEqual(cloud.calls.slice(0,2),['image','workspace']);
+ await second.init();assert.deepEqual(second.snapshot(),first.snapshot());assert.equal(await (await second.image(image)).text(),'test image');assert.ok(cloud.calls.includes('download'));
+ first.dispose();second.dispose();
+});
+
+test('cloud remains writable even when device storage is unavailable',async()=>{
+ const cloud=cloudFixture(),space=makeSpace(cloud,{storage:{getItem:()=>{throw Error('blocked')},setItem:()=>{throw Error('quota')}}});
+ await space.init();space.saveNotebook({version:1,notes:[newNote({id:'cloud-only',text:'บันทึกออนไลน์'})]});await space.sync();
+ assert.equal(cloud.rows.get(cloud.owner.id).payload.notebook.notes[0].id,'cloud-only');assert.equal(space.info().dirty,false);space.dispose();
+});
+
+test('failed online saves stay pending, retry on recovery, and cannot be signed out prematurely',async()=>{
+ const cloud=cloudFixture(),space=makeSpace(cloud);await space.init();cloud.fail(Error('offline'));
+ space.saveNotebook({version:1,notes:[newNote({id:'pending'})]});await space.sync();assert.equal(space.info().dirty,true);assert.equal(space.info().phase,'error');assert.match(space.info().status,/ยังไม่บันทึกออนไลน์/);assert.equal(cloud.rows.size,0);
+ await assert.rejects(()=>space.signOut(),/ยังมีข้อมูล/);cloud.fail(null);await space.sync();assert.equal(space.info().dirty,false);assert.equal(cloud.rows.get(cloud.owner.id).payload.notebook.notes[0].id,'pending');space.dispose();
+});
+
+test('failed image upload is reported and never inserts a device-only image',async()=>{
+ const cloud=cloudFixture(),space=makeSpace(cloud);await space.init();cloud.fail(Error('offline'));
+ await assert.rejects(()=>space.uploadImage(new Blob(['x'],{type:'image/png'})),/offline/);assert.equal(cloud.images.size,0);assert.equal(space.snapshot().notebook.notes.length,0);space.dispose();
+});
+
+test('cloud sync detects concurrent edits, keeps both revisions, and isolates account caches',async()=>{
+ const cloud=cloudFixture(),storage=memoryStorage(),space=makeSpace(cloud,{storage});await space.init();
+ space.saveNotebook({version:1,notes:[newNote({id:'mine',text:'ฉบับเครื่องนี้'})]});await space.sync();
+ const remote=cloud.rows.get(cloud.owner.id);remote.revision=2;remote.payload.notebook.notes[0].title='แก้จากอีกเครื่อง';
+ const changed=space.notebook();changed.notes[0].title='งานที่ยังไม่ซิงก์';space.saveNotebook(changed);await space.sync();assert.equal(space.info().conflict,true);assert.equal(cloud.calls.length,1);assert.equal(space.notebook().notes[0].title,'งานที่ยังไม่ซิงก์');
+ await space.resolve(true);assert.equal(cloud.rows.get(cloud.owner.id).payload.notebook.notes[0].title,'งานที่ยังไม่ซิงก์');assert.equal(cloud.rows.get(cloud.owner.id).revision,3);assert.ok([...storage.map.keys()].some(k=>k.includes(':recovery:')));assert.ok(storage.map.has(workspaceKey('user-a')));assert.equal(storage.map.has(workspaceKey('user-b')),false);space.dispose();
+});
+
+test('initial cloud failure keeps editing locked rather than starting an empty offline workspace',async()=>{
+ const cloud=cloudFixture();cloud.fail(Error('offline'));const space=makeSpace(cloud);await space.init();
+ assert.equal(space.info().canEdit,false);assert.throws(()=>space.saveNotebook({version:1,notes:[]}),/ยังโหลด/);assert.equal(cloud.rows.size,0);
+ cloud.fail(null);await space.sync();assert.equal(space.info().canEdit,true);space.dispose();
 });

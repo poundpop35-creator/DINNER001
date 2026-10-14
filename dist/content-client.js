@@ -24,7 +24,7 @@ export function validateCatalog(c) {
  const cfg=c.config,cal=cfg.calendar;
  requireValue(day(cal.lectureStart)&&day(cal.lectureEnd)&&cal.lectureStart<=cal.lectureEnd&&day(cal.examStart)&&day(cal.examEnd)&&day(cal.verified)&&cal.timezone==='Asia/Bangkok'&&Array.isArray(cal.exceptions)&&cal.exceptions.every(x=>day(x.start)&&day(x.end)&&x.start<=x.end&&['cancelled','check'].includes(x.kind)&&text(x.title)),'calendar');
  requireValue(plain(cfg.categories)&&plain(cfg.categoryTargets)&&strings(cfg.courseColors)&&cfg.courseColors.every(x=>/^#[0-9a-f]{6}$/i.test(x)),'categories');
- requireValue(Array.isArray(cfg.sources)&&cfg.sources.every(s=>text(s.title)&&text(s.detail)&&(s.url===null||webURL(s.url))),'sources');
+ requireValue(Array.isArray(cfg.sources)&&cfg.sources.every(s=>text(s.title)&&text(s.detail)&&(s.url===null||webURL(s.url))&&(!s.listingUrl||webURL(s.listingUrl))&&(!s.backupUrl||/^\.\/sources\/[a-z0-9.-]+\.pdf$/.test(s.backupUrl))),'sources');
  requireValue(Array.isArray(cfg.readingWeek)&&cfg.readingWeek.length===7&&cfg.readingWeek.every(x=>strings(x)&&courseIds.has(x[1])&&courseIds.has(x[2]))&&Array.isArray(cfg.studyPhases)&&cfg.studyPhases.length===4&&Array.isArray(cfg.studyHours),'study rhythm');
  return c;
 }

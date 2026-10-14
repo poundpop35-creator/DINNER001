@@ -1,2 +1,2 @@
-import {catalog} from './content.js?v=20261014b';
+import {catalog} from './content.js?v=20261014c';
 export const lessons=catalog.lessons;
