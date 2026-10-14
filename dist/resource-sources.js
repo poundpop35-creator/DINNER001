@@ -4,7 +4,7 @@ export const resourceSources=[
     "id": "live",
     "title": "RU Cyber Classroom — เรียนสด",
     "detail": "ช่องทางถ่ายทอดสดตามตาราง ม.ร.30 เลือกส่วนกลางและห้องเรียนของวิชา ตรวจว่ามีถ่ายทอดในวันนั้น",
-    "url": "https://cyberclassroom.ru.ac.th/",
+    "url": "http://cyberclassroom.ru.ac.th/",
     "listingUrl": "https://www.ru.ac.th/th/study_online",
     "accessNote": "ตรวจจากเครือข่ายทดสอบ 14 ต.ค. 2569 เปิดปลายทางไม่สำเร็จหรือหมดเวลารอ ไม่ถือเป็นหลักฐานว่าเว็บหยุดให้บริการทุกเครือข่าย"
   },
