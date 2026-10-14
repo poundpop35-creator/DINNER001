@@ -1,6 +1,6 @@
-import {courses,terms,categoryTargets,readingWeek,studyPhases,studyHours} from './data.js?v=20261011';
-import {lessons} from './lessons.js?v=20261011';
-import {prep} from './prep.js?v=20261011';
+import {courses,terms,categoryTargets,readingWeek,studyPhases,studyHours} from './data.js?v=20261014';
+import {lessons} from './lessons.js?v=20261014';
+import {prep} from './prep.js?v=20261014';
 export const STORAGE_KEY='ru-study-planner.v1';
 export function freshState(){return {version:1,completed:[],notes:{},answers:{},reviews:{},grades:{},termMoves:{},lastLesson:null,transfer:{general:0,free:0},sessions:[],dailyGoal:1,font:'normal',hours:{weekday:2,weekend:4},todayHours:null,planDone:{},prep:{}};}
 const lessonIds=new Set(lessons.map(l=>l.id));
@@ -119,3 +119,4 @@ export function activeDays(state){const days=new Set(state.sessions.map(s=>s.dat
 export function streak(state,day=today()){const days=activeDays(state);let d=days.has(day)?day:addDays(day,-1),n=0;while(days.has(d)){n++;d=addDays(d,-1);}return n;}
 // ---- Exam-style practice sets ----
 export function prepResult(state,code){const g=prep[code];if(!g)return null;const p=state.prep[code]||{answers:{},submitted:false,best:null,last:null};const total=g.questions.length,answered=Object.keys(p.answers).length,correct=g.questions.filter((q,i)=>p.answers[i]===q.answer).length;return {...p,total,answered,correct};}
+
