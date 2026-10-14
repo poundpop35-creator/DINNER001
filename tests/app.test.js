@@ -19,7 +19,7 @@ const click=(action,data={})=>listeners.click({target:{closest:()=>({dataset:{ac
 const saved=()=>JSON.parse(memory.get(STORAGE_KEY));
 
 test('every main route and all 35 lesson pages render without runtime errors',()=>{
- for(const route of ['home','courses','review','plan','calendar','exams','resources','notes','about','settings']){navigate('#'+route);assert.ok(html().length>500,route);assert.ok(!html().includes('[object Object]'),route);assert.ok(!html().includes('undefined'),route);}
+ for(const route of ['home','courses','review','plan','calendar','exams','resources','notes','account','about','settings']){navigate('#'+route);assert.ok(html().length>500,route);assert.ok(!html().includes('[object Object]'),route);assert.ok(!html().includes('undefined'),route);}
  for(const l of lessons){navigate('#lesson/'+l.id);assert.ok(html().includes(l.title),l.id);assert.ok(html().includes(l.example.analysis),l.id);assert.equal((html().match(/class="question-block"/g)||[]).length,2,l.id);}
  navigate('#lesson/missing');assert.ok(html().includes('ไม่พบหน้าที่เลือก'));
 });
@@ -37,6 +37,13 @@ test('notes save immediately and render as text, never executable user HTML',()=
  assert.equal(saved().notes['POL1101-1'],'<script>unsafe()</script>\nรัฐกับรัฐบาลต่างกัน');
  navigate('#notes');assert.ok(html().includes('&lt;script&gt;unsafe()&lt;/script&gt;'));assert.ok(!html().includes('<script>unsafe()'));
  navigate('#lesson/POL1101-1');assert.ok(html().includes('รัฐกับรัฐบาลต่างกัน'));
+});
+test('rich notebook page supports course-linked writing, formatting controls, images and recall',()=>{
+ navigate('#lesson/POL1101-1');assert.ok(html().includes('data-action="nb-from-lesson"'));
+ click('nb-from-lesson',{lesson:'POL1101-1'});assert.match(location.hash,/^#note\//);navigate(location.hash);
+ for(const text of ['ไฮไลต์','สีตัวอักษร','แทรกรูป','คำถามทวนความจำ','note-image-file','note-question','POL1101'])assert.ok(html().includes(text),text);
+ navigate('#notes');assert.ok(html().includes('ส่งออกโน้ตพร้อมรูป'));assert.ok(html().includes('POL1101'));click('nb-review');assert.ok(html().includes('ยังไม่มีคำถามจากโน้ต'));click('nb-review-close');
+ navigate('#account');assert.ok(html().includes('Google'));assert.ok(html().includes('URL Configuration'));
 });
 test('completion updates progress and remains reversible without changing earned credits',()=>{
  navigate('#lesson/POL1101-1');click('complete',{id:'POL1101-1'});assert.ok(saved().completed.includes('POL1101-1'));navigate('#course/POL1101');assert.ok(html().includes('เรียนแล้ว 1 / 5 บท'));

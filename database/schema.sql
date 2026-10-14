@@ -1,6 +1,6 @@
--- Schema reference for the NEW, separate RU Study Planner Supabase project.
+-- Applied 2026-10-14 to RU-Study-Planner (yikfrloyijdbwglswcww).
 -- Not applied to the registration project's database.
--- Apply as one migration through Supabase after its project ID is confirmed.
+-- Reference only: do not reapply to existing tables. Migration: ru_study_published_content.
 begin;
 create table public.ru_study_terms (
  id integer primary key check (id >= 0), name text not null, label text not null,
@@ -72,7 +72,7 @@ language sql stable security invoker set search_path = '' as $$
   'courses',coalesce((select jsonb_agg(to_jsonb(c)-'position' order by c.position) from public.ru_study_courses c),'[]'::jsonb),
   'lessons',coalesce((select jsonb_agg(l.content || jsonb_build_object('id',l.id,'course',l.course,'n',l.n,'title',l.title) order by c.position,l.n) from public.ru_study_lessons l join public.ru_study_courses c on c.id=l.course),'[]'::jsonb),
   'prep',coalesce((select jsonb_object_agg(g.course,g.content) from public.ru_study_exam_guides g),'{}'::jsonb),
-  'schedules',coalesce((select jsonb_agg(jsonb_build_object('id',s.id,'course',s.course,'term',s.term,'weekday',s.weekday,'startTime',to_char(s.start_time,'HH24:MI'),'endTime',to_char(s.end_time,'HH24:MI'),'room',s.room,'source',s.source,'page',s.page) order by s.course) from public.ru_study_class_schedules s),'[]'::jsonb)
+  'schedules',coalesce((select jsonb_agg(jsonb_build_object('id',s.id,'course',s.course,'term',s.term,'weekday',s.weekday,'startTime',left(s.start_time::text,5),'endTime',left(s.end_time::text,5),'room',s.room,'source',s.source,'page',s.page) order by s.course) from public.ru_study_class_schedules s),'[]'::jsonb)
  );
 $$;
 revoke all on function public.ru_study_catalog() from public;

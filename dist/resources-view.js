@@ -1,6 +1,6 @@
-import {courses,sources} from './data.js?v=20261014';
-import {lessons} from './lessons.js?v=20261014';
-import {escapeHTML as e,courseProgress} from './core.js?v=20261014';
+import {courses,sources} from './data.js?v=20261014b';
+import {lessons} from './lessons.js?v=20261014b';
+import {escapeHTML as e,courseProgress} from './core.js?v=20261014b';
 const source=id=>sources.find(s=>s.id===id)?.url;
 export function courseResources(code){
  return `<section class="course-resources"><div><h2>เรียนวิชานี้ให้ครบวงจร</h2><p>ใช้รหัส <b>${code}</b> ค้นคำบรรยายและตำรา ตรวจภาคเรียนและฉบับกับผู้สอน</p></div><div class="resource-actions"><a class="button primary" href="${e(source('video'))}" target="_blank" rel="noopener noreferrer">▶ เรียนออนไลน์</a><a class="button secondary" href="${e(source('bookstore'))}" target="_blank" rel="noopener noreferrer">หาตำรา / ซื้อหนังสือ ↗</a><a class="button secondary" href="#prep/${code}">ฝึกข้อสอบ →</a></div><p class="quiet-note">ลิงก์เปิดเว็บมหาวิทยาลัยในแท็บใหม่ ใช้บัญชีและสิทธิ์ของคุณในระบบนั้น วิดีโอและหนังสือไม่ได้คัดลอกมาเก็บในแอป</p></section>`;

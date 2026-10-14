@@ -1,19 +1,37 @@
 # Supabase — RU Study Planner
 
-สถานะ 14 ต.ค. 2569: **เตรียมโค้ดและข้อมูลแล้ว ยังไม่ได้สร้างหรือเชื่อมโปรเจ็กต์ใหม่**
-ผู้ใช้จะสร้างโปรเจ็กต์เอง หลังงาน GitHub เสร็จ เครื่องมือ `get_cost` ไม่พร้อมใช้งาน
-ใช้องค์กรเดิมที่ผู้ใช้เลือก แต่ต้องเป็น **โปรเจ็กต์ RU Study Planner แยกใหม่**
-โปรเจ็กต์ระบบลงทะเบียนเดิม ไม่ได้ถูกแก้ไขและไม่ใช่เป้าหมายของ SQL ชุดนี้
+สถานะ 14 ต.ค. 2569: **ย้ายเนื้อหาและสร้างพื้นที่ข้อมูลส่วนตัวเรียบร้อยแล้ว**
+โปรเจ็กต์เป้าหมาย `RU-Study-Planner` / `yikfrloyijdbwglswcww` (Seoul)
+โปรเจ็กต์ระบบลงทะเบียนเดิมไม่ได้ถูกแก้ไข
 
-## เชื่อมครั้งแรก
+## สิ่งที่ตรวจจริงแล้ว
 
-1. สร้างโปรเจ็กต์ชื่อ **RU Study Planner** ตรวจราคาและ region ในหน้า Supabase ก่อนสร้าง
-2. ตรวจ project ID ใหม่และสถานะ healthy ให้ตรงกับโปรเจ็กต์เรียน
-3. ใช้ `database/schema.sql` เป็น SQL ของ migration ผ่าน Supabase จากนั้นนำเข้า `database/seed.sql` ใน transaction
-4. ตรวจจำนวนแถว: terms 7 / courses 28 / lessons 35 / exam guides 7 / class schedules 7 / settings 3 และคำถามฝึกใน exam guides รวม 173 ข้อ
-5. ใช้ API ของผู้เยี่ยมชมเรียก `POST /rest/v1/rpc/ru_study_catalog` แล้วตรวจด้วย `validateCatalog` ทดสอบด้วยว่าผู้เยี่ยมชมเขียน/ลบแถวไม่ได้ จากนั้นตรวจ security advisors
-6. ใส่ Project URL และ **publishable key (`sb_publishable_…`)** ใน `dist/supabase-config.js` ห้ามใช้ secret key หรือ service_role
-7. `npm run check && npm test` แล้วเผยแพร่ แอปจะอ่านจาก Supabase เป็นลำดับแรกทุกครั้งที่เปิดใหม่
+- public catalog API ผ่าน validation: terms 7, courses 28, lessons 35, guides 7, schedules 7; practice 173 ข้อ
+- schema migrations: `ru_study_published_content`, `ru_study_private_workspace_and_images`
+- SQL seed อยู่ใน database/seed.sql; เป็นข้อมูลการเรียนสาธารณะเท่านั้น
+- workspace ส่วนตัวมี RLS ผูก auth.uid() กับ user_id และ save RPC ตรวจ revision
+- storage bucket `ru-study-notes` เป็น private รองรับ JPG/PNG/WebP/GIF ไม่เกิน 5 MB/รูป
+- anonymous/cross-user reads/writes ถูกปฏิเสธ และ revision conflict ถูกตรวจจริงด้วย database/verify-access.sql (transaction rollback)
+- security advisors ไม่มีรายการเตือน ณ เวลาตรวจ
+
+## เหลือการตั้งค่าเข้าสู่ระบบโดยเจ้าของโปรเจ็กต์
+
+ตอนตรวจ `/auth/v1/settings`: Google false, email true, email confirmation required, anonymous sign-in false
+เครื่องมือ Supabase ในเซสชันนี้ไม่มีการตั้งค่า Auth provider/URL; ไม่ได้ดึงหรือขอรหัสลับ Google
+
+1. ไป Authentication → URL Configuration ตั้ง Site URL เป็น URL หน้าแอปหลัก และใส่ Redirect URL ทั้งหน้า Vercel และ `https://poundpop35-creator.github.io/RU-Study-Planner/` หากใช้งานทั้งคู่
+2. เปิด Authentication → Sign In / Providers → Google โดยใช้ Client ID และ Client Secret จาก Google Cloud ตั้ง Authorized Redirect URI เป็น `https://yikfrloyijdbwglswcww.supabase.co/auth/v1/callback`
+3. โหลดแอปใหม่แล้วเปิดหน้า “บัญชีและการซิงก์” ปุ่ม Google จะเปิดตาม settings จริง
+4. ทางเลือกอีเมล/รหัสผ่านต้องยืนยันอีเมลและมี SMTP ที่ส่งถึงผู้ใช้ได้ ไม่อ้างว่า Google หรืออีเมลของผู้ใช้ผ่าน end-to-end แล้ว
+5. หลังเข้าบัญชี เลือกคัดลอกข้อมูลก่อนเข้าสู่ระบบหนึ่งครั้ง หากมีข้อมูลเดิม ต้องตั้งใจเลือกแทนที่ข้อมูลบัญชีและมีสำเนากู้คืนอัตโนมัติ
+
+## บันทึกและรูปส่วนตัว
+
+สมุดจด Quill เก็บ Delta ที่ผ่านตัวกรอง ไม่ใช้ innerHTML ของผู้ใช้ โครงสร้างสี/ไฮไลต์และรูปถูกเก็บใน `ru_study_workspaces.payload` แยกตามเจ้าของ รูปเป็น ID อ้างถึง private storage ไม่เก็บ URL สาธารณะหรือ URL ที่หมดอายุลงเนื้อหา
+
+ก่อนลงชื่อ: localStorage / IndexedDB ของ origin นี้ หลังลงชื่อ: cache แยก user ID และ RPC สำหรับ owner เท่านั้น หากเครื่องอื่นแก้ก่อนจะหยุดการซิงก์และให้เลือกฉบับ ไม่เขียนทับเงียบ ๆ
+
+“ส่งออกโน้ตพร้อมรูป” รวม snapshot และ image data ลง JSON ในเครื่อง ไม่ส่งไปบริการอื่น การย้าย GitHub Pages → Vercel ต้องนำเข้าสำรองหรือเข้าสู่บัญชีเดียวกัน เพราะ localStorage/IndexedDB ไม่ข้าม origin
 
 ## แก้เนื้อหาใน Table Editor
 
@@ -41,8 +59,11 @@ Supabase → สำเนาที่เคยอ่านสำเร็จแ�
 
 ## ความเป็นส่วนตัว
 
-ตารางชุดนี้มีเฉพาะเนื้อหาการเรียนที่เผยแพร่ใน GitHub อยู่แล้ว เปิดอ่านผ่าน RLS แต่ไม่อนุญาตให้ผู้เยี่ยมชมเขียน
-สมุดจด คำตอบ เกรด และความคืบหน้ายังอยู่ใน `localStorage` เดิม (`ru-study-planner.v1`) ไม่ถูกส่งไปฐานข้อมูลสาธารณะ
-การซิงก์ข้อมูลส่วนตัวข้ามเครื่องต้องเพิ่มระบบลงชื่อและตาราง RLS ที่ผูกกับเจ้าของในงานถัดไป
+ตารางเนื้อหาเปิดอ่านได้ แต่ anonymous/authenticated เขียนไม่ได้
+ตาราง workspace และรูปอ่าน/เขียนได้เฉพาะเจ้าของที่ผ่าน Supabase Auth
+ฝั่งหน้าเว็บใช้เฉพาะ publishable key ไม่ใช้ service_role/secret key
+ไม่มีการย้ายข้อมูลส่วนตัวจากอุปกรณ์ของผู้ใช้โดย agent ข้อมูลจะซิงก์จากแอปหลังผู้ใช้เข้าสู่บัญชี
 
-SQL อ้างอิงนี้ยังไม่ได้รันกับ Postgres จริง ต้องผ่านการตรวจในข้อ 5 ก่อนระบุว่าย้ายสำเร็จ
+## การทดสอบที่ยังไม่ได้ทำ
+
+ยังไม่ได้เข้า Google ด้วยบัญชีผู้ใช้ ยังไม่ได้ทำ browser QA กับการเลือกข้อความ/วางรูป/print layout บนอุปกรณ์จริง รุ่นนี้ผ่าน automated logic/render tests และการทดสอบฐานข้อมูลจริง
