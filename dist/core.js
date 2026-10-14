@@ -1,6 +1,6 @@
-import {courses,terms,categoryTargets,readingWeek,studyPhases,studyHours} from './data.js?v=20261014f';
-import {lessons} from './lessons.js?v=20261014f';
-import {prep} from './prep.js?v=20261014f';
+import {courses,terms,categoryTargets,readingWeek,studyPhases,studyHours} from './data.js?v=20261014g';
+import {lessons} from './lessons.js?v=20261014g';
+import {prep} from './prep.js?v=20261014g';
 export const STORAGE_KEY='ru-study-planner.v1';
 export function freshState(){return {version:1,completed:[],notes:{},answers:{},reviews:{},grades:{},termMoves:{},lastLesson:null,transfer:{general:0,free:0},sessions:[],dailyGoal:1,font:'normal',hours:{weekday:2,weekend:4},todayHours:null,planDone:{},prep:{}};}
 const lessonIds=new Set(lessons.map(l=>l.id));

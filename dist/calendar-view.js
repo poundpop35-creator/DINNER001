@@ -1,6 +1,6 @@
-import {calendar,courses,schedules,sources} from './data.js?v=20261014f';
-import {escapeHTML as e,thaiDate,today,addDays} from './core.js?v=20261014f';
-import {calendarEvents,defaultMonth,activityMonth,firstLecture,lectureClashes,monthBounds,shiftMonth,weekdays,scheduleICS} from './calendar-core.js?v=20261014-study2';
+import {calendar,courses,schedules,sources} from './data.js?v=20261014g';
+import {escapeHTML as e,thaiDate,today,addDays} from './core.js?v=20261014g';
+import {calendarEvents,defaultMonth,activityMonth,firstLecture,lectureClashes,monthBounds,shiftMonth,weekdays,scheduleICS} from './calendar-core.js?v=20261014g';
 let month=defaultMonth(),type='all',course='',view='month',selected='';
 const monthName=m=>new Intl.DateTimeFormat('th-TH',{month:'long',year:'numeric',timeZone:'Asia/Bangkok'}).format(new Date(m+'-01T12:00:00+07:00'));
 const sourceURL=id=>sources.find(s=>s.id===id)?.url||'#about';

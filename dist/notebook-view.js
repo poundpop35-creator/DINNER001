@@ -1,10 +1,10 @@
-import {studySections} from './study-sections.js?v=20261014-study2';
-import {openInkPad} from './ink-pad.js?v=20261014-study2';
-import {courses} from './data.js?v=20261014f';
-import {lessons} from './lessons.js?v=20261014f';
-import {escapeHTML as e} from './core.js?v=20261014f';
-import {newNote,findNotes,deltaText,cleanDelta,legacyNotes,PALETTE,HIGHLIGHTS,referencedImages,NOTE_SOURCES,noteSource} from './notebook-core.js?v=20261014-study2';
-import {loadScript} from './study-space.js?v=20261014-study2';
+import {studySections} from './study-sections.js?v=20261014g';
+import {openInkPad} from './ink-pad.js?v=20261014g';
+import {courses} from './data.js?v=20261014g';
+import {lessons} from './lessons.js?v=20261014g';
+import {escapeHTML as e} from './core.js?v=20261014g';
+import {newNote,findNotes,deltaText,cleanDelta,legacyNotes,PALETTE,HIGHLIGHTS,referencedImages,NOTE_SOURCES,noteSource} from './notebook-core.js?v=20261014g';
+import {loadScript} from './study-space.js?v=20261014g';
 let query='',course='',source='',archived=false,reviewing=false,reviewIndex=0,revealed=false,editor=null,unmount=()=>{},mountNumber=0;
 const stamps=x=>new Intl.DateTimeFormat('th-TH',{dateStyle:'medium',timeStyle:'short'}).format(new Date(x));
 const sourceChoices=value=>Object.entries(NOTE_SOURCES).map(([key,label])=>`<option value="${key}" ${value===key?'selected':''}>${label}</option>`).join('');
